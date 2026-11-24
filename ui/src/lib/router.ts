@@ -3,7 +3,7 @@
 import { get, writable } from 'svelte/store';
 import type { Filter } from './types';
 
-export type SettingsTab = 'catalog' | 'backup' | 'import' | 'export';
+export type SettingsTab = 'catalog' | 'backup' | 'import' | 'export' | 'about';
 
 export type Route =
   | { page: 'start' }
