@@ -9,12 +9,12 @@ use crate::dto::{SecondaryResultDto, SessionInfo};
 use crate::error::AppResult;
 use crate::identity::identity_from_env;
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn last_path(state: State<AppState>) -> Option<String> {
     load_last_path(&state.config_dir).map(|p| p.display().to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn open_file(state: State<AppState>, path: String) -> AppResult<SessionInfo> {
     let path = PathBuf::from(path);
     let info = state.with(|s| s.open(&path, &identity_from_env()))?;
@@ -22,7 +22,7 @@ pub fn open_file(state: State<AppState>, path: String) -> AppResult<SessionInfo>
     Ok(info)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn create_file(state: State<AppState>, path: String) -> AppResult<SessionInfo> {
     let path = PathBuf::from(path);
     let info = state.with(|s| s.create(&path, &identity_from_env()))?;
@@ -30,17 +30,17 @@ pub fn create_file(state: State<AppState>, path: String) -> AppResult<SessionInf
     Ok(info)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn take_over(state: State<AppState>) -> AppResult<SessionInfo> {
     state.with(|s| s.take_over(&identity_from_env()))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn session_info(state: State<AppState>) -> AppResult<SessionInfo> {
     state.with(|s| s.info(Utc::now()))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn close_file(state: State<AppState>) -> AppResult<Option<SecondaryResultDto>> {
     state.with(|s| s.close(Local::now()))
 }
