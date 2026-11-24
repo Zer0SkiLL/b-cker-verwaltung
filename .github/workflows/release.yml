@@ -13,13 +13,17 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       release_id: ${{ steps.draft.outputs.id }}
+      body: ${{ steps.body.outputs.body }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Abschnitt aus CHANGELOG.md
-        run: node scripts/notes.mjs "${GITHUB_REF_NAME}" > notes.md
+        id: body
+        run: |
+          node scripts/notes.mjs "${GITHUB_REF_NAME}" > notes.md
+          { echo 'body<<NOTES_EOF'; cat notes.md; echo 'NOTES_EOF'; } >> "$GITHUB_OUTPUT"
       - name: Entwurf einmal anlegen (alle Builds laden dorthin hoch)
         id: draft
         env:
@@ -91,4 +95,6 @@ jobs:
           tauriScript: pnpm tauri
           args: ${{ matrix.args }}
           releaseId: ${{ needs.notes.outputs.release_id }}
+          # Text für „Was ist neu?“ im Update-Hinweis des Programms (latest.json → notes).
+          releaseBody: ${{ needs.notes.outputs.body }}
           includeUpdaterJson: true
