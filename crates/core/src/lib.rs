@@ -1,5 +1,6 @@
 //! Datenkern der Mitgliederverwaltung: Speicherung, Abfragen, Import und Export.
 
+pub mod contact;
 pub mod db;
 pub mod error;
 pub mod model;
