@@ -9,29 +9,34 @@ permissions:
 
 jobs:
   notes:
-    name: Release Notes
+    name: Release Notes und Entwurf
     runs-on: ubuntu-22.04
     outputs:
-      body: ${{ steps.notes.outputs.body }}
+      release_id: ${{ steps.draft.outputs.id }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Abschnitt aus CHANGELOG.md
-        id: notes
+        run: node scripts/notes.mjs "${GITHUB_REF_NAME}" > notes.md
+      - name: Entwurf einmal anlegen (alle Builds laden dorthin hoch)
+        id: draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          {
-            echo 'body<<NOTES_EOF'
-            node scripts/notes.mjs "${GITHUB_REF_NAME}"
-            echo 'NOTES_EOF'
-          } >> "$GITHUB_OUTPUT"
+          gh release create "${GITHUB_REF_NAME}" --draft --verify-tag \
+            --title "Mitgliederverwaltung ${GITHUB_REF_NAME}" --notes-file notes.md
+          id=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --jq ".[] | select(.tag_name == \"${GITHUB_REF_NAME}\") | .id")
+          echo "id=${id}" >> "$GITHUB_OUTPUT"
 
   build:
     name: Installer (${{ matrix.name }})
     needs: notes
     strategy:
       fail-fast: false
+      # Nacheinander: jeder Build ergänzt latest.json; parallel könnten sich Einträge überschreiben.
+      max-parallel: 1
       matrix:
         include:
           - name: Windows
@@ -83,9 +88,5 @@ jobs:
           projectPath: .
           tauriScript: pnpm tauri
           args: ${{ matrix.args }}
-          tagName: ${{ github.ref_name }}
-          releaseName: Mitgliederverwaltung ${{ github.ref_name }}
-          releaseBody: ${{ needs.notes.outputs.body }}
-          releaseDraft: true
-          prerelease: false
+          releaseId: ${{ needs.notes.outputs.release_id }}
           includeUpdaterJson: true
