@@ -104,7 +104,9 @@ fn number_date(n: f64) -> DateResult {
 }
 
 fn text_date(t: &str) -> DateResult {
-    if let Ok(d) = NaiveDate::parse_from_str(t, "%d.%m.%Y") {
+    // chrono akzeptiert bei %Y auch zweistellige Jahre (19 → Jahr 0019); nur vierstellige zulassen.
+    let four_digit_year = t.rsplit('.').next().is_some_and(|y| y.len() == 4);
+    if let (true, Ok(d)) = (four_digit_year, NaiveDate::parse_from_str(t, "%d.%m.%Y")) {
         return DateResult::Date(d);
     }
     if t.len() == 4 {

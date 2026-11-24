@@ -182,3 +182,13 @@ fn open_refuses_database_from_newer_version() {
     }
     assert!(LockGuard::acquire(&db, &who("x")).is_ok(), "Sperre muss freigegeben sein");
 }
+
+// I4
+#[test]
+fn two_digit_years_are_invalid_not_year_0019() {
+    use verwaltung_core::import::sheet::Cell;
+    use verwaltung_core::import::values::{as_date, DateResult};
+    assert_eq!(as_date(&Cell::Text("05.03.19".into())), DateResult::Invalid("05.03.19".into()));
+    assert_eq!(as_date(&Cell::Text("5.3.95".into())), DateResult::Invalid("5.3.95".into()));
+    assert_eq!(as_date(&Cell::Text("5.3.1995".into())), DateResult::Date(d(1995, 3, 5)));
+}
