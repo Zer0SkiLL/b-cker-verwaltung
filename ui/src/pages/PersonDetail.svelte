@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import AffiliationList from '../components/AffiliationList.svelte';
   import LabelAssignments from '../components/LabelAssignments.svelte';
   import MembershipList from '../components/MembershipList.svelte';
@@ -7,7 +7,7 @@
   import * as api from '../lib/api';
   import { confirmAction } from '../lib/desktop';
   import { emptyPersonForm, personFormFrom, personInputFromForm, type Errors } from '../lib/forms';
-  import { back, navigate, replace } from '../lib/router';
+  import { back, navigate, replace, setLeaveGuard } from '../lib/router';
   import { dataVersion, runWrite, sessionInfo } from '../lib/session';
   import type { FilterOptions, OptionDto, PersonDetail } from '../lib/types';
 
@@ -22,6 +22,18 @@
   let options = $state<FilterOptions | null>(null);
   let organisations = $state<OptionDto[]>([]);
   let loaded = '';
+  // Stand des Formulars nach Laden/Speichern; Abweichung = ungespeicherte Änderungen.
+  let baseline = $state(JSON.stringify(emptyPersonForm()));
+  const dirty = $derived(JSON.stringify(form) !== baseline);
+
+  $effect(() => {
+    setLeaveGuard(
+      dirty
+        ? () => confirmAction('Es gibt ungespeicherte Änderungen. Seite trotzdem verlassen?', 'Verlassen')
+        : null,
+    );
+  });
+  onDestroy(() => setLeaveGuard(null));
 
   const readOnly = $derived($sessionInfo?.readOnly ?? false);
   const title = $derived([form.first_name, form.last_name].filter((v) => v.trim()).join(' '));
@@ -37,6 +49,7 @@
         if (snapshot !== loaded) {
           loaded = snapshot;
           form = personFormFrom(detail.person);
+          baseline = JSON.stringify(form);
         }
       }
     } catch (err) {
@@ -63,6 +76,7 @@
       );
       failure = null;
       saved = true;
+      baseline = JSON.stringify(form);
       if (id === null) replace({ page: 'person', id: person.id });
     } catch (err) {
       failure = (err as Error).message;
@@ -73,6 +87,7 @@
     if (id === null || !(await confirmAction(`${title || 'Person'} mit allen Verknüpfungen löschen?`, 'Löschen'))) return;
     try {
       await runWrite(() => api.deletePerson(id));
+      setLeaveGuard(null);
       back();
     } catch (err) {
       failure = (err as Error).message;
@@ -89,7 +104,7 @@
   <div class="toolbar">
     <button class="primary" disabled={readOnly} onclick={save}>Speichern</button>
     {#if id !== null}<button class="danger" disabled={readOnly} onclick={remove}>Person löschen</button>{/if}
-    {#if saved}<span class="muted">Gespeichert.</span>{/if}
+    {#if dirty}<span class="muted">Ungespeicherte Änderungen</span>{:else if saved}<span class="muted">Gespeichert.</span>{/if}
   </div>
 </section>
 

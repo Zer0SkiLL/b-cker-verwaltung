@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import AffiliationList from '../components/AffiliationList.svelte';
   import LabelAssignments from '../components/LabelAssignments.svelte';
   import MembershipList from '../components/MembershipList.svelte';
@@ -7,7 +7,7 @@
   import * as api from '../lib/api';
   import { confirmAction } from '../lib/desktop';
   import { emptyOrganisationForm, organisationFormFrom, organisationInputFromForm, type Errors } from '../lib/forms';
-  import { back, replace } from '../lib/router';
+  import { back, replace, setLeaveGuard } from '../lib/router';
   import { dataVersion, runWrite, sessionInfo } from '../lib/session';
   import type { FilterOptions, OptionDto, OrganisationDetail } from '../lib/types';
 
@@ -22,6 +22,18 @@
   let options = $state<FilterOptions | null>(null);
   let people = $state<OptionDto[]>([]);
   let loaded = '';
+  // Stand des Formulars nach Laden/Speichern; Abweichung = ungespeicherte Änderungen.
+  let baseline = $state(JSON.stringify(emptyOrganisationForm()));
+  const dirty = $derived(JSON.stringify(form) !== baseline);
+
+  $effect(() => {
+    setLeaveGuard(
+      dirty
+        ? () => confirmAction('Es gibt ungespeicherte Änderungen. Seite trotzdem verlassen?', 'Verlassen')
+        : null,
+    );
+  });
+  onDestroy(() => setLeaveGuard(null));
 
   const readOnly = $derived($sessionInfo?.readOnly ?? false);
 
@@ -36,6 +48,7 @@
         if (snapshot !== loaded) {
           loaded = snapshot;
           form = organisationFormFrom(detail.organisation);
+          baseline = JSON.stringify(form);
         }
       }
     } catch (err) {
@@ -62,6 +75,7 @@
       );
       failure = null;
       saved = true;
+      baseline = JSON.stringify(form);
       if (id === null) replace({ page: 'organisation', id: org.id });
     } catch (err) {
       failure = (err as Error).message;
@@ -72,6 +86,7 @@
     if (id === null || !(await confirmAction(`Betrieb „${form.name}“ mit allen Verknüpfungen löschen?`, 'Löschen'))) return;
     try {
       await runWrite(() => api.deleteOrganisation(id));
+      setLeaveGuard(null);
       back();
     } catch (err) {
       failure = (err as Error).message;
@@ -88,7 +103,7 @@
   <div class="toolbar">
     <button class="primary" disabled={readOnly} onclick={save}>Speichern</button>
     {#if id !== null}<button class="danger" disabled={readOnly} onclick={remove}>Betrieb löschen</button>{/if}
-    {#if saved}<span class="muted">Gespeichert.</span>{/if}
+    {#if dirty}<span class="muted">Ungespeicherte Änderungen</span>{:else if saved}<span class="muted">Gespeichert.</span>{/if}
   </div>
 </section>
 
