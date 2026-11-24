@@ -6,7 +6,8 @@ use crate::error::{CoreError, Result};
 use crate::text::{clean, normalize_search};
 
 const ENTITY: &str = "Betrieb";
-const COLUMNS: &str = "id, name, addition, street, po_box, zip, city, phone, email, website, branches, \
+const COLUMNS: &str =
+    "id, name, addition, street, po_box, zip, city, phone, email, website, branches, \
      apprentice_count, notes, legacy_id, org_type_id, cantonal_association_id";
 
 /// Eingabedaten für einen Betrieb (juristische Person).
@@ -122,7 +123,12 @@ fn cleaned(input: &OrganisationInput) -> Result<OrganisationInput> {
 }
 
 fn search_text(c: &OrganisationInput) -> String {
-    normalize_search(&[Some(&c.name), c.addition.as_deref(), c.city.as_deref(), c.email.as_deref()])
+    normalize_search(&[
+        Some(&c.name),
+        c.addition.as_deref(),
+        c.city.as_deref(),
+        c.email.as_deref(),
+    ])
 }
 
 fn from_row(row: &Row) -> rusqlite::Result<Organisation> {

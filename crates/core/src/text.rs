@@ -23,5 +23,9 @@ pub fn format_date(d: NaiveDate) -> String {
 
 /// Trimmt einen optionalen Text; leere Texte werden zu `None`.
 pub fn clean(value: &Option<String>) -> Option<String> {
-    value.as_deref().map(str::trim).filter(|v| !v.is_empty()).map(String::from)
+    value
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+        .map(String::from)
 }

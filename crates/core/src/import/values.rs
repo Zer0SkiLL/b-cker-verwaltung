@@ -40,8 +40,20 @@ pub fn as_text(cell: &Cell) -> Option<String> {
 
 pub fn as_flag(cell: &Cell) -> FlagResult {
     match cell {
-        Cell::Bool(b) => if *b { FlagResult::Yes } else { FlagResult::No },
-        Cell::Number(n) => if *n != 0.0 { FlagResult::Yes } else { FlagResult::No },
+        Cell::Bool(b) => {
+            if *b {
+                FlagResult::Yes
+            } else {
+                FlagResult::No
+            }
+        }
+        Cell::Number(n) => {
+            if *n != 0.0 {
+                FlagResult::Yes
+            } else {
+                FlagResult::No
+            }
+        }
         _ => match as_text(cell) {
             None => FlagResult::No,
             Some(t) => {

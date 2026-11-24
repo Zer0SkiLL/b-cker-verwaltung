@@ -38,7 +38,9 @@ fn validate(backup: &Path) -> Result<()> {
     }
     let conn = db::open_unmigrated(backup, true)?;
     if db::schema_version(&conn)? > SCHEMA_VERSION {
-        return Err(CoreError::Validation("Sicherung stammt von einer neueren Programmversion".into()));
+        return Err(CoreError::Validation(
+            "Sicherung stammt von einer neueren Programmversion".into(),
+        ));
     }
     Ok(())
 }

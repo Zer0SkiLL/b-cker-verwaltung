@@ -14,7 +14,8 @@ fn reads_headers_and_skips_empty_rows() {
     ws.write_string(1, 0, "Bäckerei Muster").unwrap();
     ws.write_number(1, 1, 8000.0).unwrap();
     let fmt = Format::new().set_num_format("dd.mm.yyyy");
-    ws.write_datetime_with_format(1, 2, ExcelDateTime::from_ymd(2019, 3, 5).unwrap(), &fmt).unwrap();
+    ws.write_datetime_with_format(1, 2, ExcelDateTime::from_ymd(2019, 3, 5).unwrap(), &fmt)
+        .unwrap();
     // Zeile 3 (Index 2) bleibt leer
     ws.write_string(3, 0, "Confiserie").unwrap();
     wb.save(&path).unwrap();
@@ -25,7 +26,10 @@ fn reads_headers_and_skips_empty_rows() {
     assert_eq!(sheet.rows[0].line, 2);
     assert_eq!(sheet.rows[0].cells[0], Cell::Text("Bäckerei Muster".into()));
     assert_eq!(sheet.rows[0].cells[1], Cell::Number(8000.0));
-    assert_eq!(sheet.rows[0].cells[2], Cell::Date(NaiveDate::from_ymd_opt(2019, 3, 5).unwrap()));
+    assert_eq!(
+        sheet.rows[0].cells[2],
+        Cell::Date(NaiveDate::from_ymd_opt(2019, 3, 5).unwrap())
+    );
     assert_eq!(sheet.rows[1].line, 4);
     assert_eq!(sheet.rows[1].cells[0], Cell::Text("Confiserie".into()));
 }

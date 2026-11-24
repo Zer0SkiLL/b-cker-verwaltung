@@ -15,9 +15,16 @@ pub fn create_group(conn: &Connection, name: &str, applies_to: AppliesTo) -> Res
 }
 
 pub fn get_group(conn: &Connection, id: i64) -> Result<LabelGroup> {
-    conn.query_row("SELECT id, name, applies_to FROM label_groups WHERE id = ?1", [id], group_from_row)
-        .optional()?
-        .ok_or(CoreError::NotFound { entity: "Label-Gruppe", id })
+    conn.query_row(
+        "SELECT id, name, applies_to FROM label_groups WHERE id = ?1",
+        [id],
+        group_from_row,
+    )
+    .optional()?
+    .ok_or(CoreError::NotFound {
+        entity: "Label-Gruppe",
+        id,
+    })
 }
 
 pub fn list_groups(conn: &Connection) -> Result<Vec<LabelGroup>> {
@@ -29,14 +36,24 @@ pub fn list_groups(conn: &Connection) -> Result<Vec<LabelGroup>> {
 
 pub fn create_label(conn: &Connection, group_id: i64, name: &str) -> Result<Label> {
     let name = require_name(name)?;
-    conn.execute("INSERT INTO labels(group_id, name) VALUES (?1, ?2)", params![group_id, name])?;
+    conn.execute(
+        "INSERT INTO labels(group_id, name) VALUES (?1, ?2)",
+        params![group_id, name],
+    )?;
     get_label(conn, conn.last_insert_rowid())
 }
 
 pub fn get_label(conn: &Connection, id: i64) -> Result<Label> {
-    conn.query_row("SELECT id, group_id, name FROM labels WHERE id = ?1", [id], label_from_row)
-        .optional()?
-        .ok_or(CoreError::NotFound { entity: "Label", id })
+    conn.query_row(
+        "SELECT id, group_id, name FROM labels WHERE id = ?1",
+        [id],
+        label_from_row,
+    )
+    .optional()?
+    .ok_or(CoreError::NotFound {
+        entity: "Label",
+        id,
+    })
 }
 
 pub fn list_labels(conn: &Connection, group_id: i64) -> Result<Vec<Label>> {
@@ -49,9 +66,15 @@ pub fn list_labels(conn: &Connection, group_id: i64) -> Result<Vec<Label>> {
 
 pub fn rename_label(conn: &Connection, id: i64, name: &str) -> Result<Label> {
     let name = require_name(name)?;
-    let changed = conn.execute("UPDATE labels SET name = ?1 WHERE id = ?2", params![name, id])?;
+    let changed = conn.execute(
+        "UPDATE labels SET name = ?1 WHERE id = ?2",
+        params![name, id],
+    )?;
     if changed == 0 {
-        return Err(CoreError::NotFound { entity: "Label", id });
+        return Err(CoreError::NotFound {
+            entity: "Label",
+            id,
+        });
     }
     get_label(conn, id)
 }
@@ -66,7 +89,11 @@ pub fn find_or_create_label(
     let group_name = require_name(group_name)?;
     let label_name = require_name(label_name)?;
     let group_id: Option<i64> = conn
-        .query_row("SELECT id FROM label_groups WHERE name = ?1", [&group_name], |r| r.get(0))
+        .query_row(
+            "SELECT id FROM label_groups WHERE name = ?1",
+            [&group_name],
+            |r| r.get(0),
+        )
         .optional()?;
     let group_id = match group_id {
         Some(id) => id,
@@ -86,7 +113,11 @@ pub fn find_or_create_label(
 }
 
 pub fn label_usage_count(conn: &Connection, id: i64) -> Result<i64> {
-    Ok(conn.query_row("SELECT COUNT(*) FROM label_assignments WHERE label_id = ?1", [id], |r| r.get(0))?)
+    Ok(conn.query_row(
+        "SELECT COUNT(*) FROM label_assignments WHERE label_id = ?1",
+        [id],
+        |r| r.get(0),
+    )?)
 }
 
 pub fn delete_label(conn: &Connection, id: i64, confirm: bool) -> Result<()> {
@@ -118,5 +149,9 @@ fn group_from_row(row: &Row) -> rusqlite::Result<LabelGroup> {
 }
 
 fn label_from_row(row: &Row) -> rusqlite::Result<Label> {
-    Ok(Label { id: row.get(0)?, group_id: row.get(1)?, name: row.get(2)? })
+    Ok(Label {
+        id: row.get(0)?,
+        group_id: row.get(1)?,
+        name: row.get(2)?,
+    })
 }

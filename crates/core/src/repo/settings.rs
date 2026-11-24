@@ -10,7 +10,11 @@ pub const SECONDARY_BACKUP_DIR: &str = "backup.secondary_dir";
 pub const LAST_SECONDARY_BACKUP: &str = "backup.last_secondary_at";
 
 pub fn get(conn: &Connection, key: &str) -> Result<Option<String>> {
-    Ok(conn.query_row("SELECT value FROM settings WHERE key = ?1", [key], |r| r.get(0)).optional()?)
+    Ok(conn
+        .query_row("SELECT value FROM settings WHERE key = ?1", [key], |r| {
+            r.get(0)
+        })
+        .optional()?)
 }
 
 pub fn set(conn: &Connection, key: &str, value: &str) -> Result<()> {

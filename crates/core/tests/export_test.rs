@@ -23,7 +23,18 @@ fn contact_table_headers_exact() {
     let t = contact_table(&rows());
     assert_eq!(
         t.headers,
-        vec!["Typ", "Name", "Betrieb", "Adresse", "Postfach", "PLZ", "Ort", "Mail", "Telefon", "Mobiltelefon"]
+        vec![
+            "Typ",
+            "Name",
+            "Betrieb",
+            "Adresse",
+            "Postfach",
+            "PLZ",
+            "Ort",
+            "Mail",
+            "Telefon",
+            "Mobiltelefon"
+        ]
     );
     assert_eq!(t.rows[0][0], "Betrieb");
     assert_eq!(t.rows[0][1], "Bäckerei Müller");
@@ -45,7 +56,10 @@ fn csv_has_bom_and_semicolons_and_umlauts() {
 fn csv_quotes_field_with_semicolon() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("x.csv");
-    let t = Table { headers: vec!["A".into()], rows: vec![vec!["x;y".into()]] };
+    let t = Table {
+        headers: vec!["A".into()],
+        rows: vec![vec!["x;y".into()]],
+    };
     write_csv(&t, &path).unwrap();
     let text = std::fs::read_to_string(&path).unwrap();
     assert!(text.contains("\"x;y\""));

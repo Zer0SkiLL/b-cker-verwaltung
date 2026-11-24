@@ -10,8 +10,18 @@ use crate::error::{CoreError, Result};
 use crate::query::filter::{ContactRow, EntryKind};
 
 const UTF8_BOM: &[u8] = &[0xEF, 0xBB, 0xBF];
-const CONTACT_HEADERS: [&str; 10] =
-    ["Typ", "Name", "Betrieb", "Adresse", "Postfach", "PLZ", "Ort", "Mail", "Telefon", "Mobiltelefon"];
+const CONTACT_HEADERS: [&str; 10] = [
+    "Typ",
+    "Name",
+    "Betrieb",
+    "Adresse",
+    "Postfach",
+    "PLZ",
+    "Ort",
+    "Mail",
+    "Telefon",
+    "Mobiltelefon",
+];
 
 /// Tabelle aus Texten; Grundlage aller Exporte.
 #[derive(Debug, Clone, PartialEq)]
@@ -63,33 +73,50 @@ pub fn write_csv(table: &Table, path: &Path) -> Result<()> {
 
 /// XLSX mit einem Tabellenblatt: fette Kopfzeile, Autofilter, alle Zellen als Text.
 pub fn write_xlsx(table: &Table, path: &Path, sheet_name: &str) -> Result<()> {
+    write_xlsx_sheets(&[(sheet_name.to_string(), table.clone())], path)
+}
+
+/// XLSX mit mehreren Tabellenblättern, gleiche Formatierung wie `write_xlsx`.
+pub fn write_xlsx_sheets(sheets: &[(String, Table)], path: &Path) -> Result<()> {
     let mut workbook = Workbook::new();
-    fill_sheet(workbook.add_worksheet(), sheet_name, table)?;
+    for (name, table) in sheets {
+        fill_sheet(workbook.add_worksheet(), name, table)?;
+    }
     workbook.save(path).map_err(xlsx_error)
 }
 
-pub(crate) fn fill_sheet(sheet: &mut Worksheet, name: &str, table: &Table) -> Result<()> {
+fn fill_sheet(sheet: &mut Worksheet, name: &str, table: &Table) -> Result<()> {
     let bold = Format::new().set_bold();
     sheet.set_name(name).map_err(xlsx_error)?;
     for (col, header) in table.headers.iter().enumerate() {
-        sheet.write_string_with_format(0, col as u16, header, &bold).map_err(xlsx_error)?;
+        sheet
+            .write_string_with_format(0, col as u16, header, &bold)
+            .map_err(xlsx_error)?;
     }
     for (r, row) in table.rows.iter().enumerate() {
         for (col, value) in row.iter().enumerate() {
-            sheet.write_string(r as u32 + 1, col as u16, value).map_err(xlsx_error)?;
+            sheet
+                .write_string(r as u32 + 1, col as u16, value)
+                .map_err(xlsx_error)?;
         }
     }
     if !table.headers.is_empty() {
         let last_col = table.headers.len() as u16 - 1;
-        sheet.autofilter(0, 0, table.rows.len() as u32, last_col).map_err(xlsx_error)?;
+        sheet
+            .autofilter(0, 0, table.rows.len() as u32, last_col)
+            .map_err(xlsx_error)?;
     }
     Ok(())
 }
 
-pub(crate) fn xlsx_error(e: rust_xlsxwriter::XlsxError) -> CoreError {
-    CoreError::Io(std::io::Error::other(format!("Excel-Export fehlgeschlagen: {e}")))
+fn xlsx_error(e: rust_xlsxwriter::XlsxError) -> CoreError {
+    CoreError::Io(std::io::Error::other(format!(
+        "Excel-Export fehlgeschlagen: {e}"
+    )))
 }
 
 fn csv_error(e: csv::Error) -> CoreError {
-    CoreError::Io(std::io::Error::other(format!("CSV-Export fehlgeschlagen: {e}")))
+    CoreError::Io(std::io::Error::other(format!(
+        "CSV-Export fehlgeschlagen: {e}"
+    )))
 }

@@ -12,26 +12,66 @@ use crate::repo::persons::PersonInput;
 /// Zielfeld einer Excel-Spalte.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Field {
-    LegacyId, ApprenticeCount, CantonalAssociation, Name, FirstName, Addition, Street, Zip, City,
-    Category, Email, Website, Apprenticeship, FrBaeck, FrConf, Dh, Notes, Joined, Left, Branches,
-    Phone, Mobile, PoBox, Ignore,
+    LegacyId,
+    ApprenticeCount,
+    CantonalAssociation,
+    Name,
+    FirstName,
+    Addition,
+    Street,
+    Zip,
+    City,
+    Category,
+    Email,
+    Website,
+    Apprenticeship,
+    FrBaeck,
+    FrConf,
+    Dh,
+    Notes,
+    Joined,
+    Left,
+    Branches,
+    Phone,
+    Mobile,
+    PoBox,
+    Ignore,
 }
 
 /// Standard-Zuordnung gemäss Spezifikation (Kopfzeile, ohne Gross-/Kleinschreibung).
 const DEFAULTS: &[(&str, Field)] = &[
-    ("id1", Field::LegacyId), ("anzahl", Field::ApprenticeCount), ("kt verband", Field::CantonalAssociation),
-    ("name/firma", Field::Name), ("vorname", Field::FirstName), ("zusatz", Field::Addition),
-    ("adresse", Field::Street), ("plz", Field::Zip), ("ort", Field::City), ("kategorie", Field::Category),
-    ("mail", Field::Email), ("home", Field::Website), ("lehrbetrieb", Field::Apprenticeship),
-    ("fr bäck", Field::FrBaeck), ("fr conf", Field::FrConf), ("dh", Field::Dh),
-    ("besonderes", Field::Notes), ("eintritt", Field::Joined), ("austritt", Field::Left),
-    ("filialen", Field::Branches), ("telefon", Field::Phone), ("mobiltelefon", Field::Mobile),
+    ("id1", Field::LegacyId),
+    ("anzahl", Field::ApprenticeCount),
+    ("kt verband", Field::CantonalAssociation),
+    ("name/firma", Field::Name),
+    ("vorname", Field::FirstName),
+    ("zusatz", Field::Addition),
+    ("adresse", Field::Street),
+    ("plz", Field::Zip),
+    ("ort", Field::City),
+    ("kategorie", Field::Category),
+    ("mail", Field::Email),
+    ("home", Field::Website),
+    ("lehrbetrieb", Field::Apprenticeship),
+    ("fr bäck", Field::FrBaeck),
+    ("fr conf", Field::FrConf),
+    ("dh", Field::Dh),
+    ("besonderes", Field::Notes),
+    ("eintritt", Field::Joined),
+    ("austritt", Field::Left),
+    ("filialen", Field::Branches),
+    ("telefon", Field::Phone),
+    ("mobiltelefon", Field::Mobile),
     ("postfach", Field::PoBox),
 ];
 
 /// Fachrichtungs-Spalten und die daraus entstehenden Labels.
 pub const FLAG_GROUP: &str = "Ausbildung Fachrichtung";
-const FLAG_FIELDS: &[(Field, &str)] = &[(Field::FrBaeck, "Fr Bäck"), (Field::FrConf, "Fr Conf"), (Field::Dh, "DH")];
+const FLAG_FIELDS: &[(Field, &str)] = &[
+    (Field::FrBaeck, "Fr Bäck"),
+    (Field::FrConf, "Fr Conf"),
+    (Field::Dh, "DH"),
+];
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mapping {
@@ -44,7 +84,10 @@ impl Mapping {
             .iter()
             .map(|h| {
                 let key = h.trim().to_lowercase();
-                let field = DEFAULTS.iter().find(|(k, _)| *k == key).map_or(Field::Ignore, |(_, f)| *f);
+                let field = DEFAULTS
+                    .iter()
+                    .find(|(k, _)| *k == key)
+                    .map_or(Field::Ignore, |(_, f)| *f);
                 (h.clone(), field)
             })
             .collect();
@@ -82,7 +125,11 @@ pub fn plan(sheet: &Sheet, mapping: &Mapping) -> ImportPlan {
     let index = column_index(sheet, mapping);
     let mut result = ImportPlan::default();
     for row in &sheet.rows {
-        let mut ctx = RowCtx { row, index: &index, report: &mut result.report };
+        let mut ctx = RowCtx {
+            row,
+            index: &index,
+            report: &mut result.report,
+        };
         if let Some(planned) = plan_row(&mut ctx) {
             result.rows.push(planned);
         }
@@ -97,9 +144,14 @@ type Index = HashMap<Field, (usize, String)>;
 fn column_index(sheet: &Sheet, mapping: &Mapping) -> Index {
     let mut index = Index::new();
     for (header, field) in &mapping.columns {
-        let pos = sheet.headers.iter().position(|h| h.trim().eq_ignore_ascii_case(header.trim()));
+        let pos = sheet
+            .headers
+            .iter()
+            .position(|h| h.trim().eq_ignore_ascii_case(header.trim()));
         if let (Some(pos), false) = (pos, *field == Field::Ignore) {
-            index.entry(*field).or_insert((pos, header.trim().to_string()));
+            index
+                .entry(*field)
+                .or_insert((pos, header.trim().to_string()));
         }
     }
     index
@@ -113,7 +165,10 @@ struct RowCtx<'a> {
 
 impl RowCtx<'_> {
     fn cell(&self, field: Field) -> &Cell {
-        self.index.get(&field).and_then(|(i, _)| self.row.cells.get(*i)).unwrap_or(&Cell::Empty)
+        self.index
+            .get(&field)
+            .and_then(|(i, _)| self.row.cells.get(*i))
+            .unwrap_or(&Cell::Empty)
     }
 
     fn text(&self, field: Field) -> Option<String> {
@@ -121,8 +176,14 @@ impl RowCtx<'_> {
     }
 
     fn note(&mut self, field: Option<Field>, message: String) {
-        let column = field.and_then(|f| self.index.get(&f)).map(|(_, h)| h.clone());
-        self.report.push(ReportEntry { line: self.row.line, column, message });
+        let column = field
+            .and_then(|f| self.index.get(&f))
+            .map(|(_, h)| h.clone());
+        self.report.push(ReportEntry {
+            line: self.row.line,
+            column,
+            message,
+        });
     }
 
     fn int(&mut self, field: Field) -> Option<i64> {
@@ -161,20 +222,34 @@ impl RowCtx<'_> {
 
 fn plan_row(ctx: &mut RowCtx) -> Option<PlannedRow> {
     let Some(name) = ctx.text(Field::Name) else {
-        ctx.note(Some(Field::Name), "Name/Firma fehlt, Zeile übersprungen".into());
+        ctx.note(
+            Some(Field::Name),
+            "Name/Firma fehlt, Zeile übersprungen".into(),
+        );
         return None;
     };
     let first_name = ctx.text(Field::FirstName);
     let mobile = ctx.text(Field::Mobile);
     let (org_name, addition, person) = match &first_name {
         Some(first) => (
-            ctx.text(Field::Addition).unwrap_or_else(|| format!("{first} {name}")),
+            ctx.text(Field::Addition)
+                .unwrap_or_else(|| format!("{first} {name}")),
             None,
-            Some(PersonInput { first_name: Some(first.clone()), last_name: name, mobile: mobile.clone(), ..Default::default() }),
+            Some(PersonInput {
+                first_name: Some(first.clone()),
+                last_name: name,
+                mobile: mobile.clone(),
+                ..Default::default()
+            }),
         ),
         None => (name, ctx.text(Field::Addition), None),
     };
-    let organisation = organisation(ctx, org_name, addition, person.is_none().then_some(mobile).flatten());
+    let organisation = organisation(
+        ctx,
+        org_name,
+        addition,
+        person.is_none().then_some(mobile).flatten(),
+    );
     let flags = flags(ctx);
     let (joined, left) = membership_dates(ctx);
     Some(PlannedRow {
@@ -190,7 +265,12 @@ fn plan_row(ctx: &mut RowCtx) -> Option<PlannedRow> {
 }
 
 /// Betrieb ohne Person: Mobiltelefon wird zur Telefonnummer bzw. in die Bemerkungen übernommen.
-fn organisation(ctx: &mut RowCtx, name: String, addition: Option<String>, mobile: Option<String>) -> OrganisationInput {
+fn organisation(
+    ctx: &mut RowCtx,
+    name: String,
+    addition: Option<String>,
+    mobile: Option<String>,
+) -> OrganisationInput {
     let mut phone = ctx.text(Field::Phone);
     let mut notes = ctx.text(Field::Notes);
     if let Some(m) = mobile {
@@ -226,7 +306,10 @@ fn flags(ctx: &mut RowCtx) -> Vec<&'static str> {
         .filter_map(|(field, label)| ctx.flag(*field).then_some(*label))
         .collect();
     if ctx.flag(Field::Apprenticeship) && flags.is_empty() {
-        ctx.note(Some(Field::Apprenticeship), "Lehrbetrieb ohne Fachrichtung".into());
+        ctx.note(
+            Some(Field::Apprenticeship),
+            "Lehrbetrieb ohne Fachrichtung".into(),
+        );
     }
     flags
 }
@@ -236,7 +319,10 @@ fn membership_dates(ctx: &mut RowCtx) -> (Option<NaiveDate>, Option<NaiveDate>) 
     let left = ctx.date(Field::Left);
     match (joined, left) {
         (Some(j), Some(l)) if l < j => {
-            ctx.note(Some(Field::Left), "Austritt liegt vor Eintritt, Austritt ignoriert".into());
+            ctx.note(
+                Some(Field::Left),
+                "Austritt liegt vor Eintritt, Austritt ignoriert".into(),
+            );
             (joined, None)
         }
         _ => (joined, left),
@@ -246,7 +332,9 @@ fn membership_dates(ctx: &mut RowCtx) -> (Option<NaiveDate>, Option<NaiveDate>) 
 fn report_duplicates(plan: &mut ImportPlan) {
     let mut counts: HashMap<String, usize> = HashMap::new();
     for row in &plan.rows {
-        *counts.entry(row.organisation.name.to_lowercase()).or_default() += 1;
+        *counts
+            .entry(row.organisation.name.to_lowercase())
+            .or_default() += 1;
     }
     for row in &plan.rows {
         if counts[&row.organisation.name.to_lowercase()] > 1 {

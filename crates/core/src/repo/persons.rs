@@ -107,7 +107,9 @@ pub fn delete(conn: &Connection, id: i64) -> Result<()> {
 fn cleaned(input: &PersonInput) -> Result<PersonInput> {
     let last_name = input.last_name.trim();
     if last_name.is_empty() {
-        return Err(CoreError::Validation("Nachname darf nicht leer sein".into()));
+        return Err(CoreError::Validation(
+            "Nachname darf nicht leer sein".into(),
+        ));
     }
     Ok(PersonInput {
         salutation: clean(&input.salutation),
@@ -125,7 +127,12 @@ fn cleaned(input: &PersonInput) -> Result<PersonInput> {
 }
 
 fn search_text(c: &PersonInput) -> String {
-    normalize_search(&[c.first_name.as_deref(), Some(&c.last_name), c.city.as_deref(), c.email.as_deref()])
+    normalize_search(&[
+        c.first_name.as_deref(),
+        Some(&c.last_name),
+        c.city.as_deref(),
+        c.email.as_deref(),
+    ])
 }
 
 fn from_row(row: &Row) -> rusqlite::Result<Person> {

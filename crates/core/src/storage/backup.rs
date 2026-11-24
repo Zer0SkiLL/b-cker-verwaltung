@@ -13,7 +13,10 @@ const BACKUP_EXT: &str = ".sqlite";
 
 /// Ordner für automatische Sicherungen: `<Ordner der Datenbank>/backups`.
 pub fn local_backup_dir(db_path: &Path) -> PathBuf {
-    db_path.parent().unwrap_or_else(|| Path::new(".")).join("backups")
+    db_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join("backups")
 }
 
 /// Dateistamm der Datenbank (z.B. `daten` für `daten.sqlite`), Basis für Sicherungsnamen.
@@ -25,14 +28,21 @@ pub fn db_stem(db_path: &Path) -> String {
 }
 
 /// Erstellt eine konsistente, geprüfte Kopie mit `VACUUM INTO`.
-pub fn backup_to_dir(conn: &Connection, dir: &Path, stem: &str, now: DateTime<Local>) -> Result<PathBuf> {
+pub fn backup_to_dir(
+    conn: &Connection,
+    dir: &Path,
+    stem: &str,
+    now: DateTime<Local>,
+) -> Result<PathBuf> {
     fs::create_dir_all(dir)?;
     let target = free_name(dir, stem, now);
     let target_str = target.to_string_lossy().into_owned();
     conn.execute("VACUUM INTO ?1", [&target_str])?;
     if let Err(problem) = verify(&target) {
         let _ = fs::remove_file(&target);
-        return Err(CoreError::Validation(format!("Sicherung fehlerhaft: {problem}")));
+        return Err(CoreError::Validation(format!(
+            "Sicherung fehlerhaft: {problem}"
+        )));
     }
     Ok(target)
 }
@@ -113,9 +123,14 @@ pub fn status(conn: &Connection, now: chrono::DateTime<chrono::Utc>) -> Result<B
     let last_secondary = get(conn, LAST_SECONDARY_BACKUP)?
         .and_then(|v| chrono::DateTime::parse_from_rfc3339(&v).ok())
         .map(|d| d.with_timezone(&chrono::Utc));
-    let fresh = last_secondary.is_some_and(|last| now - last <= chrono::Duration::days(REMINDER_DAYS));
+    let fresh =
+        last_secondary.is_some_and(|last| now - last <= chrono::Duration::days(REMINDER_DAYS));
     let reminder_due = secondary_dir.is_none() || !fresh;
-    Ok(BackupStatus { secondary_dir, last_secondary, reminder_due })
+    Ok(BackupStatus {
+        secondary_dir,
+        last_secondary,
+        reminder_due,
+    })
 }
 
 /// Sicherungen eines Ordners, neueste zuerst. Fremde Dateien werden ignoriert.
@@ -131,9 +146,15 @@ pub fn list(dir: &Path, stem: &str) -> Result<Vec<BackupFile>> {
                 "" => 1,
                 s => s.strip_prefix('-')?.parse().ok()?,
             };
-            Some((BackupFile { path: dir.join(&name), created }, suffix))
+            Some((
+                BackupFile {
+                    path: dir.join(&name),
+                    created,
+                },
+                suffix,
+            ))
         })
         .collect();
-    files.sort_by(|a, b| (b.0.created, b.1).cmp(&(a.0.created, a.1)));
+    files.sort_by_key(|f| std::cmp::Reverse((f.0.created, f.1)));
     Ok(files.into_iter().map(|(f, _)| f).collect())
 }

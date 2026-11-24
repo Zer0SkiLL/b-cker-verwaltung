@@ -19,13 +19,22 @@ fn row(id: i64, email: Option<&str>) -> ContactRow {
 
 #[test]
 fn dedupes_case_insensitive_and_trims() {
-    let list = email_list(&[row(1, Some(" A@x.ch")), row(2, Some("a@X.ch")), row(3, Some("b@x.ch"))]);
+    let list = email_list(&[
+        row(1, Some(" A@x.ch")),
+        row(2, Some("a@X.ch")),
+        row(3, Some("b@x.ch")),
+    ]);
     assert_eq!(list.addresses, vec!["A@x.ch", "b@x.ch"]);
 }
 
 #[test]
 fn invalid_and_empty_go_to_missing() {
-    let list = email_list(&[row(1, None), row(2, Some("  ")), row(3, Some("kein-at")), row(4, Some("ok@x.ch"))]);
+    let list = email_list(&[
+        row(1, None),
+        row(2, Some("  ")),
+        row(3, Some("kein-at")),
+        row(4, Some("ok@x.ch")),
+    ]);
     let missing: Vec<i64> = list.missing.iter().map(|r| r.id).collect();
     assert_eq!(missing, vec![1, 2, 3]);
     assert_eq!(list.addresses, vec!["ok@x.ch"]);
@@ -39,7 +48,9 @@ fn joined_uses_semicolon_space() {
 
 #[test]
 fn mailto_none_when_too_long() {
-    let many: Vec<String> = (0..MAILTO_MAX_LEN).map(|i| format!("person{i}@example.ch")).collect();
+    let many: Vec<String> = (0..MAILTO_MAX_LEN)
+        .map(|i| format!("person{i}@example.ch"))
+        .collect();
     assert_eq!(mailto_bcc(&many), None);
 }
 

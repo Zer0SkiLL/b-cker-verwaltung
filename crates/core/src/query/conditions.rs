@@ -65,7 +65,7 @@ pub(super) fn build(conn: &Connection, f: &Filter, s: Subject, today: NaiveDate)
     if s == Subject::Person {
         any_of(&mut w, "EXISTS (SELECT 1 FROM team_members tm WHERE tm.person_id = p.id AND tm.team_id IN ({}))", &f.team_ids, &[]);
         let sql = format!("EXISTS (SELECT 1 FROM affiliations a WHERE a.person_id = p.id AND {CURRENT} AND a.function_id IN ({{}}))");
-        any_of(&mut w, &sql, &f.function_ids, &[day.clone()]);
+        any_of(&mut w, &sql, &f.function_ids, std::slice::from_ref(&day));
     }
     org_column(&mut w, s, "org_type_id", &f.org_type_ids, &day);
     org_column(&mut w, s, "cantonal_association_id", &f.cantonal_ids, &day);
@@ -76,7 +76,10 @@ pub(super) fn build(conn: &Connection, f: &Filter, s: Subject, today: NaiveDate)
 fn text(w: &mut Where, f: &Filter, s: Subject) {
     let normalized = normalize_search(&[f.text.as_deref()]);
     for word in normalized.split_whitespace() {
-        w.push(format!("instr({}.search_text, ?) > 0", s.alias()), [Value::Text(word.into())]);
+        w.push(
+            format!("instr({}.search_text, ?) > 0", s.alias()),
+            [Value::Text(word.into())],
+        );
     }
 }
 
@@ -114,7 +117,11 @@ fn org_column(w: &mut Where, s: Subject, column: &str, ids: &[i64], day: &Value)
              WHERE a.person_id = p.id AND {CURRENT} AND ao.{column} IN ({{}}))"
         ),
     };
-    let leading = if s == Subject::Person { vec![day.clone()] } else { vec![] };
+    let leading = if s == Subject::Person {
+        vec![day.clone()]
+    } else {
+        vec![]
+    };
     any_of(w, &template, ids, &leading);
 }
 
@@ -145,10 +152,19 @@ fn membership(w: &mut Where, f: &Filter, s: Subject, day: &Value) {
         params.push(day.clone());
     }
     if !f.category_ids.is_empty() {
-        parts.push(format!("m.category_id IN ({})", placeholders(f.category_ids.len())));
+        parts.push(format!(
+            "m.category_id IN ({})",
+            placeholders(f.category_ids.len())
+        ));
         params.extend(f.category_ids.iter().map(|id| Value::Integer(*id)));
     }
-    w.push(format!("EXISTS (SELECT 1 FROM memberships m WHERE {})", parts.join(" AND ")), params);
+    w.push(
+        format!(
+            "EXISTS (SELECT 1 FROM memberships m WHERE {})",
+            parts.join(" AND ")
+        ),
+        params,
+    );
 }
 
 /// Fügt `template` mit `{}` als Platzhalterliste ein, falls `ids` nicht leer ist.
@@ -157,7 +173,10 @@ fn any_of(w: &mut Where, template: &str, ids: &[i64], leading: &[Value]) {
         return;
     }
     let clause = template.replacen("{}", &placeholders(ids.len()), 1);
-    let params = leading.iter().cloned().chain(ids.iter().map(|id| Value::Integer(*id)));
+    let params = leading
+        .iter()
+        .cloned()
+        .chain(ids.iter().map(|id| Value::Integer(*id)));
     w.push(clause, params);
 }
 

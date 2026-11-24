@@ -49,15 +49,24 @@ pub fn read_first_sheet(path: &Path) -> Result<Sheet> {
     let first_line = range.start().map(|(row, _)| row as usize + 1).unwrap_or(1);
     let mut rows = range.rows();
     let headers: Vec<String> = match rows.next() {
-        Some(header) => header.iter().map(|c| c.to_string().trim().to_string()).collect(),
+        Some(header) => header
+            .iter()
+            .map(|c| c.to_string().trim().to_string())
+            .collect(),
         None => return Err(CoreError::Import("Das Tabellenblatt ist leer.".into())),
     };
     let data = rows
         .enumerate()
-        .map(|(i, r)| SheetRow { line: first_line + i + 1, cells: padded(r, headers.len()) })
+        .map(|(i, r)| SheetRow {
+            line: first_line + i + 1,
+            cells: padded(r, headers.len()),
+        })
         .filter(|r| !r.cells.iter().all(Cell::is_empty))
         .collect();
-    Ok(Sheet { headers, rows: data })
+    Ok(Sheet {
+        headers,
+        rows: data,
+    })
 }
 
 fn padded(row: &[Data], len: usize) -> Vec<Cell> {
@@ -73,7 +82,10 @@ fn convert(data: &Data) -> Cell {
         Data::Int(i) => Cell::Number(*i as f64),
         Data::Float(f) => Cell::Number(*f),
         Data::Bool(b) => Cell::Bool(*b),
-        Data::DateTime(dt) => dt.as_datetime().map(|d| Cell::Date(d.date())).unwrap_or(Cell::Empty),
+        Data::DateTime(dt) => dt
+            .as_datetime()
+            .map(|d| Cell::Date(d.date()))
+            .unwrap_or(Cell::Empty),
         Data::DateTimeIso(s) => NaiveDate::parse_from_str(&s[..s.len().min(10)], "%Y-%m-%d")
             .map(Cell::Date)
             .unwrap_or_else(|_| Cell::Text(s.clone())),

@@ -4,7 +4,10 @@ use rusqlite::{Connection, OpenFlags};
 
 use crate::error::Result;
 
-const MIGRATIONS: &[&str] = &[include_str!("0001_init.sql"), include_str!("0002_settings.sql")];
+const MIGRATIONS: &[&str] = &[
+    include_str!("0001_init.sql"),
+    include_str!("0002_settings.sql"),
+];
 
 /// Aktuelle Schema-Version (Anzahl Migrationen).
 pub const SCHEMA_VERSION: i64 = MIGRATIONS.len() as i64;

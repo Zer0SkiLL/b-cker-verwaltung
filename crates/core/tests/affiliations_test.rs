@@ -5,7 +5,13 @@ use verwaltung_core::repo::affiliations::{self, AffiliationInput};
 use verwaltung_core::repo::persons;
 
 fn link(person_id: i64, organisation_id: i64, function_id: i64) -> AffiliationInput {
-    AffiliationInput { person_id, organisation_id, function_id, valid_from: None, valid_to: None }
+    AffiliationInput {
+        person_id,
+        organisation_id,
+        function_id,
+        valid_from: None,
+        valid_to: None,
+    }
 }
 
 #[test]
@@ -15,8 +21,18 @@ fn person_can_have_two_affiliations() {
     let (a, b) = (raw_org(&conn, "A"), raw_org(&conn, "B"));
     affiliations::create(&conn, &link(p, a, function(&conn, "Inhaber"))).unwrap();
     affiliations::create(&conn, &link(p, b, function(&conn, "Mitarbeiter"))).unwrap();
-    assert_eq!(affiliations::for_person(&conn, p, false, d(2026, 1, 1)).unwrap().len(), 2);
-    assert_eq!(affiliations::for_organisation(&conn, a, false, d(2026, 1, 1)).unwrap().len(), 1);
+    assert_eq!(
+        affiliations::for_person(&conn, p, false, d(2026, 1, 1))
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_eq!(
+        affiliations::for_organisation(&conn, a, false, d(2026, 1, 1))
+            .unwrap()
+            .len(),
+        1
+    );
 }
 
 #[test]
@@ -27,14 +43,23 @@ fn past_affiliation_hidden_by_default_and_shown_with_include_past() {
     let f = function(&conn, "Lernende");
     let past = affiliations::create(
         &conn,
-        &AffiliationInput { valid_from: Some(d(2020, 8, 1)), valid_to: Some(d(2023, 7, 31)), ..link(p, a, f) },
+        &AffiliationInput {
+            valid_from: Some(d(2020, 8, 1)),
+            valid_to: Some(d(2023, 7, 31)),
+            ..link(p, a, f)
+        },
     )
     .unwrap();
     let today = d(2026, 1, 1);
     assert!(!past.is_current(today));
     assert!(past.is_current(d(2023, 7, 31)));
-    assert!(affiliations::for_person(&conn, p, false, today).unwrap().is_empty());
-    assert_eq!(affiliations::for_person(&conn, p, true, today).unwrap(), vec![past]);
+    assert!(affiliations::for_person(&conn, p, false, today)
+        .unwrap()
+        .is_empty());
+    assert_eq!(
+        affiliations::for_person(&conn, p, true, today).unwrap(),
+        vec![past]
+    );
 }
 
 #[test]
@@ -60,12 +85,18 @@ fn update_and_delete_affiliation() {
     let updated = affiliations::update(
         &conn,
         created.id,
-        &AffiliationInput { valid_to: Some(d(2025, 12, 31)), ..link(p, a, created.function_id) },
+        &AffiliationInput {
+            valid_to: Some(d(2025, 12, 31)),
+            ..link(p, a, created.function_id)
+        },
     )
     .unwrap();
     assert_eq!(updated.valid_to, Some(d(2025, 12, 31)));
     affiliations::delete(&conn, created.id).unwrap();
-    assert!(matches!(affiliations::delete(&conn, created.id), Err(CoreError::NotFound { .. })));
+    assert!(matches!(
+        affiliations::delete(&conn, created.id),
+        Err(CoreError::NotFound { .. })
+    ));
 }
 
 #[test]

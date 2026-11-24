@@ -3,7 +3,10 @@ use verwaltung_core::error::CoreError;
 use verwaltung_core::storage::lock::{is_stale, lock_path, Identity, LockGuard, LockInfo};
 
 fn who(user: &str) -> Identity {
-    Identity { user: user.into(), host: "pc1".into() }
+    Identity {
+        user: user.into(),
+        host: "pc1".into(),
+    }
 }
 
 fn db_in(dir: &tempfile::TempDir) -> std::path::PathBuf {
@@ -69,7 +72,11 @@ fn corrupt_lock_file_reports_unbekannt() {
 #[test]
 fn is_stale_after_24h() {
     let now = Utc::now();
-    let info = |h: i64| LockInfo { user: "a".into(), host: "b".into(), created_at: now - Duration::hours(h) };
+    let info = |h: i64| LockInfo {
+        user: "a".into(),
+        host: "b".into(),
+        created_at: now - Duration::hours(h),
+    };
     assert!(!is_stale(&info(23), now));
     assert!(is_stale(&info(25), now));
 }

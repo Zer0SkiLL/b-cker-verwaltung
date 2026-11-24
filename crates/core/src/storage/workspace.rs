@@ -6,8 +6,8 @@ use rusqlite::Connection;
 use super::backup::{backup_to_dir, db_stem, local_backup_dir, prune, BACKUP_KEEP};
 use super::lock::{Identity, LockGuard, LockInfo};
 use crate::db;
-use crate::repo::settings::{self, LAST_SECONDARY_BACKUP, SECONDARY_BACKUP_DIR};
 use crate::error::{CoreError, Result};
+use crate::repo::settings::{self, LAST_SECONDARY_BACKUP, SECONDARY_BACKUP_DIR};
 
 /// Zugriffsart auf die geöffnete Datenbank.
 #[derive(Debug, Clone, PartialEq)]
@@ -45,7 +45,9 @@ impl Workspace {
     pub fn open(db_path: &Path, who: &Identity) -> Result<Workspace> {
         match LockGuard::acquire(db_path, who) {
             Ok(lock) => Self::open_read_write(db_path, lock),
-            Err(CoreError::LockHeld(info)) if db_path.exists() => Self::open_read_only(db_path, info),
+            Err(CoreError::LockHeld(info)) if db_path.exists() => {
+                Self::open_read_only(db_path, info)
+            }
             Err(err) => Err(err),
         }
     }
@@ -71,7 +73,10 @@ impl Workspace {
         let stem = db_stem(&self.path);
         let local = backup_to_dir(&self.conn, &dir, &stem, now)?;
         prune(&dir, &stem, BACKUP_KEEP)?;
-        Ok(BackupOutcome { local, secondary: self.backup_secondary(now)? })
+        Ok(BackupOutcome {
+            local,
+            secondary: self.backup_secondary(now)?,
+        })
     }
 
     /// Schliesst die Datenbank: Sicherung am zweiten Ort, danach wird die Sperre freigegeben.
@@ -91,7 +96,12 @@ impl Workspace {
     }
 
     pub(crate) fn from_parts(conn: Connection, path: PathBuf, lock: LockGuard) -> Workspace {
-        Workspace { conn, mode: AccessMode::ReadWrite, path, lock: Some(lock) }
+        Workspace {
+            conn,
+            mode: AccessMode::ReadWrite,
+            path,
+            lock: Some(lock),
+        }
     }
 
     pub(crate) fn into_parts(self) -> (Connection, PathBuf, Option<LockGuard>) {
@@ -108,10 +118,16 @@ impl Workspace {
             .and_then(|path| prune(&dir, &stem, BACKUP_KEEP).map(|_| path));
         match attempt {
             Ok(path) => {
-                settings::set(&self.conn, LAST_SECONDARY_BACKUP, &now.with_timezone(&Utc).to_rfc3339())?;
+                settings::set(
+                    &self.conn,
+                    LAST_SECONDARY_BACKUP,
+                    &now.with_timezone(&Utc).to_rfc3339(),
+                )?;
                 Ok(SecondaryResult::Done(path))
             }
-            Err(e) => Ok(SecondaryResult::Unavailable(format!("Zweiter Sicherungsort nicht erreichbar: {e}"))),
+            Err(e) => Ok(SecondaryResult::Unavailable(format!(
+                "Zweiter Sicherungsort nicht erreichbar: {e}"
+            ))),
         }
     }
 

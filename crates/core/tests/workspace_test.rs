@@ -5,12 +5,18 @@ use verwaltung_core::storage::lock::{Identity, LockGuard};
 use verwaltung_core::storage::workspace::{AccessMode, Workspace};
 
 fn who(user: &str) -> Identity {
-    Identity { user: user.into(), host: "pc1".into() }
+    Identity {
+        user: user.into(),
+        host: "pc1".into(),
+    }
 }
 
 fn backups(dir: &std::path::Path) -> Vec<String> {
     let mut names: Vec<String> = std::fs::read_dir(dir)
-        .map(|rd| rd.map(|e| e.unwrap().file_name().into_string().unwrap()).collect())
+        .map(|rd| {
+            rd.map(|e| e.unwrap().file_name().into_string().unwrap())
+                .collect()
+        })
         .unwrap_or_default();
     names.sort();
     names
@@ -42,10 +48,14 @@ fn backup_is_valid_sqlite_with_same_data() {
     let dir = tempfile::tempdir().unwrap();
     let db = dir.path().join("daten.sqlite");
     let ws = Workspace::open(&db, &who("reto")).unwrap();
-    ws.conn.execute("INSERT INTO teams(name) VALUES ('Prüfungen')", []).unwrap();
+    ws.conn
+        .execute("INSERT INTO teams(name) VALUES ('Prüfungen')", [])
+        .unwrap();
     let out = backup_to_dir(&ws.conn, &dir.path().join("b"), "daten", Local::now()).unwrap();
     let copy = rusqlite::Connection::open(&out).unwrap();
-    let name: String = copy.query_row("SELECT name FROM teams", [], |r| r.get(0)).unwrap();
+    let name: String = copy
+        .query_row("SELECT name FROM teams", [], |r| r.get(0))
+        .unwrap();
     assert_eq!(name, "Prüfungen");
 }
 
@@ -66,7 +76,11 @@ fn backup_same_second_gets_suffix() {
 fn prune_keeps_newest_20() {
     let dir = tempfile::tempdir().unwrap();
     for i in 0..22 {
-        std::fs::write(dir.path().join(format!("daten-20260101-1000{i:02}.sqlite")), b"x").unwrap();
+        std::fs::write(
+            dir.path().join(format!("daten-20260101-1000{i:02}.sqlite")),
+            b"x",
+        )
+        .unwrap();
     }
     std::fs::write(dir.path().join("fremd.txt"), b"x").unwrap();
     prune(dir.path(), "daten", BACKUP_KEEP).unwrap();
@@ -111,7 +125,10 @@ fn take_over_gives_read_write() {
     let _first = Workspace::open(&db, &who("anna")).unwrap();
     let second = Workspace::open_taking_over(&db, &who("reto")).unwrap();
     assert!(matches!(second.mode, AccessMode::ReadWrite));
-    second.conn.execute("INSERT INTO teams(name) VALUES ('A')", []).unwrap();
+    second
+        .conn
+        .execute("INSERT INTO teams(name) VALUES ('A')", [])
+        .unwrap();
 }
 
 #[test]
@@ -119,5 +136,8 @@ fn locked_and_missing_db_returns_lock_held() {
     let dir = tempfile::tempdir().unwrap();
     let db = dir.path().join("daten.sqlite");
     let _lock = LockGuard::acquire(&db, &who("anna")).unwrap();
-    assert!(matches!(Workspace::open(&db, &who("reto")), Err(CoreError::LockHeld(_))));
+    assert!(matches!(
+        Workspace::open(&db, &who("reto")),
+        Err(CoreError::LockHeld(_))
+    ));
 }

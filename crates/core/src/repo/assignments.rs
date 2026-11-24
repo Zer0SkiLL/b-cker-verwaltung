@@ -31,13 +31,21 @@ pub fn assign(conn: &Connection, input: &AssignmentInput) -> Result<Assignment> 
     let label = labels::get_label(conn, input.label_id)?;
     let group = labels::get_group(conn, label.group_id)?;
     if !applies(group.applies_to, input.target) {
-        return Err(CoreError::Validation("Label gilt nicht für diesen Eintragstyp".into()));
+        return Err(CoreError::Validation(
+            "Label gilt nicht für diesen Eintragstyp".into(),
+        ));
     }
     let (org, person) = input.target.columns();
     conn.execute(
         "INSERT INTO label_assignments(label_id, organisation_id, person_id, assigned_on, note) \
          VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![input.label_id, org, person, input.assigned_on, clean(&input.note)],
+        params![
+            input.label_id,
+            org,
+            person,
+            input.assigned_on,
+            clean(&input.note)
+        ],
     )?;
     let id = conn.last_insert_rowid();
     let sql = format!("SELECT {COLUMNS} FROM label_assignments WHERE id = ?1");
@@ -46,7 +54,10 @@ pub fn assign(conn: &Connection, input: &AssignmentInput) -> Result<Assignment> 
 
 pub fn unassign(conn: &Connection, id: i64) -> Result<()> {
     if conn.execute("DELETE FROM label_assignments WHERE id = ?1", [id])? == 0 {
-        return Err(CoreError::NotFound { entity: "Label-Zuweisung", id });
+        return Err(CoreError::NotFound {
+            entity: "Label-Zuweisung",
+            id,
+        });
     }
     Ok(())
 }
@@ -73,7 +84,11 @@ fn applies(applies_to: AppliesTo, target: MemberRef) -> bool {
 
 fn from_row(row: &Row) -> rusqlite::Result<Assignment> {
     let target = MemberRef::from_columns(row.get(2)?, row.get(3)?).ok_or_else(|| {
-        rusqlite::Error::FromSqlConversionFailure(2, rusqlite::types::Type::Null, "Ziel fehlt".into())
+        rusqlite::Error::FromSqlConversionFailure(
+            2,
+            rusqlite::types::Type::Null,
+            "Ziel fehlt".into(),
+        )
     })?;
     Ok(Assignment {
         id: row.get(0)?,

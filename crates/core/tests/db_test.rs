@@ -19,8 +19,12 @@ fn creates_file_with_current_schema_version() {
 fn uses_delete_journal_and_foreign_keys() {
     let (_d, path) = tmp_db();
     let conn = open_connection(&path, false).unwrap();
-    let mode: String = conn.query_row("PRAGMA journal_mode", [], |r| r.get(0)).unwrap();
-    let fk: i64 = conn.query_row("PRAGMA foreign_keys", [], |r| r.get(0)).unwrap();
+    let mode: String = conn
+        .query_row("PRAGMA journal_mode", [], |r| r.get(0))
+        .unwrap();
+    let fk: i64 = conn
+        .query_row("PRAGMA foreign_keys", [], |r| r.get(0))
+        .unwrap();
     assert_eq!(mode, "delete");
     assert_eq!(fk, 1);
 }

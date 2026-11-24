@@ -11,5 +11,8 @@ fn normalize_search_lowercases_umlauts() {
 
 #[test]
 fn format_date_swiss() {
-    assert_eq!(format_date(NaiveDate::from_ymd_opt(2024, 3, 5).unwrap()), "05.03.2024");
+    assert_eq!(
+        format_date(NaiveDate::from_ymd_opt(2024, 3, 5).unwrap()),
+        "05.03.2024"
+    );
 }

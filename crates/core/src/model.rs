@@ -22,9 +22,14 @@ impl LookupKind {
     }
 
     pub fn parse(s: &str) -> Option<LookupKind> {
-        [Self::OrgType, Self::Function, Self::MembershipCategory, Self::CantonalAssociation]
-            .into_iter()
-            .find(|k| k.as_str() == s)
+        [
+            Self::OrgType,
+            Self::Function,
+            Self::MembershipCategory,
+            Self::CantonalAssociation,
+        ]
+        .into_iter()
+        .find(|k| k.as_str() == s)
     }
 }
 
@@ -54,7 +59,9 @@ impl AppliesTo {
     }
 
     pub fn parse(s: &str) -> Option<AppliesTo> {
-        [Self::Person, Self::Organisation, Self::Both].into_iter().find(|a| a.as_str() == s)
+        [Self::Person, Self::Organisation, Self::Both]
+            .into_iter()
+            .find(|a| a.as_str() == s)
     }
 }
 

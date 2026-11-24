@@ -88,7 +88,11 @@ impl Drop for LockGuard {
 }
 
 fn new_info(who: &Identity) -> LockInfo {
-    LockInfo { user: who.user.clone(), host: who.host.clone(), created_at: Utc::now() }
+    LockInfo {
+        user: who.user.clone(),
+        host: who.host.clone(),
+        created_at: Utc::now(),
+    }
 }
 
 fn read_info(path: &Path) -> LockInfo {

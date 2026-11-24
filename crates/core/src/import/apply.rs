@@ -32,7 +32,11 @@ pub fn apply(conn: &mut Connection, plan: &ImportPlan) -> Result<ImportSummary> 
         return Err(CoreError::DatabaseNotEmpty);
     }
     let tx = conn.transaction()?;
-    let mut summary = ImportSummary { organisations: 0, persons: 0, report: plan.report.clone() };
+    let mut summary = ImportSummary {
+        organisations: 0,
+        persons: 0,
+        report: plan.report.clone(),
+    };
     for row in &plan.rows {
         import_row(&tx, row).map_err(|e| CoreError::Import(format!("Zeile {}: {e}", row.line)))?;
         summary.organisations += 1;
@@ -44,24 +48,54 @@ pub fn apply(conn: &mut Connection, plan: &ImportPlan) -> Result<ImportSummary> 
 
 fn import_row(conn: &Connection, row: &PlannedRow) -> Result<()> {
     let cantonal_association_id = match &row.cantonal {
-        Some(name) => Some(lookups::find_or_create(conn, LookupKind::CantonalAssociation, name)?.id),
+        Some(name) => {
+            Some(lookups::find_or_create(conn, LookupKind::CantonalAssociation, name)?.id)
+        }
         None => None,
     };
-    let org = organisations::create(conn, &OrganisationInput { cantonal_association_id, ..row.organisation.clone() })?;
+    let org = organisations::create(
+        conn,
+        &OrganisationInput {
+            cantonal_association_id,
+            ..row.organisation.clone()
+        },
+    )?;
     let category_id = match &row.category {
         Some(name) => Some(lookups::find_or_create(conn, LookupKind::MembershipCategory, name)?.id),
         None => None,
     };
     let member = MemberRef::Organisation(org.id);
-    memberships::create(conn, &MembershipInput { member, category_id, joined_on: row.joined, left_on: row.left })?;
+    memberships::create(
+        conn,
+        &MembershipInput {
+            member,
+            category_id,
+            joined_on: row.joined,
+            left_on: row.left,
+        },
+    )?;
     for flag in &row.flags {
         let label = labels::find_or_create_label(conn, FLAG_GROUP, AppliesTo::Organisation, flag)?;
-        assignments::assign(conn, &AssignmentInput { label_id: label.id, target: member, assigned_on: None, note: None })?;
+        assignments::assign(
+            conn,
+            &AssignmentInput {
+                label_id: label.id,
+                target: member,
+                assigned_on: None,
+                note: None,
+            },
+        )?;
     }
     if let Some(person_input) = &row.person {
         let person = persons::create(conn, person_input)?;
         let function_id = lookups::find_or_create(conn, LookupKind::Function, IMPORT_FUNCTION)?.id;
-        let link = AffiliationInput { person_id: person.id, organisation_id: org.id, function_id, valid_from: None, valid_to: None };
+        let link = AffiliationInput {
+            person_id: person.id,
+            organisation_id: org.id,
+            function_id,
+            valid_from: None,
+            valid_to: None,
+        };
         affiliations::create(conn, &link)?;
     }
     Ok(())

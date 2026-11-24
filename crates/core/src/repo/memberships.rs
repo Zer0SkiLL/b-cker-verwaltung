@@ -39,7 +39,13 @@ pub fn create(conn: &Connection, input: &MembershipInput) -> Result<Membership> 
     conn.execute(
         "INSERT INTO memberships(organisation_id, person_id, category_id, joined_on, left_on) \
          VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![org, person, input.category_id, input.joined_on, input.left_on],
+        params![
+            org,
+            person,
+            input.category_id,
+            input.joined_on,
+            input.left_on
+        ],
     )?;
     get(conn, conn.last_insert_rowid())
 }
@@ -84,12 +90,20 @@ pub fn for_member(conn: &Connection, member: &MemberRef) -> Result<Vec<Membershi
 }
 
 fn validate(input: &MembershipInput) -> Result<()> {
-    check_date_order(input.joined_on, input.left_on, "Austritt liegt vor Eintritt")
+    check_date_order(
+        input.joined_on,
+        input.left_on,
+        "Austritt liegt vor Eintritt",
+    )
 }
 
 fn from_row(row: &Row) -> rusqlite::Result<Membership> {
     let member = MemberRef::from_columns(row.get(1)?, row.get(2)?).ok_or_else(|| {
-        rusqlite::Error::FromSqlConversionFailure(1, rusqlite::types::Type::Null, "Mitglied fehlt".into())
+        rusqlite::Error::FromSqlConversionFailure(
+            1,
+            rusqlite::types::Type::Null,
+            "Mitglied fehlt".into(),
+        )
     })?;
     Ok(Membership {
         id: row.get(0)?,

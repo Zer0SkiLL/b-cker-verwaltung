@@ -23,9 +23,13 @@ pub fn create(conn: &Connection, kind: LookupKind, name: &str) -> Result<LookupV
 }
 
 pub fn get(conn: &Connection, id: i64) -> Result<LookupValue> {
-    conn.query_row("SELECT id, kind, name, sort FROM lookup_values WHERE id = ?1", [id], from_row)
-        .optional()?
-        .ok_or(CoreError::NotFound { entity: ENTITY, id })
+    conn.query_row(
+        "SELECT id, kind, name, sort FROM lookup_values WHERE id = ?1",
+        [id],
+        from_row,
+    )
+    .optional()?
+    .ok_or(CoreError::NotFound { entity: ENTITY, id })
 }
 
 pub fn list(conn: &Connection, kind: LookupKind) -> Result<Vec<LookupValue>> {
@@ -38,7 +42,10 @@ pub fn list(conn: &Connection, kind: LookupKind) -> Result<Vec<LookupValue>> {
 
 pub fn rename(conn: &Connection, id: i64, name: &str) -> Result<LookupValue> {
     let name = require_name(name)?;
-    let changed = conn.execute("UPDATE lookup_values SET name = ?1 WHERE id = ?2", params![name, id])?;
+    let changed = conn.execute(
+        "UPDATE lookup_values SET name = ?1 WHERE id = ?2",
+        params![name, id],
+    )?;
     if changed == 0 {
         return Err(CoreError::NotFound { entity: ENTITY, id });
     }

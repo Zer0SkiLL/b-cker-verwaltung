@@ -10,9 +10,16 @@ fn create_and_list_sorted_by_sort_then_name() {
     lookups::create(&conn, LookupKind::OrgType, "ÜK-Zentrum").unwrap();
     lookups::create(&conn, LookupKind::OrgType, "Andere").unwrap();
     lookups::create(&conn, LookupKind::Function, "Inhaber").unwrap();
-    conn.execute("UPDATE lookup_values SET sort = -1 WHERE name = 'ÜK-Zentrum'", []).unwrap();
-    let names: Vec<String> =
-        lookups::list(&conn, LookupKind::OrgType).unwrap().into_iter().map(|v| v.name).collect();
+    conn.execute(
+        "UPDATE lookup_values SET sort = -1 WHERE name = 'ÜK-Zentrum'",
+        [],
+    )
+    .unwrap();
+    let names: Vec<String> = lookups::list(&conn, LookupKind::OrgType)
+        .unwrap()
+        .into_iter()
+        .map(|v| v.name)
+        .collect();
     assert_eq!(names, vec!["ÜK-Zentrum", "Andere"]);
 }
 
@@ -31,7 +38,12 @@ fn find_or_create_is_idempotent() {
     let a = lookups::find_or_create(&conn, LookupKind::CantonalAssociation, "Bern").unwrap();
     let b = lookups::find_or_create(&conn, LookupKind::CantonalAssociation, " Bern ").unwrap();
     assert_eq!(a.id, b.id);
-    assert_eq!(lookups::list(&conn, LookupKind::CantonalAssociation).unwrap().len(), 1);
+    assert_eq!(
+        lookups::list(&conn, LookupKind::CantonalAssociation)
+            .unwrap()
+            .len(),
+        1
+    );
 }
 
 #[test]
@@ -47,7 +59,11 @@ fn delete_in_use_without_confirm_returns_in_use_count() {
     let typ = lookups::create(&conn, LookupKind::OrgType, "Mitgliedsbetrieb").unwrap();
     for name in ["A", "B"] {
         let id = raw_org(&conn, name);
-        conn.execute("UPDATE organisations SET org_type_id = ?1 WHERE id = ?2", [typ.id, id]).unwrap();
+        conn.execute(
+            "UPDATE organisations SET org_type_id = ?1 WHERE id = ?2",
+            [typ.id, id],
+        )
+        .unwrap();
     }
     assert_eq!(lookups::usage_count(&conn, typ.id).unwrap(), 2);
     let err = lookups::delete(&conn, typ.id, false).unwrap_err();
@@ -65,10 +81,13 @@ fn delete_confirmed_nulls_references() {
     )
     .unwrap();
     lookups::delete(&conn, kat.id, true).unwrap();
-    let cat: Option<i64> =
-        conn.query_row("SELECT category_id FROM memberships", [], |r| r.get(0)).unwrap();
+    let cat: Option<i64> = conn
+        .query_row("SELECT category_id FROM memberships", [], |r| r.get(0))
+        .unwrap();
     assert_eq!(cat, None);
-    assert!(lookups::list(&conn, LookupKind::MembershipCategory).unwrap().is_empty());
+    assert!(lookups::list(&conn, LookupKind::MembershipCategory)
+        .unwrap()
+        .is_empty());
 }
 
 #[test]

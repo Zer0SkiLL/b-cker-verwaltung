@@ -78,7 +78,12 @@ pub fn search(conn: &Connection, filter: &Filter, today: NaiveDate) -> Result<Ve
     Ok(rows)
 }
 
-fn matching_ids(conn: &Connection, filter: &Filter, s: Subject, today: NaiveDate) -> Result<Vec<i64>> {
+fn matching_ids(
+    conn: &Connection,
+    filter: &Filter,
+    s: Subject,
+    today: NaiveDate,
+) -> Result<Vec<i64>> {
     let w = build(conn, filter, s, today)?;
     let table = match s {
         Subject::Person => "persons p",
@@ -122,10 +127,26 @@ fn person_row(conn: &Connection, id: i64, today: NaiveDate) -> Result<ContactRow
         id,
         display_name: p.display_name(),
         organisation: (!names.is_empty()).then(|| names.join(", ")),
-        street: if has_address { p.street.clone() } else { from_org(|o| o.street.clone()) },
-        zip: if has_address { p.zip.clone() } else { from_org(|o| o.zip.clone()) },
-        city: if has_address { p.city.clone() } else { from_org(|o| o.city.clone()) },
-        po_box: if has_address { None } else { from_org(|o| o.po_box.clone()) },
+        street: if has_address {
+            p.street.clone()
+        } else {
+            from_org(|o| o.street.clone())
+        },
+        zip: if has_address {
+            p.zip.clone()
+        } else {
+            from_org(|o| o.zip.clone())
+        },
+        city: if has_address {
+            p.city.clone()
+        } else {
+            from_org(|o| o.city.clone())
+        },
+        po_box: if has_address {
+            None
+        } else {
+            from_org(|o| o.po_box.clone())
+        },
         email: p.email.clone().or_else(|| from_org(|o| o.email.clone())),
         phone: p.phone.clone().or_else(|| from_org(|o| o.phone.clone())),
         mobile: p.mobile.clone(),

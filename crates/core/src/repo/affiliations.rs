@@ -41,7 +41,13 @@ pub fn create(conn: &Connection, input: &AffiliationInput) -> Result<Affiliation
     conn.execute(
         "INSERT INTO affiliations(person_id, organisation_id, function_id, valid_from, valid_to) \
          VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![input.person_id, input.organisation_id, input.function_id, input.valid_from, input.valid_to],
+        params![
+            input.person_id,
+            input.organisation_id,
+            input.function_id,
+            input.valid_from,
+            input.valid_to
+        ],
     )?;
     get(conn, conn.last_insert_rowid())
 }
@@ -73,15 +79,31 @@ pub fn delete(conn: &Connection, id: i64) -> Result<()> {
     Ok(())
 }
 
-pub fn for_person(conn: &Connection, person_id: i64, include_past: bool, today: NaiveDate) -> Result<Vec<Affiliation>> {
+pub fn for_person(
+    conn: &Connection,
+    person_id: i64,
+    include_past: bool,
+    today: NaiveDate,
+) -> Result<Vec<Affiliation>> {
     list_where(conn, "person_id", person_id, include_past, today)
 }
 
-pub fn for_organisation(conn: &Connection, org_id: i64, include_past: bool, today: NaiveDate) -> Result<Vec<Affiliation>> {
+pub fn for_organisation(
+    conn: &Connection,
+    org_id: i64,
+    include_past: bool,
+    today: NaiveDate,
+) -> Result<Vec<Affiliation>> {
     list_where(conn, "organisation_id", org_id, include_past, today)
 }
 
-fn list_where(conn: &Connection, column: &str, id: i64, include_past: bool, today: NaiveDate) -> Result<Vec<Affiliation>> {
+fn list_where(
+    conn: &Connection,
+    column: &str,
+    id: i64,
+    include_past: bool,
+    today: NaiveDate,
+) -> Result<Vec<Affiliation>> {
     let base = format!("SELECT {COLUMNS} FROM affiliations WHERE {column} = :id");
     let rows = if include_past {
         let mut stmt = conn.prepare(&format!("{base} ORDER BY id"))?;
@@ -89,14 +111,21 @@ fn list_where(conn: &Connection, column: &str, id: i64, include_past: bool, toda
         rows.collect::<rusqlite::Result<Vec<_>>>()?
     } else {
         let mut stmt = conn.prepare(&format!("{base} AND {CURRENT_SQL} ORDER BY id"))?;
-        let rows = stmt.query_map(rusqlite::named_params! { ":id": id, ":today": today }, from_row)?;
+        let rows = stmt.query_map(
+            rusqlite::named_params! { ":id": id, ":today": today },
+            from_row,
+        )?;
         rows.collect::<rusqlite::Result<Vec<_>>>()?
     };
     Ok(rows)
 }
 
 fn validate(input: &AffiliationInput) -> Result<()> {
-    check_date_order(input.valid_from, input.valid_to, "Bis-Datum liegt vor Von-Datum")
+    check_date_order(
+        input.valid_from,
+        input.valid_to,
+        "Bis-Datum liegt vor Von-Datum",
+    )
 }
 
 fn from_row(row: &Row) -> rusqlite::Result<Affiliation> {

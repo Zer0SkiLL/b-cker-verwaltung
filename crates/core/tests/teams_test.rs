@@ -19,7 +19,13 @@ fn team_add_member_twice_updates_role() {
     let p = raw_person(&conn, "Muster");
     teams::add_member(&conn, t.id, p, None).unwrap();
     teams::add_member(&conn, t.id, p, Some("Leitung")).unwrap();
-    assert_eq!(teams::members(&conn, t.id).unwrap(), vec![TeamMember { person_id: p, role: Some("Leitung".into()) }]);
+    assert_eq!(
+        teams::members(&conn, t.id).unwrap(),
+        vec![TeamMember {
+            person_id: p,
+            role: Some("Leitung".into())
+        }]
+    );
     teams::remove_member(&conn, t.id, p).unwrap();
     assert!(teams::members(&conn, t.id).unwrap().is_empty());
 }
