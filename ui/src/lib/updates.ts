@@ -36,10 +36,10 @@ let pending: AvailableUpdate | null = null;
 
 const defaultDeps: UpdateDeps = {
   check: async () => (await import('@tauri-apps/plugin-updater')).check() as Promise<AvailableUpdate | null>,
-  closeFile: api.closeFile,
+  closeFile: () => api.closeFile(),
   relaunch: async () => (await import('@tauri-apps/plugin-process')).relaunch(),
-  lastPath: api.lastPath,
-  openFile: api.openFile,
+  lastPath: () => api.lastPath(),
+  openFile: (path) => api.openFile(path),
 };
 
 export async function checkForUpdates({ silent }: { silent: boolean }, deps = defaultDeps): Promise<void> {
