@@ -11,6 +11,13 @@
   let busy = $state(false);
 
   onMount(async () => {
+    // Ist schon eine Datei offen (z.B. nach Neuladen oder beim automatischen Test), direkt weiter.
+    const open = await api.sessionInfo().catch(() => null);
+    if (open) {
+      sessionInfo.set(open);
+      replace({ page: 'addresses' });
+      return;
+    }
     last = await api.lastPath().catch(() => null);
   });
 

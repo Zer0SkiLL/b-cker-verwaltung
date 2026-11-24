@@ -4,6 +4,7 @@
   import Catalog from './settings/Catalog.svelte';
   import FullExport from './settings/FullExport.svelte';
   import ImportWizard from './settings/ImportWizard.svelte';
+  import About from './settings/About.svelte';
 
   let { tab = 'catalog' }: { tab?: SettingsTab } = $props();
 
@@ -12,6 +13,7 @@
     { key: 'backup', label: 'Datensicherung' },
     { key: 'import', label: 'Excel-Import' },
     { key: 'export', label: 'Gesamtexport' },
+    { key: 'about', label: 'Über das Programm' },
   ];
 </script>
 
@@ -28,8 +30,10 @@
   <Backup />
 {:else if tab === 'import'}
   <ImportWizard />
-{:else}
+{:else if tab === 'export'}
   <FullExport />
+{:else}
+  <About />
 {/if}
 
 <style>

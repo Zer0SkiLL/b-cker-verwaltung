@@ -8,7 +8,14 @@
   import Settings from './pages/Settings.svelte';
   import Start from './pages/Start.svelte';
   import Teams from './pages/Teams.svelte';
+  import { onMount } from 'svelte';
   import { route } from './lib/router';
+  import { checkForUpdates } from './lib/updates';
+
+  // Im Hintergrund nach Updates suchen; ohne Verbindung bleibt es still.
+  onMount(() => {
+    checkForUpdates({ silent: true });
+  });
 </script>
 
 {#if $route.page === 'start'}

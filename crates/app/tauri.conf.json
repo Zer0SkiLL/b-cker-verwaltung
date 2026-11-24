@@ -6,8 +6,14 @@
   "build": {
     "devUrl": "http://localhost:1420",
     "frontendDist": "../../ui/dist",
-    "beforeDevCommand": { "script": "pnpm dev", "cwd": "../../ui" },
-    "beforeBuildCommand": { "script": "pnpm build", "cwd": "../../ui" }
+    "beforeDevCommand": {
+      "script": "pnpm dev",
+      "cwd": "../../ui"
+    },
+    "beforeBuildCommand": {
+      "script": "pnpm build",
+      "cwd": "../../ui"
+    }
   },
   "app": {
     "windows": [
@@ -19,11 +25,49 @@
         "minHeight": 680
       }
     ],
-    "security": { "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" }
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    }
   },
   "bundle": {
     "active": true,
-    "targets": "all",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+    "targets": [
+      "nsis",
+      "appimage",
+      "deb",
+      "dmg",
+      "app"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "createUpdaterArtifacts": true,
+    "publisher": "Bäckervereinigung",
+    "shortDescription": "Mitgliederverwaltung",
+    "category": "Business",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "German"
+        ],
+        "displayLanguageSelector": false
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/Zer0SkiLL/b-cker-verwaltung/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ3QjFCQzEwMzZGQjc0RjEKUldUeGRQczJFTHl4MTJ4QWU2VndQQ2Rybyt0Q0loY1laRXUxZjQ3ZTdURTJ2bmpFZjFQSy9PZEQK",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }
