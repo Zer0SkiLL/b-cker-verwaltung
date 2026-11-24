@@ -5,5 +5,6 @@ pub mod error;
 pub mod model;
 pub mod repo;
 pub mod storage;
+pub mod text;
 
 pub use error::{CoreError, Result};

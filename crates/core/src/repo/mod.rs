@@ -2,6 +2,8 @@
 
 pub mod labels;
 pub mod lookups;
+pub mod organisations;
+pub mod persons;
 
 use crate::error::{CoreError, Result};
 
