@@ -105,3 +105,30 @@ fn group_delete_cascades_labels() {
     assert_eq!(count(&conn, "labels"), 0);
     assert_eq!(count(&conn, "label_assignments"), 0);
 }
+
+#[test]
+fn rename_label_group_changes_name() {
+    let conn = test_conn();
+    let g = labels::create_group(&conn, "Rollen", AppliesTo::Person).unwrap();
+    let renamed = labels::rename_group(&conn, g.id, "Funktionen im Verband").unwrap();
+    assert_eq!(renamed.name, "Funktionen im Verband");
+    assert_eq!(renamed.applies_to, AppliesTo::Person);
+}
+
+#[test]
+fn rename_label_group_to_existing_name_is_refused() {
+    let conn = test_conn();
+    labels::create_group(&conn, "A", AppliesTo::Person).unwrap();
+    let b = labels::create_group(&conn, "B", AppliesTo::Person).unwrap();
+    let err = labels::rename_group(&conn, b.id, "A").unwrap_err();
+    assert_eq!(err.to_string(), "Name ist bereits vergeben");
+}
+
+#[test]
+fn rename_unknown_label_group_not_found() {
+    let conn = test_conn();
+    assert!(matches!(
+        labels::rename_group(&conn, 99, "X"),
+        Err(CoreError::NotFound { .. })
+    ));
+}

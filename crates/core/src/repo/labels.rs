@@ -155,3 +155,15 @@ fn label_from_row(row: &Row) -> rusqlite::Result<Label> {
         name: row.get(2)?,
     })
 }
+
+/// Benennt eine Label-Gruppe um; der Name muss eindeutig sein.
+pub fn rename_group(conn: &Connection, id: i64, name: &str) -> Result<LabelGroup> {
+    let name = require_name(name)?;
+    get_group(conn, id)?;
+    crate::repo::ensure_unique_name(conn, "label_groups", &name, id)?;
+    conn.execute(
+        "UPDATE label_groups SET name = ?1 WHERE id = ?2",
+        params![name, id],
+    )?;
+    get_group(conn, id)
+}
