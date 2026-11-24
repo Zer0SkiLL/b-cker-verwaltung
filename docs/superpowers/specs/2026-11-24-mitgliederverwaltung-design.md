@@ -174,7 +174,37 @@ Label-Gruppen und Labels. Alle in einem Bereich „Einstellungen" pflegbar.
 - **Keine Verschlüsselung der Datei in V1** **[Annahme]**. Schutz über die Zugriffsrechte des
   Ablageorts. Kann später ergänzt werden (SQLCipher).
 
-## 8. Qualität und Tests
+## 8. Backup- und Export-Konzept
+
+Auch wenn alles lokal liegt, darf ein Defekt von Rechner oder Laufwerk, ein Fehlbedienung oder
+ein Programmfehler nicht zu Datenverlust führen. Grundsatz: **3 Ebenen**.
+
+1. **Automatische Sicherung beim Öffnen** (Ordner `backups/` neben der Datenbank, die letzten 20).
+   Schützt vor Fehlbedienung und Programmfehlern („gestern war es noch richtig").
+2. **Zweiter Sicherungsort** (optional, empfohlen), z.B. USB-Stick, anderes Laufwerk oder ein
+   synchronisierter Cloud-Ordner. Er wird in den Einstellungen festgelegt und in der Datenbank
+   gespeichert, gilt also auch für die Ferienvertretung. Beim Schliessen und über „Jetzt sichern"
+   wird dorthin gesichert, ebenfalls die letzten 20. Ist der Ort nicht erreichbar (Stick nicht
+   eingesteckt), erscheint ein Hinweis, die Arbeit wird nicht blockiert.
+   Schützt vor dem Ausfall von Rechner oder Laufwerk.
+3. **Gesamtexport als Excel**: alle Daten in einer XLSX-Datei, ein Tabellenblatt pro Bereich
+   (Betriebe, Personen, Zugehörigkeiten, Mitgliedschaften, Labels, Label-Zuweisungen, Teams,
+   Teammitglieder, Auswahllisten). Lesbar ohne dieses Programm.
+   Schützt davor, vom Programm abhängig zu sein („Exit-Strategie"), und dient der Archivierung.
+
+Details:
+- Sicherungen werden mit SQLites `VACUUM INTO` erstellt (konsistente Kopie, auch bei offener
+  Datenbank) und danach mit `PRAGMA integrity_check` geprüft. Eine fehlerhafte Kopie wird
+  gelöscht und gemeldet.
+- **Wiederherstellen**: Sicherung auswählen, dann wird sie geprüft (Integrität, Schema-Version
+  nicht neuer als das Programm). Die aktuelle Datei wird zuerst selbst gesichert, erst danach
+  ersetzt. Nur möglich, wenn man die Datei schreibend geöffnet hat.
+- **Erinnerung**: Liegt die letzte Sicherung am zweiten Ort mehr als 30 Tage zurück (oder gibt es
+  keinen zweiten Ort), zeigt das Programm einen Hinweis. **[Annahme]** 30 Tage.
+- Sicherungen sind unverschlüsselt (wie die Hauptdatei). Der zweite Ort muss entsprechend
+  geschützt sein (Hinweis in der Anleitung, wegen Honorar- und Personendaten).
+
+## 9. Qualität und Tests
 
 - Ziel 80 % Testabdeckung.
 - Unit-Tests für die Fachlogik (Rust) und UI-Komponenten (Vitest).
@@ -182,14 +212,14 @@ Label-Gruppen und Labels. Alle in einem Bereich „Einstellungen" pflegbar.
 - E2E-Tests der Kernabläufe (Erfassen, Filtern, Export) mit `tauri-driver`/WebdriverIO in CI auf
   Windows und Linux. `tauri-driver` unterstützt macOS nicht, dort wird manuell getestet.
 
-## 9. Build und Auslieferung
+## 10. Build und Auslieferung
 
 - GitHub-Repo: `Zer0SkiLL/b-cker-verwaltung`.
 - GitHub Actions (`tauri-action`) baut Installer für Windows (MSI/NSIS), Linux (AppImage/deb) und macOS (dmg).
 - Auslieferung über GitHub Releases, Update durch neuen Download. Ein Auto-Updater ist optional für später.
 - Unsigniert, Warnung beim ersten Start wird dokumentiert.
 
-## 10. Für die Umsetzung offen gelassen
+## 11. Für die Umsetzung offen gelassen
 
 - Konkretes UI-Layout und Navigation (Vorschlag: Seitenleiste Organisationen / Personen / Teams /
   Gruppen / Einstellungen, Liste + Detailansicht).

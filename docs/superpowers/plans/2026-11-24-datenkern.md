@@ -68,7 +68,9 @@ crates/core/tests/common/mod.rs    fn test_conn() -> Connection (in-memory, migr
 **Interfaces:**
 - Produces:
   - `pub enum CoreError { Db(rusqlite::Error), Io(std::io::Error), ReadOnly, LockHeld(LockInfo), NotFound { entity: &'static str, id: i64 }, InUse { count: i64 }, DatabaseNotEmpty, Validation(String), Import(String) }` with `thiserror` German `Display` texts (e.g. `ReadOnly` → "Die Datei ist schreibgeschützt geöffnet."). `pub type Result<T> = std::result::Result<T, CoreError>;`. Map rusqlite `SQLITE_READONLY` to `CoreError::ReadOnly` in `From<rusqlite::Error>`.
-  - `db::open_connection(path: &Path, read_only: bool) -> Result<Connection>`: sets `journal_mode=DELETE`, `foreign_keys=ON`, then calls `migrate` unless read-only.
+  - `db::open_unmigrated(path: &Path, read_only: bool) -> Result<Connection>`: sets `journal_mode=DELETE` (rw only) and `foreign_keys=ON`.
+  - `db::open_connection(path: &Path, read_only: bool) -> Result<Connection>`: `open_unmigrated`, then `migrate` unless read-only.
+  - `db::schema_version(conn: &Connection) -> Result<i64>`: reads `PRAGMA user_version`.
   - `db::open_in_memory() -> Result<Connection>`: migrated in-memory connection (used by tests).
   - `db::migrate(conn: &Connection) -> Result<()>`: applies embedded migrations (`include_str!`) whose index > `PRAGMA user_version`, each in a transaction, then sets `user_version`.
   - `db::SCHEMA_VERSION: i64 = 1`.
@@ -130,18 +132,20 @@ Schema `0001_init.sql` (exact tables; all `id INTEGER PRIMARY KEY`, dates `TEXT`
 **Interfaces:**
 - Consumes: `LockGuard`, `Identity`, `LockInfo` (Task 2); `db::open_connection` (Task 1).
 - Produces:
-  - `backup::create_backup(db_path: &Path, now: DateTime<Local>) -> Result<Option<PathBuf>>`: copies to `<dir>/backups/<stem>-YYYYMMDD-HHMMSS.sqlite`. Returns `None` if the db file does not exist yet.
-  - `backup::prune(db_path: &Path, keep: usize) -> Result<()>`: deletes the oldest backups (by file name) beyond `keep`.
+  - `backup::backup_to_dir(conn: &Connection, dir: &Path, stem: &str, now: DateTime<Local>) -> Result<PathBuf>`: creates `dir` if missing, runs `VACUUM INTO '<dir>/<stem>-YYYYMMDD-HHMMSS.sqlite'` (path bound as a parameter), opens the copy read-only and runs `PRAGMA integrity_check`. If the result is not `ok`, the copy is deleted and `Err(CoreError::Validation("Sicherung fehlerhaft: …"))` is returned. Same-second collision → suffix `-2`, `-3`.
+  - `backup::prune(dir: &Path, stem: &str, keep: usize) -> Result<()>`: deletes the oldest `<stem>-*.sqlite` files (by file name) beyond `keep`.
+  - `backup::local_backup_dir(db_path: &Path) -> PathBuf` → `<db dir>/backups`.
   - `pub const BACKUP_KEEP: usize = 20;`
+  - Open sequence in `Workspace::open`: lock → `open_unmigrated(rw)` → if the db file existed before opening: `backup_to_dir(local_backup_dir)` + `prune` → `migrate`. This way, a backup always exists before a schema migration.
   - `pub enum AccessMode { ReadWrite, ReadOnly { held_by: LockInfo } }`
   - `pub struct Workspace { pub conn: Connection, pub mode: AccessMode, /* private: path, lock */ }`
   - `Workspace::open(db_path: &Path, who: &Identity) -> Result<Workspace>`: acquire lock → backup + prune → `open_connection(rw)`. On `LockHeld(info)`: if the db exists, open read-only with `AccessMode::ReadOnly { held_by: info }`, otherwise return `Err(LockHeld)`.
   - `Workspace::open_taking_over(db_path: &Path, who: &Identity) -> Result<Workspace>`: same, using `LockGuard::take_over`.
 
-- [ ] **Step 1: Write failing tests:** `first_open_creates_db_without_backup`, `second_open_creates_backup`, `prune_keeps_newest_20` (create 22 dummy backups with increasing names, assert 20 remain and the 2 oldest are gone), `open_while_locked_is_read_only_with_holder`, `read_only_workspace_rejects_writes` (`CoreError::ReadOnly`), `take_over_gives_read_write`, `locked_and_missing_db_returns_lock_held`.
+- [ ] **Step 1: Write failing tests:** `first_open_creates_db_without_backup`, `second_open_creates_backup`, `backup_is_valid_sqlite_with_same_data` (insert a team, back up, open the copy, team exists), `backup_same_second_gets_suffix`, `prune_keeps_newest_20` (create 22 dummy backups with increasing names, assert 20 remain and the 2 oldest are gone), `open_while_locked_is_read_only_with_holder`, `read_only_workspace_rejects_writes` (`CoreError::ReadOnly`), `take_over_gives_read_write`, `locked_and_missing_db_returns_lock_held`.
 - [ ] **Step 2: Run** `cargo test -p verwaltung_core --test workspace_test`. Expected: FAIL.
 - [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run.** Expected: 7 passed.
+- [ ] **Step 4: Run.** Expected: 9 passed.
 - [ ] **Step 5: Commit** `feat: add workspace with backups and read-only fallback`
 
 ---
@@ -382,3 +386,69 @@ Schema `0001_init.sql` (exact tables; all `id INTEGER PRIMARY KEY`, dates `TEXT`
 - [ ] **Step 4: Run** `cargo test --workspace`. Expected: all pass.
 - [ ] **Step 5: Coverage gate** `cargo llvm-cov --workspace --fail-under-lines 80`. Expected: exit 0.
 - [ ] **Step 6: Commit** `feat: add excel import with dry run and report`
+
+---
+
+### Task 13: Backup concept – second location, restore, reminder
+
+Implements spec §8, levels 1–2 plus restore and reminder.
+
+**Files:**
+- Create: `crates/core/src/db/0002_settings.sql`, `crates/core/src/repo/settings.rs`, `crates/core/src/storage/restore.rs`
+- Modify: `crates/core/src/db/mod.rs` (`SCHEMA_VERSION = 2`, register migration), `crates/core/src/storage/workspace.rs`, `crates/core/tests/db_test.rs` (assert `SCHEMA_VERSION` instead of literal 1)
+- Test: `crates/core/tests/backup_concept_test.rs`
+
+**Interfaces:**
+- Consumes: `backup_to_dir`, `prune`, `local_backup_dir`, `BACKUP_KEEP` (Task 3).
+- Produces:
+  - Migration 0002: `settings(key TEXT PRIMARY KEY, value TEXT NOT NULL)`.
+  - `settings::{get(conn, key: &str) -> Result<Option<String>>, set(conn, key: &str, value: &str) -> Result<()>, remove(conn, key) -> Result<()>}`. Keys: `pub const SECONDARY_BACKUP_DIR: &str = "backup.secondary_dir"`, `pub const LAST_SECONDARY_BACKUP: &str = "backup.last_secondary_at"` (RFC 3339).
+  - `pub enum SecondaryResult { NotConfigured, Done(PathBuf), Unavailable(String) }`. `pub struct BackupOutcome { pub local: PathBuf, pub secondary: SecondaryResult }`.
+  - `Workspace::backup_now(&self, now: DateTime<Local>) -> Result<BackupOutcome>`: local backup plus secondary backup, each pruned to `BACKUP_KEEP`. Secondary errors (missing drive, no permission) become `Unavailable(German message)` and never fail the call. On `Done`, `LAST_SECONDARY_BACKUP` is set. Requires `ReadWrite`, else `Err(ReadOnly)`.
+  - `Workspace::close(self, now) -> Result<SecondaryResult>`: secondary backup only (if `ReadWrite`), then releases the lock. Read-only → `Ok(NotConfigured)`.
+  - `pub const REMINDER_DAYS: i64 = 30;` `pub struct BackupStatus { pub secondary_dir: Option<String>, pub last_secondary: Option<DateTime<Utc>>, pub reminder_due: bool }`. `backup::status(conn, now: DateTime<Utc>) -> Result<BackupStatus>`: `reminder_due` when there is no secondary dir, no last backup, or the last backup is older than 30 days.
+  - `pub struct BackupFile { pub path: PathBuf, pub created: NaiveDateTime }`. `backup::list(dir, stem) -> Result<Vec<BackupFile>>`, newest first, parsed from the file name. Non-matching files are ignored.
+  - `Workspace::restore(self, backup: &Path, now) -> Result<Workspace>`: requires `ReadWrite`. Validates the backup (opens read-only, `integrity_check == "ok"`, `schema_version <= SCHEMA_VERSION`, else `Validation("Sicherung ist beschädigt")` / `Validation("Sicherung stammt von einer neueren Programmversion")`). Then makes a local backup of the current state, closes the connection **while keeping the lock**, copies the backup to `<db>.restore-tmp`, renames it over the db, reopens with `migrate` and returns a new `ReadWrite` workspace holding the same `LockGuard`. If validation fails, the current file stays untouched.
+
+- [ ] **Step 1: Write failing tests:**
+  - `schema_version_is_2_and_settings_roundtrip`
+  - `backup_now_without_secondary_reports_not_configured`
+  - `backup_now_writes_secondary_and_sets_last_time`
+  - `unavailable_secondary_does_not_fail` (secondary dir = path below a regular file → `Unavailable`, local backup exists)
+  - `secondary_pruned_to_20`
+  - `reminder_due_rules` (no dir → due; last 29 days ago → not due; 31 days → due)
+  - `list_backups_newest_first_ignores_foreign_files`
+  - `restore_replaces_data_and_keeps_pre_restore_backup` (team A → backup → add team B → restore → only A, and a backup containing B exists)
+  - `restore_rejects_corrupt_file_and_keeps_current` (garbage bytes)
+  - `restore_rejects_newer_schema` (copy with `user_version = 99`)
+  - `restore_in_read_only_returns_read_only`
+  - `close_writes_secondary_and_releases_lock` (afterwards `LockGuard::acquire` succeeds)
+- [ ] **Step 2: Run** `cargo test -p verwaltung_core --test backup_concept_test`. Expected: FAIL.
+- [ ] **Step 3: Implement.** Keep `workspace.rs` < 400 lines: restore logic lives in `restore.rs`.
+- [ ] **Step 4: Run** `cargo test --workspace`. Expected: all pass.
+- [ ] **Step 5: Commit** `feat: add secondary backups, restore and backup reminder`
+
+---
+
+### Task 14: Full export (exit strategy)
+
+Implements spec §8, level 3.
+
+**Files:**
+- Create: `crates/core/src/export_full.rs`
+- Modify: `crates/core/src/export.rs` (`write_xlsx` delegates to `write_xlsx_sheets`)
+- Test: `crates/core/tests/export_full_test.rs`
+
+**Interfaces:**
+- Consumes: `Table`, `format_date`, all repos.
+- Produces:
+  - `export::write_xlsx_sheets(sheets: &[(String, Table)], path: &Path) -> Result<()>`: same formatting as `write_xlsx`, one sheet per entry.
+  - `export_full::full_export(conn: &Connection, path: &Path) -> Result<()>` with sheets exactly, in this order: `Betriebe, Personen, Zugehörigkeiten, Mitgliedschaften, Label-Gruppen, Labels, Label-Zuweisungen, Teams, Teammitglieder, Auswahllisten, Gespeicherte Gruppen`.
+  - Every sheet starts with an `ID` column. References carry both the ID and the resolved name (e.g. `Zugehörigkeiten`: `ID, Person-ID, Person, Betrieb-ID, Betrieb, Funktion, Von, Bis`; `Mitgliedschaften`: `ID, Typ, Mitglied-ID, Mitglied, Kategorie, Eintritt, Austritt`). Dates are `TT.MM.JJJJ`. Column headers for `Betriebe`/`Personen` use the German field names from spec §5.1/5.2.
+
+- [ ] **Step 1: Write failing tests:** `full_export_has_all_sheets_in_order`, `row_counts_match_db`, `references_resolved_to_names`, `empty_db_exports_headers_only`, `dates_swiss_format`.
+- [ ] **Step 2: Run** `cargo test -p verwaltung_core --test export_full_test`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** `cargo test --workspace`. Expected: all pass.
+- [ ] **Step 5: Coverage gate** `cargo llvm-cov --workspace --fail-under-lines 80`. Expected: exit 0.
+- [ ] **Step 6: Commit** `feat: add full xlsx export`
