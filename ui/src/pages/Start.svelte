@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import * as api from '../lib/api';
-  import { pickDatabase, pickNewDatabase } from '../lib/desktop';
+  import { pickDatabase, pickNewDatabase, showInfo } from '../lib/desktop';
   import { replace } from '../lib/router';
   import { bumpData, sessionInfo } from '../lib/session';
-  import type { SessionInfo } from '../lib/types';
+  import type { OpenResult } from '../lib/types';
 
   let last = $state<string | null>(null);
   let error = $state<string | null>(null);
@@ -14,15 +14,16 @@
     last = await api.lastPath().catch(() => null);
   });
 
-  async function run(task: () => Promise<SessionInfo | null>) {
+  async function run(task: () => Promise<OpenResult | null>) {
     busy = true;
     error = null;
     try {
-      const info = await task();
-      if (info) {
-        sessionInfo.set(info);
+      const result = await task();
+      if (result) {
+        sessionInfo.set(result.info);
         bumpData();
         replace({ page: 'addresses' });
+        if (result.warning) await showInfo(result.warning);
       }
     } catch (err) {
       error = (err as Error).message;

@@ -1,5 +1,5 @@
 // Sitzungszustand für Hinweisleiste und Neuladen der Ansichten.
-import { writable } from 'svelte/store';
+import { derived, writable } from 'svelte/store';
 import * as api from './api';
 import { formatDateTime } from './dates';
 import type { SessionInfo } from './types';
@@ -7,6 +7,8 @@ import type { SessionInfo } from './types';
 export const sessionInfo = writable<SessionInfo | null>(null);
 /** Wird nach Datenänderungen erhöht; Seiten laden dann neu. */
 export const dataVersion = writable(0);
+/** Nur lesen – auch solange der Zustand noch unbekannt ist (sicherer Standard). */
+export const readOnly = derived(sessionInfo, (info) => info?.readOnly ?? true);
 
 export async function refreshSession(): Promise<void> {
   try {
@@ -27,7 +29,8 @@ export function noticesFor(info: SessionInfo): Notice[] {
   if (info.readOnly) {
     const who = info.heldBy;
     const text = who
-      ? `Nur lesen – geöffnet von ${who.user} (${who.host}) seit ${formatDateTime(who.since)}`
+      ? `Nur lesen – geöffnet von ${who.user} (${who.host}) seit ${formatDateTime(who.since)}` +
+        (who.likelyCrash ? ' – wahrscheinlich nach einem Absturz, bitte „Übernehmen“' : '')
       : 'Nur lesen';
     notices.push({ kind: 'readOnly', text });
   }

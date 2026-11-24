@@ -38,3 +38,14 @@ test('ungespeicherte Änderung: Zurück fragt nach und bleibt bei Abbruch', asyn
   expect(confirm).toHaveBeenCalled();
   expect(get(route)).toEqual({ page: 'organisation', id: 3 });
 });
+
+import * as api from '../lib/api';
+import { bumpData } from '../lib/session';
+
+test('Ladefehler verschwindet nach erfolgreichem Neuladen', async () => {
+  vi.mocked(api.organisationDetail).mockRejectedValueOnce(new Error('Netzlaufwerk nicht erreichbar'));
+  render(OrganisationDetail, { id: 3 });
+  expect(await screen.findByText('Netzlaufwerk nicht erreichbar')).toBeInTheDocument();
+  bumpData();
+  await vi.waitFor(() => expect(screen.queryByText('Netzlaufwerk nicht erreichbar')).toBeNull());
+});

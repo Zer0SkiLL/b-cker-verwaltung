@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { readOnly as readOnlyStore } from '../lib/session';
   import * as api from '../lib/api';
   import { confirmAction } from '../lib/desktop';
   import { navigate } from '../lib/router';
@@ -7,7 +8,8 @@
 
   let groups = $state<GroupDto[]>([]);
   let error = $state<string | null>(null);
-  const readOnly = $derived($sessionInfo?.readOnly ?? false);
+  let editing = $state<{ id: number; name: string } | null>(null);
+  const readOnly = $derived($readOnlyStore);
 
   $effect(() => {
     void $dataVersion;
@@ -17,6 +19,18 @@
   async function openGroup(group: GroupDto) {
     try {
       navigate({ page: 'addresses', filter: await api.loadGroup(group.id) });
+    } catch (err) {
+      error = (err as Error).message;
+    }
+  }
+
+  async function rename() {
+    if (!editing) return;
+    const { id, name } = editing;
+    try {
+      await runWrite(() => api.renameGroup(id, name));
+      editing = null;
+      error = null;
     } catch (err) {
       error = (err as Error).message;
     }
@@ -39,9 +53,20 @@
   <tbody>
     {#each groups as group (group.id)}
       <tr>
-        <td><button class="link" onclick={() => openGroup(group)}>{group.name}</button></td>
+        <td>
+          {#if editing?.id === group.id}
+            <input bind:value={editing.name} aria-label="Neuer Name" onkeydown={(e) => e.key === 'Enter' && rename()} />
+            <button class="primary" onclick={rename}>Speichern</button>
+            <button onclick={() => (editing = null)}>Abbrechen</button>
+          {:else}
+            <button class="link" onclick={() => openGroup(group)}>{group.name}</button>
+          {/if}
+        </td>
         <td class="actions">
-          {#if !readOnly}<button class="danger" onclick={() => remove(group)}>Löschen</button>{/if}
+          {#if !readOnly && editing?.id !== group.id}
+            <button onclick={() => (editing = { id: group.id, name: group.name })}>Umbenennen</button>
+            <button class="danger" onclick={() => remove(group)}>Löschen</button>
+          {/if}
         </td>
       </tr>
     {:else}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { readOnly as readOnlyStore } from '../../lib/session';
   import * as api from '../../lib/api';
   import { pickFile } from '../../lib/desktop';
   import { fieldLabel, setColumn } from '../../lib/importMapping';
@@ -12,7 +13,7 @@
   let error = $state<string | null>(null);
   let busy = $state(false);
 
-  const readOnly = $derived($sessionInfo?.readOnly ?? true);
+  const readOnly = $derived($readOnlyStore);
 
   async function run(task: () => Promise<void>) {
     busy = true;

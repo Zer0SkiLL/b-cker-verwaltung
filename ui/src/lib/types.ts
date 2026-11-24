@@ -55,6 +55,7 @@ export interface LockDto {
   user: string;
   host: string;
   since: string;
+  likelyCrash: boolean;
 }
 
 export interface BackupStatusDto {
@@ -68,6 +69,11 @@ export interface SessionInfo {
   readOnly: boolean;
   heldBy: LockDto | null;
   backup: BackupStatusDto;
+}
+
+export interface OpenResult {
+  info: SessionInfo;
+  warning: string | null;
 }
 
 export type SecondaryResultDto =

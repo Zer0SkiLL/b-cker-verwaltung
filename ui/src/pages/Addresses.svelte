@@ -6,7 +6,7 @@
   import { copyText, openMail, pickSavePath, todayStamp } from '../lib/desktop';
   import { activeFilterCount, emptyFilter, setKinds, setMembership, toggleId, withText } from '../lib/filters';
   import { navigate, replace } from '../lib/router';
-  import { dataVersion, runWrite } from '../lib/session';
+  import { dataVersion, readOnly, runWrite } from '../lib/session';
   import type { EntryKind, ExportFormat, Filter, FilterIdKey, FilterOptions, MembershipStatus, SearchResult } from '../lib/types';
 
   let { filter: initial }: { filter?: Filter } = $props();
@@ -111,8 +111,8 @@
 <div class="head">
   <h1>Adressen</h1>
   <div class="toolbar">
-    <button onclick={() => navigate({ page: 'organisation', id: null })}>Neuer Betrieb</button>
-    <button onclick={() => navigate({ page: 'person', id: null })}>Neue Person</button>
+    <button disabled={$readOnly} onclick={() => navigate({ page: 'organisation', id: null })}>Neuer Betrieb</button>
+    <button disabled={$readOnly} onclick={() => navigate({ page: 'person', id: null })}>Neue Person</button>
   </div>
 </div>
 
@@ -187,7 +187,7 @@
       <button disabled={result.rows.length === 0} onclick={() => exportList('xlsx')}>Excel</button>
       <button disabled={result.rows.length === 0} onclick={() => exportList('csv')}>CSV</button>
       {#if groupName === null}
-        <button onclick={() => (groupName = '')}>Als Gruppe speichern</button>
+        <button disabled={$readOnly} onclick={() => (groupName = '')}>Als Gruppe speichern</button>
       {:else}
         <input placeholder="Name der Gruppe" bind:value={groupName} onkeydown={(e) => e.key === 'Enter' && saveGroup()} />
         <button class="primary" onclick={saveGroup}>Speichern</button>

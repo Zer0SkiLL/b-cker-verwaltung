@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { readOnly as readOnlyStore } from '../../lib/session';
   import { sessionInfo } from '../../lib/session';
   import type { LookupKind } from '../../lib/types';
   import LabelEditor from './LabelEditor.svelte';
@@ -13,7 +14,7 @@
   ];
 
   let active = $state<LookupKind | 'labels'>('labels');
-  const readOnly = $derived($sessionInfo?.readOnly ?? true);
+  const readOnly = $derived($readOnlyStore);
 </script>
 
 <h2>Listen und Labels</h2>

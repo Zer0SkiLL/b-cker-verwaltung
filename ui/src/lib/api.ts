@@ -12,8 +12,8 @@ async function call<R>(command: string, args?: Record<string, unknown>): Promise
 
 // Sitzung
 export const lastPath = () => call<string | null>('last_path');
-export const openFile = (path: string) => call<T.SessionInfo>('open_file', { path });
-export const createFile = (path: string) => call<T.SessionInfo>('create_file', { path });
+export const openFile = (path: string) => call<T.OpenResult>('open_file', { path });
+export const createFile = (path: string) => call<T.OpenResult>('create_file', { path });
 export const takeOver = () => call<T.SessionInfo>('take_over');
 export const sessionInfo = () => call<T.SessionInfo>('session_info');
 export const closeFile = () => call<T.SecondaryResultDto | null>('close_file');
@@ -28,6 +28,7 @@ export const saveGroup = (name: string, filter: T.Filter) =>
   call<number>('save_group', { name, filter });
 export const loadGroup = (id: number) => call<T.Filter>('load_group', { id });
 export const deleteGroup = (id: number) => call<void>('delete_group', { id });
+export const renameGroup = (id: number, name: string) => call<void>('rename_group', { id, name });
 export const filterOptions = () => call<T.FilterOptions>('filter_options');
 
 // Betriebe und Personen
@@ -78,6 +79,8 @@ export const deleteLabel = (id: number, confirm: boolean) =>
   call<void>('delete_label', { id, confirm });
 export const deleteLabelGroup = (id: number, confirm: boolean) =>
   call<void>('delete_label_group', { id, confirm });
+export const renameLabelGroup = (id: number, name: string) =>
+  call<T.LabelGroup>('rename_label_group', { id, name });
 export const listTeams = () => call<T.TeamSummary[]>('list_teams');
 export const teamMembers = (teamId: number) => call<T.TeamMemberView[]>('team_members', { teamId });
 export const createTeam = (name: string, description: string | null) =>
