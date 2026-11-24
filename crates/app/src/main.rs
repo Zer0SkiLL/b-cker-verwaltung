@@ -14,6 +14,8 @@ fn main() {
         .setup(|app| {
             let config_dir = app.path().app_config_dir()?;
             app.manage(AppState::new(config_dir));
+            #[cfg(debug_assertions)]
+            open_db_for_tests(app);
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -89,4 +91,16 @@ fn main() {
             close_session(&handle.state::<AppState>());
         }
     });
+}
+
+/// Debug-Builds: Datei aus `MITGLIEDERVERWALTUNG_DB` öffnen (für E2E-Tests ohne Dateidialog).
+#[cfg(debug_assertions)]
+fn open_db_for_tests(app: &tauri::App) {
+    use verwaltung_app::startup::{db_from_env, open_startup_db, ENV_VAR};
+    if let Some(path) = db_from_env(std::env::var(ENV_VAR).ok()) {
+        let who = verwaltung_app::identity::identity_from_env();
+        if let Err(err) = open_startup_db(&app.state::<AppState>(), &path, &who) {
+            eprintln!("Testdatei konnte nicht geöffnet werden: {err}");
+        }
+    }
 }
