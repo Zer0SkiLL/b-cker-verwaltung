@@ -2,10 +2,20 @@
   import * as api from '../lib/api';
   import { confirmAction } from '../lib/desktop';
   import { navigate } from '../lib/router';
-  import { bumpData, noticesFor, sessionInfo } from '../lib/session';
+  import { untrack } from 'svelte';
+  import { bumpData, dataVersion, noticesFor, refreshSession, sessionInfo } from '../lib/session';
 
   let error = $state<string | null>(null);
   const notices = $derived($sessionInfo ? noticesFor($sessionInfo) : []);
+  let errorVersion = 0;
+
+  // Meldung verschwindet nach der nächsten erfolgreichen Aktion (Datenversion ändert sich).
+  $effect(() => {
+    const version = $dataVersion;
+    untrack(() => {
+      if (error !== null && version !== errorVersion) error = null;
+    });
+  });
 
   async function takeOver() {
     const ok = await confirmAction(
@@ -18,6 +28,8 @@
       error = null;
       bumpData();
     } catch (err) {
+      await refreshSession();
+      errorVersion = $dataVersion;
       error = (err as Error).message;
     }
   }
