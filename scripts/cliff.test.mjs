@@ -6,7 +6,9 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const cliff = join(root, 'node_modules', '.bin', 'git-cliff');
+// Unter Windows liegt dort git-cliff.cmd, das nur über eine Shell startet.
+const isWindows = process.platform === 'win32';
+const cliff = join(root, 'node_modules', '.bin', isWindows ? 'git-cliff.cmd' : 'git-cliff');
 
 function repoWith(messages) {
   const dir = mkdtempSync(join(tmpdir(), 'cliff-'));
@@ -27,6 +29,7 @@ function notes(dir) {
   return execFileSync(cliff, ['--config', join(root, 'cliff.toml'), '--unreleased', '--tag', 'v9.9.9'], {
     cwd: dir,
     encoding: 'utf8',
+    shell: isWindows,
   });
 }
 

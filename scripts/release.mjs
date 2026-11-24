@@ -32,7 +32,14 @@ export function preflight({ branch, clean, current, next }) {
 }
 
 const run = (cmd, args, opts = {}) =>
-  execFileSync(cmd, args, { cwd: ROOT, encoding: 'utf8', stdio: opts.quiet ? 'pipe' : 'inherit', ...opts });
+  // shell unter Windows: pnpm/git-cliff sind dort .cmd-Dateien.
+  execFileSync(cmd, args, {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: opts.quiet ? 'pipe' : 'inherit',
+    shell: process.platform === 'win32',
+    ...opts,
+  });
 const read = (file) => readFileSync(`${ROOT}/${file}`, 'utf8');
 const write = (file, text) => writeFileSync(`${ROOT}/${file}`, text);
 
