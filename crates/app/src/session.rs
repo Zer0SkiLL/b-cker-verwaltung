@@ -21,8 +21,19 @@ pub struct Session {
 }
 
 impl Session {
-    /// Öffnet eine bestehende (oder neue) Datei; eine offene Sitzung wird vorher geschlossen.
+    /// Öffnet eine bestehende Datei; eine offene Sitzung wird vorher geschlossen.
+    /// Fehlt die Datei (verschoben, umbenannt), wird bewusst keine neue angelegt.
     pub fn open(&mut self, path: &Path, who: &Identity) -> AppResult<SessionInfo> {
+        if !path.is_file() {
+            return Err(AppError(format!(
+                "Datei nicht gefunden: {}. Bitte „Datei öffnen…“ verwenden.",
+                path.display()
+            )));
+        }
+        self.open_path(path, who)
+    }
+
+    fn open_path(&mut self, path: &Path, who: &Identity) -> AppResult<SessionInfo> {
         self.close(Local::now())?;
         self.ws = Some(Workspace::open(path, who)?);
         self.info(Utc::now())
@@ -33,7 +44,7 @@ impl Session {
         if path.exists() {
             return Err(AppError::new(FILE_EXISTS));
         }
-        self.open(path, who)
+        self.open_path(path, who)
     }
 
     /// Übernimmt die Sperre der geöffneten Datei und öffnet schreibend.

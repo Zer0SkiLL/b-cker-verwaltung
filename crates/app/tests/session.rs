@@ -123,3 +123,12 @@ fn session_info_serializes_camel_case() {
     let closed = serde_json::to_value(SecondaryResultDto::NotConfigured).unwrap();
     assert_eq!(closed["kind"], "notConfigured");
 }
+
+#[test]
+fn open_refuses_missing_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let missing = dir.path().join("verschoben.sqlite");
+    let err = Session::default().open(&missing, &who("anna")).unwrap_err();
+    assert!(err.0.starts_with("Datei nicht gefunden"), "{}", err.0);
+    assert!(!missing.exists(), "es darf keine leere Datei entstehen");
+}
