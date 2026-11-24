@@ -2,7 +2,7 @@ use std::path::Path;
 
 use rusqlite::{Connection, OpenFlags};
 
-use crate::error::Result;
+use crate::error::{CoreError, Result};
 
 const MIGRATIONS: &[&str] = &[
     include_str!("0001_init.sql"),
@@ -50,6 +50,11 @@ pub fn schema_version(conn: &Connection) -> Result<i64> {
 /// Wendet alle noch fehlenden Migrationen an, jede in einer eigenen Transaktion.
 pub fn migrate(conn: &Connection) -> Result<()> {
     let current = schema_version(conn)?;
+    if current > SCHEMA_VERSION {
+        return Err(CoreError::Validation(
+            "Die Datei stammt von einer neueren Programmversion. Bitte das Programm aktualisieren.".into(),
+        ));
+    }
     for (index, sql) in MIGRATIONS.iter().enumerate() {
         let version = index as i64 + 1;
         if version <= current {

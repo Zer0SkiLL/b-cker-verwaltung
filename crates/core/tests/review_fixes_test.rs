@@ -166,3 +166,19 @@ fn restore_rejects_foreign_sqlite_file() {
         other => panic!("expected Validation, got {other:?}"),
     }
 }
+
+// I3
+#[test]
+fn open_refuses_database_from_newer_version() {
+    use verwaltung_core::error::CoreError;
+    use verwaltung_core::storage::lock::LockGuard;
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("daten.sqlite");
+    drop(Workspace::open(&db, &who("reto")).unwrap());
+    rusqlite::Connection::open(&db).unwrap().pragma_update(None, "user_version", 99).unwrap();
+    match Workspace::open(&db, &who("reto")) {
+        Err(CoreError::Validation(m)) => assert!(m.contains("neueren Programmversion"), "{m}"),
+        other => panic!("expected Validation, got {:?}", other.map(|w| w.is_read_write())),
+    }
+    assert!(LockGuard::acquire(&db, &who("x")).is_ok(), "Sperre muss freigegeben sein");
+}
