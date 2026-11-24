@@ -88,3 +88,52 @@ fn free_name(dir: &Path, stem: &str, now: DateTime<Local>) -> PathBuf {
         .find(|p| !p.exists())
         .expect("unendlicher Iterator")
 }
+
+/// Nach so vielen Tagen ohne Sicherung am zweiten Ort erscheint eine Erinnerung.
+pub const REMINDER_DAYS: i64 = 30;
+const STAMP_LEN: usize = "YYYYMMDD-HHMMSS".len();
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BackupStatus {
+    pub secondary_dir: Option<String>,
+    pub last_secondary: Option<chrono::DateTime<chrono::Utc>>,
+    pub reminder_due: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BackupFile {
+    pub path: PathBuf,
+    pub created: chrono::NaiveDateTime,
+}
+
+/// Stand der Sicherungen am zweiten Ort, inklusive Erinnerung.
+pub fn status(conn: &Connection, now: chrono::DateTime<chrono::Utc>) -> Result<BackupStatus> {
+    use crate::repo::settings::{get, LAST_SECONDARY_BACKUP, SECONDARY_BACKUP_DIR};
+    let secondary_dir = get(conn, SECONDARY_BACKUP_DIR)?;
+    let last_secondary = get(conn, LAST_SECONDARY_BACKUP)?
+        .and_then(|v| chrono::DateTime::parse_from_rfc3339(&v).ok())
+        .map(|d| d.with_timezone(&chrono::Utc));
+    let fresh = last_secondary.is_some_and(|last| now - last <= chrono::Duration::days(REMINDER_DAYS));
+    let reminder_due = secondary_dir.is_none() || !fresh;
+    Ok(BackupStatus { secondary_dir, last_secondary, reminder_due })
+}
+
+/// Sicherungen eines Ordners, neueste zuerst. Fremde Dateien werden ignoriert.
+pub fn list(dir: &Path, stem: &str) -> Result<Vec<BackupFile>> {
+    let prefix = format!("{stem}-");
+    let mut files: Vec<(BackupFile, u32)> = backup_names(dir, stem)?
+        .into_iter()
+        .filter_map(|name| {
+            let rest = name.strip_prefix(&prefix)?.strip_suffix(BACKUP_EXT)?;
+            let stamp = rest.get(..STAMP_LEN)?;
+            let created = chrono::NaiveDateTime::parse_from_str(stamp, "%Y%m%d-%H%M%S").ok()?;
+            let suffix = match &rest[STAMP_LEN..] {
+                "" => 1,
+                s => s.strip_prefix('-')?.parse().ok()?,
+            };
+            Some((BackupFile { path: dir.join(&name), created }, suffix))
+        })
+        .collect();
+    files.sort_by(|a, b| (b.0.created, b.1).cmp(&(a.0.created, a.1)));
+    Ok(files.into_iter().map(|(f, _)| f).collect())
+}

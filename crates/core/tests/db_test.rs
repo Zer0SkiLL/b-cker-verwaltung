@@ -8,7 +8,7 @@ fn tmp_db() -> (tempfile::TempDir, std::path::PathBuf) {
 }
 
 #[test]
-fn creates_file_with_schema_version_1() {
+fn creates_file_with_current_schema_version() {
     let (_d, path) = tmp_db();
     let conn = open_connection(&path, false).unwrap();
     assert!(path.exists());

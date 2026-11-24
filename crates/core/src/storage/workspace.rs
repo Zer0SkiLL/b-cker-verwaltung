@@ -1,11 +1,12 @@
 use std::path::{Path, PathBuf};
 
-use chrono::Local;
+use chrono::{DateTime, Local, Utc};
 use rusqlite::Connection;
 
 use super::backup::{backup_to_dir, db_stem, local_backup_dir, prune, BACKUP_KEEP};
 use super::lock::{Identity, LockGuard, LockInfo};
 use crate::db;
+use crate::repo::settings::{self, LAST_SECONDARY_BACKUP, SECONDARY_BACKUP_DIR};
 use crate::error::{CoreError, Result};
 
 /// Zugriffsart auf die geöffnete Datenbank.
@@ -15,13 +16,27 @@ pub enum AccessMode {
     ReadOnly { held_by: LockInfo },
 }
 
+/// Ergebnis der Sicherung am zweiten Ort.
+#[derive(Debug, Clone, PartialEq)]
+pub enum SecondaryResult {
+    NotConfigured,
+    Done(PathBuf),
+    /// Ort nicht erreichbar (z.B. USB-Stick nicht eingesteckt); deutsche Meldung.
+    Unavailable(String),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BackupOutcome {
+    pub local: PathBuf,
+    pub secondary: SecondaryResult,
+}
+
 /// Geöffnete Datenbank inklusive Sperre. Felder werden in Deklarationsreihenfolge freigegeben:
 /// zuerst die Verbindung, dann die Sperre.
 pub struct Workspace {
     pub conn: Connection,
     pub mode: AccessMode,
     path: PathBuf,
-    #[allow(dead_code)] // hält die Sperre, bis der Workspace freigegeben wird
     lock: Option<LockGuard>,
 }
 
@@ -49,8 +64,55 @@ impl Workspace {
         matches!(self.mode, AccessMode::ReadWrite)
     }
 
+    /// Sichert lokal und (falls eingerichtet) am zweiten Ort. Nur bei schreibendem Zugriff.
+    pub fn backup_now(&self, now: DateTime<Local>) -> Result<BackupOutcome> {
+        self.require_read_write()?;
+        let dir = local_backup_dir(&self.path);
+        let stem = db_stem(&self.path);
+        let local = backup_to_dir(&self.conn, &dir, &stem, now)?;
+        prune(&dir, &stem, BACKUP_KEEP)?;
+        Ok(BackupOutcome { local, secondary: self.backup_secondary(now)? })
+    }
+
+    /// Schliesst die Datenbank: Sicherung am zweiten Ort, danach wird die Sperre freigegeben.
+    pub fn close(self, now: DateTime<Local>) -> Result<SecondaryResult> {
+        if !self.is_read_write() {
+            return Ok(SecondaryResult::NotConfigured);
+        }
+        self.backup_secondary(now)
+    }
+
+    pub(crate) fn require_read_write(&self) -> Result<()> {
+        if self.is_read_write() {
+            Ok(())
+        } else {
+            Err(CoreError::ReadOnly)
+        }
+    }
+
     pub(crate) fn from_parts(conn: Connection, path: PathBuf, lock: LockGuard) -> Workspace {
         Workspace { conn, mode: AccessMode::ReadWrite, path, lock: Some(lock) }
+    }
+
+    pub(crate) fn into_parts(self) -> (Connection, PathBuf, Option<LockGuard>) {
+        (self.conn, self.path, self.lock)
+    }
+
+    fn backup_secondary(&self, now: DateTime<Local>) -> Result<SecondaryResult> {
+        let Some(dir) = settings::get(&self.conn, SECONDARY_BACKUP_DIR)? else {
+            return Ok(SecondaryResult::NotConfigured);
+        };
+        let dir = PathBuf::from(dir);
+        let stem = db_stem(&self.path);
+        let attempt = backup_to_dir(&self.conn, &dir, &stem, now)
+            .and_then(|path| prune(&dir, &stem, BACKUP_KEEP).map(|_| path));
+        match attempt {
+            Ok(path) => {
+                settings::set(&self.conn, LAST_SECONDARY_BACKUP, &now.with_timezone(&Utc).to_rfc3339())?;
+                Ok(SecondaryResult::Done(path))
+            }
+            Err(e) => Ok(SecondaryResult::Unavailable(format!("Zweiter Sicherungsort nicht erreichbar: {e}"))),
+        }
     }
 
     fn open_read_write(db_path: &Path, lock: LockGuard) -> Result<Workspace> {

@@ -7,6 +7,7 @@ pub mod lookups;
 pub mod memberships;
 pub mod organisations;
 pub mod persons;
+pub mod settings;
 pub mod teams;
 
 use crate::error::{CoreError, Result};
