@@ -115,17 +115,13 @@ impl Workspace {
         }
     }
 
-    pub(crate) fn from_parts(conn: Connection, path: PathBuf, lock: LockGuard) -> Workspace {
+    fn from_parts(conn: Connection, path: PathBuf, lock: LockGuard) -> Workspace {
         Workspace {
             conn,
             mode: AccessMode::ReadWrite,
             path,
             lock: Some(lock),
         }
-    }
-
-    pub(crate) fn into_parts(self) -> (Connection, PathBuf, Option<LockGuard>) {
-        (self.conn, self.path, self.lock)
     }
 
     fn backup_secondary(&self, now: DateTime<Local>) -> Result<SecondaryResult> {

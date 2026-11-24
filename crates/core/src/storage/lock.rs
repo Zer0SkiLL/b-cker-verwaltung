@@ -87,7 +87,9 @@ pub fn current_holder(db_path: &Path) -> Option<LockInfo> {
 }
 
 fn read_own(path: &Path) -> Option<LockInfo> {
-    fs::read(path).ok().and_then(|b| serde_json::from_slice::<LockInfo>(&b).ok())
+    fs::read(path)
+        .ok()
+        .and_then(|b| serde_json::from_slice::<LockInfo>(&b).ok())
 }
 
 impl Drop for LockGuard {

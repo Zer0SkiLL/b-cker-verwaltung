@@ -124,7 +124,13 @@ pub fn list(dir: &Path, stem: &str) -> Result<Vec<BackupFile>> {
     for entry in fs::read_dir(dir)? {
         let name = entry?.file_name().to_string_lossy().into_owned();
         if let Some((created, suffix)) = parse_backup_name(&name, stem) {
-            files.push((BackupFile { path: dir.join(&name), created }, suffix));
+            files.push((
+                BackupFile {
+                    path: dir.join(&name),
+                    created,
+                },
+                suffix,
+            ));
         }
     }
     files.sort_by_key(|f| std::cmp::Reverse((f.0.created, f.1)));
@@ -133,12 +139,19 @@ pub fn list(dir: &Path, stem: &str) -> Result<Vec<BackupFile>> {
 
 /// Zeitstempel und Laufnummer aus `<stem>-JJJJMMTT-HHMMSS[-N].sqlite`, sonst `None`.
 fn parse_backup_name(name: &str, stem: &str) -> Option<(chrono::NaiveDateTime, u32)> {
-    let rest = name.strip_prefix(stem)?.strip_prefix('-')?.strip_suffix(BACKUP_EXT)?;
+    let rest = name
+        .strip_prefix(stem)?
+        .strip_prefix('-')?
+        .strip_suffix(BACKUP_EXT)?;
     let stamp = rest.get(..STAMP_LEN)?;
     let created = chrono::NaiveDateTime::parse_from_str(stamp, "%Y%m%d-%H%M%S").ok()?;
     let suffix = match &rest[STAMP_LEN..] {
         "" => 1,
-        s => s.strip_prefix('-').filter(|n| n.bytes().all(|b| b.is_ascii_digit()))?.parse().ok()?,
+        s => s
+            .strip_prefix('-')
+            .filter(|n| n.bytes().all(|b| b.is_ascii_digit()))?
+            .parse()
+            .ok()?,
     };
     Some((created, suffix))
 }

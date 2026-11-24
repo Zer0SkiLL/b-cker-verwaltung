@@ -155,7 +155,7 @@ fn list_backups_newest_first_ignores_foreign_files() {
 
 #[test]
 fn restore_replaces_data_and_keeps_pre_restore_backup() {
-    let (dir, db, ws) = setup();
+    let (dir, db, mut ws) = setup();
     ws.conn
         .execute("INSERT INTO teams(name) VALUES ('A')", [])
         .unwrap();
@@ -163,8 +163,7 @@ fn restore_replaces_data_and_keeps_pre_restore_backup() {
     ws.conn
         .execute("INSERT INTO teams(name) VALUES ('B')", [])
         .unwrap();
-    let ws = ws
-        .restore(&saved, Local::now() + Duration::seconds(5))
+    ws.restore(&saved, Local::now() + Duration::seconds(5))
         .unwrap();
     assert_eq!(team_names(&ws), vec!["A"]);
     assert!(ws.is_read_write());
@@ -189,7 +188,7 @@ fn restore_replaces_data_and_keeps_pre_restore_backup() {
 
 #[test]
 fn restore_rejects_corrupt_file_and_keeps_current() {
-    let (dir, _db, ws) = setup();
+    let (dir, _db, mut ws) = setup();
     ws.conn
         .execute("INSERT INTO teams(name) VALUES ('A')", [])
         .unwrap();
@@ -203,13 +202,13 @@ fn restore_rejects_corrupt_file_and_keeps_current() {
         Err(CoreError::Validation(m)) => assert_eq!(m, "Sicherung ist beschädigt"),
         other => panic!("expected Validation, got {:?}", other.map(|_| ())),
     }
-    let ws = Workspace::open_taking_over(&dir.path().join("daten.sqlite"), &who("reto")).unwrap();
     assert_eq!(team_names(&ws), vec!["A"]);
+    drop(dir);
 }
 
 #[test]
 fn restore_rejects_newer_schema() {
-    let (_dir, _db, ws) = setup();
+    let (_dir, _db, mut ws) = setup();
     let copy = ws.backup_now(Local::now()).unwrap().local;
     rusqlite::Connection::open(&copy)
         .unwrap()
@@ -227,7 +226,7 @@ fn restore_rejects_newer_schema() {
 fn restore_in_read_only_returns_read_only() {
     let (_dir, db, ws) = setup();
     let copy = ws.backup_now(Local::now()).unwrap().local;
-    let second = Workspace::open(&db, &who("anna")).unwrap();
+    let mut second = Workspace::open(&db, &who("anna")).unwrap();
     assert!(matches!(
         second.restore(&copy, Local::now()),
         Err(CoreError::ReadOnly)
