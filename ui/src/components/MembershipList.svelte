@@ -51,7 +51,9 @@
 </table>
 {#if error}<div class="form-error">{error}</div>{/if}
 {#if editing}
-  <MembershipEditor {member} {categories} existing={editing === 'new' ? null : editing} onDone={() => (editing = null)} />
+  {#key editing}
+    <MembershipEditor {member} {categories} existing={editing === 'new' ? null : editing} onDone={() => (editing = null)} />
+  {/key}
 {:else if !readOnly}
   <button onclick={() => (editing = 'new')}>Mitgliedschaft erfassen</button>
 {/if}

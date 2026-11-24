@@ -82,6 +82,7 @@
 </table>
 {#if error}<div class="form-error">{error}</div>{/if}
 {#if editing}
+  {#key editing}
   <AffiliationEditor
     organisationId={mode === 'organisation' ? ownerId : null}
     personId={mode === 'person' ? ownerId : null}
@@ -91,6 +92,7 @@
     existing={editing === 'new' ? null : editing}
     onDone={() => (editing = null)}
   />
+  {/key}
 {:else if !readOnly}
   <button onclick={() => (editing = 'new')}>
     {mode === 'organisation' ? 'Person verknüpfen' : 'Betrieb verknüpfen'}
