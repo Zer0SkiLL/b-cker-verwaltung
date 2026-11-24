@@ -1,0 +1,67 @@
+:root {
+  --bg: #ffffff;
+  --bg-muted: #f5f3ef;
+  --bg-sidebar: #efe9df;
+  --border: #d9d2c5;
+  --text: #1f2328;
+  --text-muted: #5d6166;
+  --accent: #8a4b14;
+  --accent-text: #ffffff;
+  --danger: #b42318;
+  --warn-bg: #fff4d6;
+  --warn-border: #e8c45c;
+  --focus: #1f6feb;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+h1 { font-size: 1.4rem; margin: 0 0 1rem; }
+h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+
+button {
+  font: inherit;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+button:hover:not(:disabled) { background: var(--bg-muted); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+button.primary:hover:not(:disabled) { filter: brightness(1.1); background: var(--accent); }
+button.danger { color: var(--danger); border-color: var(--danger); }
+button.link { border: none; background: none; color: var(--accent); padding: 0; text-decoration: underline; }
+
+input, select, textarea {
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+}
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--border); padding: 0.4rem 0.5rem; }
+td { border-bottom: 1px solid var(--bg-muted); padding: 0.4rem 0.5rem; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--bg-muted); }
+
+.muted { color: var(--text-muted); }
+.error { color: var(--danger); }
+.form-error { color: var(--danger); background: #fdecea; padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 0.75rem; }
+.toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.field { display: flex; flex-direction: column; gap: 0.2rem; margin-bottom: 0.6rem; }
+.field label { font-size: 0.85rem; color: var(--text-muted); }
+.field .error { font-size: 0.85rem; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+.card { border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+.chip { display: inline-flex; gap: 0.3rem; align-items: center; background: var(--bg-muted); border-radius: 999px; padding: 0.1rem 0.6rem; margin: 0 0.3rem 0.3rem 0; font-size: 0.9rem; }
