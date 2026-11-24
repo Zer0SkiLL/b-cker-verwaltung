@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use rusqlite::Connection;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use verwaltung_core::export::{write_csv, Table};
 use verwaltung_core::import::apply::apply;
 use verwaltung_core::import::mapping::{plan, Field, ImportPlan, Mapping, PlannedRow, ReportEntry};
@@ -42,7 +42,7 @@ pub const ALL_FIELDS: [Field; 24] = [
     Field::Ignore,
 ];
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReportEntryDto {
     pub line: usize,
     pub column: Option<String>,

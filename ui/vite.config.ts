@@ -16,7 +16,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/lib/**/*.ts'],
-      exclude: ['src/lib/**/*.test.ts', 'src/lib/api.ts', 'src/lib/types.ts'],
+      exclude: ['src/lib/**/*.test.ts', 'src/lib/api.ts', 'src/lib/types.ts', 'src/lib/desktop.ts'],
       thresholds: { lines: 80 },
     },
   },

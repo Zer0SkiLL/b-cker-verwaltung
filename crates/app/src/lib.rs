@@ -7,3 +7,4 @@ pub mod dto;
 pub mod error;
 pub mod identity;
 pub mod session;
+pub mod tauri_commands;
