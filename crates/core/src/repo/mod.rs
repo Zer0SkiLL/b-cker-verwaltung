@@ -40,3 +40,19 @@ pub(crate) fn check_date_order(
         _ => Ok(()),
     }
 }
+
+/// Prüft vor dem Umbenennen, dass kein anderer Eintrag der Tabelle den Namen schon trägt
+/// (sonst käme die englische UNIQUE-Meldung von SQLite bis zur Oberfläche).
+pub(crate) fn ensure_unique_name(
+    conn: &rusqlite::Connection,
+    table: &str,
+    name: &str,
+    id: i64,
+) -> Result<()> {
+    let sql = format!("SELECT COUNT(*) FROM {table} WHERE name = ?1 AND id <> ?2");
+    let taken: i64 = conn.query_row(&sql, rusqlite::params![name, id], |r| r.get(0))?;
+    if taken > 0 {
+        return Err(CoreError::Validation("Name ist bereits vergeben".into()));
+    }
+    Ok(())
+}

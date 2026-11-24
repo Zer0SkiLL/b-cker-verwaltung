@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { readOnly as readOnlyStore } from '../../lib/session';
   import * as api from '../../lib/api';
   import { formatDateTime } from '../../lib/dates';
   import { confirmAction, pickFile, pickFolder } from '../../lib/desktop';
@@ -8,7 +9,7 @@
   let overview = $state<BackupOverview | null>(null);
   let error = $state<string | null>(null);
   let info = $state<string | null>(null);
-  const readOnly = $derived($sessionInfo?.readOnly ?? true);
+  const readOnly = $derived($readOnlyStore);
 
   $effect(() => {
     void $dataVersion;

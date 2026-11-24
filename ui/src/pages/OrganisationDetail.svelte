@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { readOnly as readOnlyStore } from '../lib/session';
   import { onDestroy, untrack } from 'svelte';
   import AffiliationList from '../components/AffiliationList.svelte';
   import LabelAssignments from '../components/LabelAssignments.svelte';
@@ -35,10 +36,11 @@
   });
   onDestroy(() => setLeaveGuard(null));
 
-  const readOnly = $derived($sessionInfo?.readOnly ?? false);
+  const readOnly = $derived($readOnlyStore);
 
   async function load(current: number | null, past: boolean) {
     try {
+      failure = null;
       options = await api.filterOptions();
       people = await api.listPeople();
       if (current !== null) {

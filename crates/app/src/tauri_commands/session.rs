@@ -4,7 +4,8 @@ use chrono::{Local, Utc};
 use tauri::State;
 
 use super::AppState;
-use crate::config::{load_last_path, save_last_path};
+use crate::commands::session::{open_and_remember, OpenResult};
+use crate::config::load_last_path;
 use crate::dto::{SecondaryResultDto, SessionInfo};
 use crate::error::AppResult;
 use crate::identity::identity_from_env;
@@ -15,19 +16,15 @@ pub fn last_path(state: State<AppState>) -> Option<String> {
 }
 
 #[tauri::command(async)]
-pub fn open_file(state: State<AppState>, path: String) -> AppResult<SessionInfo> {
+pub fn open_file(state: State<AppState>, path: String) -> AppResult<OpenResult> {
     let path = PathBuf::from(path);
-    let info = state.with(|s| s.open(&path, &identity_from_env()))?;
-    save_last_path(&state.config_dir, &path)?;
-    Ok(info)
+    state.with(|s| open_and_remember(s, &state.config_dir, &path, &identity_from_env(), false))
 }
 
 #[tauri::command(async)]
-pub fn create_file(state: State<AppState>, path: String) -> AppResult<SessionInfo> {
+pub fn create_file(state: State<AppState>, path: String) -> AppResult<OpenResult> {
     let path = PathBuf::from(path);
-    let info = state.with(|s| s.create(&path, &identity_from_env()))?;
-    save_last_path(&state.config_dir, &path)?;
-    Ok(info)
+    state.with(|s| open_and_remember(s, &state.config_dir, &path, &identity_from_env(), true))
 }
 
 #[tauri::command(async)]

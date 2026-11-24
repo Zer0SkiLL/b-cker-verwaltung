@@ -50,7 +50,7 @@ test('Wiederherstellen nach Rückfrage lädt Daten und Sitzung neu', async () =>
 });
 
 test('nur lesend: Sichern und Wiederherstellen gesperrt', async () => {
-  sessionInfo.set({ ...writable, readOnly: true, heldBy: { user: 'anna', host: 'pc1', since: '2026-11-24T07:00:00Z' } });
+  sessionInfo.set({ ...writable, readOnly: true, heldBy: { user: 'anna', host: 'pc1', since: '2026-11-24T07:00:00Z', likelyCrash: false } });
   render(Backup);
   expect(await screen.findByRole('button', { name: 'Wiederherstellen' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Jetzt sichern' })).toBeDisabled();

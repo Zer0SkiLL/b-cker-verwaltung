@@ -27,7 +27,7 @@ test('Hinweise: nur lesen und fehlender zweiter Ort', () => {
   const notices = noticesFor({
     path: '/x',
     readOnly: true,
-    heldBy: { user: 'anna', host: 'pc1', since: new Date(2026, 10, 24, 8, 12).toISOString() },
+    heldBy: { user: 'anna', host: 'pc1', since: new Date(2026, 10, 24, 8, 12).toISOString(), likelyCrash: false },
     backup: { secondaryDir: null, lastSecondary: null, reminderDue: true },
   });
   expect(notices.map((n) => n.kind)).toEqual(['readOnly', 'backup']);
@@ -78,4 +78,30 @@ test('runWrite: Fehler aktualisiert die Sitzung und gibt den Text weiter', async
   ).rejects.toThrow('nur lesend');
   expect(api.sessionInfo).toHaveBeenCalled();
   expect(get(dataVersion)).toBe(before);
+});
+
+import { readOnly } from './session';
+
+test('readOnly: unbekannter Zustand gilt als nur lesen', () => {
+  sessionInfo.set(null);
+  expect(get(readOnly)).toBe(true);
+  sessionInfo.set({
+    path: '/x',
+    readOnly: false,
+    heldBy: null,
+    backup: { secondaryDir: '/s', lastSecondary: null, reminderDue: false },
+  });
+  expect(get(readOnly)).toBe(false);
+});
+
+test('Hinweis nach Absturz', () => {
+  const [notice] = noticesFor({
+    path: '/x',
+    readOnly: true,
+    heldBy: { user: 'anna', host: 'pc1', since: new Date(2026, 10, 24, 8, 12).toISOString(), likelyCrash: true },
+    backup: { secondaryDir: '/s', lastSecondary: null, reminderDue: false },
+  });
+  expect(notice.text).toBe(
+    'Nur lesen – geöffnet von anna (pc1) seit 24.11.2026 08:12 – wahrscheinlich nach einem Absturz, bitte „Übernehmen“',
+  );
 });

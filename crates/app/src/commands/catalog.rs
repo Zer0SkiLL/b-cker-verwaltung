@@ -90,3 +90,7 @@ pub fn delete_label(s: &mut Session, id: i64, confirm: bool) -> AppResult<()> {
 pub fn delete_label_group(s: &mut Session, id: i64, confirm: bool) -> AppResult<()> {
     s.write(|c| labels::delete_group(c, id, confirm))
 }
+
+pub fn rename_label_group(s: &mut Session, id: i64, name: &str) -> AppResult<LabelGroup> {
+    s.write(|c| labels::rename_group(c, id, name))
+}

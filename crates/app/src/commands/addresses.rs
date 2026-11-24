@@ -130,3 +130,7 @@ pub fn filter_options(s: &Session) -> AppResult<FilterOptions> {
         })
     })
 }
+
+pub fn rename_group(s: &mut Session, id: i64, name: &str) -> AppResult<()> {
+    s.write(|c| saved_groups::rename(c, id, name))
+}

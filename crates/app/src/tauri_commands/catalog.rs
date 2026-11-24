@@ -112,3 +112,8 @@ pub fn add_team_member(
 pub fn remove_team_member(state: State<AppState>, team_id: i64, person_id: i64) -> AppResult<()> {
     state.with(|s| tm::remove_team_member(s, team_id, person_id))
 }
+
+#[tauri::command(async)]
+pub fn rename_label_group(state: State<AppState>, id: i64, name: String) -> AppResult<LabelGroup> {
+    state.with(|s| cat::rename_label_group(s, id, &name))
+}

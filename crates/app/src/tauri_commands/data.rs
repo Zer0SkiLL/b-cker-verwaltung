@@ -97,3 +97,8 @@ pub fn import_apply(
 pub fn export_report(report: Vec<imp::ReportEntryDto>, path: String) -> AppResult<()> {
     imp::export_report(&report, &PathBuf::from(path))
 }
+
+#[tauri::command(async)]
+pub fn rename_group(state: State<AppState>, id: i64, name: String) -> AppResult<()> {
+    state.with(|s| adr::rename_group(s, id, &name))
+}

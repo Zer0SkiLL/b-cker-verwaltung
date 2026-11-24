@@ -10,6 +10,7 @@ vi.mock('../lib/api', () => ({
   listGroups: vi.fn(async () => [{ id: 7, name: 'Vorstand' }]),
   loadGroup: vi.fn(async () => vorstand),
   deleteGroup: vi.fn(),
+  renameGroup: vi.fn(async () => undefined),
   sessionInfo: vi.fn(async () => null),
 }));
 vi.mock('../lib/desktop', () => ({ confirmAction: vi.fn(async () => true) }));
@@ -23,4 +24,24 @@ test('Klick auf eine Gruppe öffnet Adressen mit deren Filter', async () => {
   render(Groups);
   await user.click(await screen.findByRole('button', { name: 'Vorstand' }));
   expect(get(route)).toEqual({ page: 'addresses', filter: vorstand });
+});
+
+import * as api from '../lib/api';
+import { sessionInfo } from '../lib/session';
+
+test('Gruppe umbenennen', async () => {
+  sessionInfo.set({
+    path: '/x',
+    readOnly: false,
+    heldBy: null,
+    backup: { secondaryDir: '/s', lastSecondary: null, reminderDue: false },
+  });
+  const user = userEvent.setup();
+  render(Groups);
+  await user.click(await screen.findByRole('button', { name: 'Umbenennen' }));
+  const input = screen.getByLabelText('Neuer Name');
+  await user.clear(input);
+  await user.type(input, 'Vorstand 2027');
+  await user.click(screen.getByRole('button', { name: 'Speichern' }));
+  expect(api.renameGroup).toHaveBeenCalledWith(7, 'Vorstand 2027');
 });

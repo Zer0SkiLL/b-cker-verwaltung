@@ -52,3 +52,20 @@ pub fn delete(conn: &Connection, id: i64) -> Result<()> {
     }
     Ok(())
 }
+
+/// Benennt eine gespeicherte Gruppe um; der Name muss eindeutig sein.
+pub fn rename(conn: &Connection, id: i64, name: &str) -> Result<()> {
+    let name = require_name(name)?;
+    crate::repo::ensure_unique_name(conn, "saved_groups", &name, id)?;
+    if conn.execute(
+        "UPDATE saved_groups SET name = ?1 WHERE id = ?2",
+        params![name, id],
+    )? == 0
+    {
+        return Err(CoreError::NotFound {
+            entity: "Gespeicherte Gruppe",
+            id,
+        });
+    }
+    Ok(())
+}

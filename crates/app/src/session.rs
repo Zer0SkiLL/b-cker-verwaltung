@@ -18,6 +18,7 @@ pub const FILE_EXISTS: &str = "Die Datei existiert bereits. Bitte „Öffnen“ 
 #[derive(Default)]
 pub struct Session {
     ws: Option<Workspace>,
+    who: Option<Identity>,
 }
 
 impl Session {
@@ -36,6 +37,7 @@ impl Session {
     fn open_path(&mut self, path: &Path, who: &Identity) -> AppResult<SessionInfo> {
         self.close(Local::now())?;
         self.ws = Some(Workspace::open(path, who)?);
+        self.who = Some(who.clone());
         self.info(Utc::now())
     }
 
@@ -52,16 +54,32 @@ impl Session {
         let path = self.workspace()?.path().to_path_buf();
         // Die bisherige (nur lesende) Verbindung zuerst schliessen.
         self.ws = None;
-        self.ws = Some(Workspace::open_taking_over(&path, who)?);
+        match Workspace::open_taking_over(&path, who) {
+            Ok(ws) => self.ws = Some(ws),
+            Err(err) => {
+                // Datei wieder nur lesend öffnen (ohne neue Sperre), damit die Ansichten weiter funktionieren.
+                return Err(match Workspace::open_read_only_at(&path) {
+                    Ok(ws) => {
+                        self.ws = Some(ws);
+                        AppError(format!("Übernehmen nicht möglich: {err}"))
+                    }
+                    Err(reopen) => AppError(format!(
+                        "Übernehmen nicht möglich: {err}. Datei konnte auch nicht wieder geöffnet werden: {reopen}"
+                    )),
+                });
+            }
+        }
+        self.who = Some(who.clone());
         self.info(Utc::now())
     }
 
     /// Aktueller Zustand; prüft dabei, ob die eigene Sperre noch besteht.
     pub fn info(&mut self, now: DateTime<Utc>) -> AppResult<SessionInfo> {
+        let own = self.who.clone();
         let ws = self.workspace_mut()?;
         let held_by = match ws.check_lock()? {
             AccessMode::ReadWrite => None,
-            AccessMode::ReadOnly { held_by } => Some(LockDto::from(held_by)),
+            AccessMode::ReadOnly { held_by } => Some(LockDto::new(held_by, own.as_ref(), now)),
         };
         Ok(SessionInfo {
             path: ws.path().display().to_string(),

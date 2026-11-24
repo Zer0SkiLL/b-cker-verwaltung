@@ -58,6 +58,16 @@ impl Workspace {
         Self::open_read_write(db_path, lock)
     }
 
+    /// Öffnet ausdrücklich nur lesend, ohne die Sperre anzufassen (Rückfall nach Fehlern).
+    pub fn open_read_only_at(db_path: &Path) -> Result<Workspace> {
+        let held_by = current_holder(db_path).unwrap_or_else(|| LockInfo {
+            user: "unbekannt".into(),
+            host: "unbekannt".into(),
+            created_at: Utc::now(),
+        });
+        Self::open_read_only(db_path, held_by)
+    }
+
     pub fn path(&self) -> &Path {
         &self.path
     }

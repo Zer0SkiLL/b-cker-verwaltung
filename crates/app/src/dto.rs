@@ -1,8 +1,9 @@
 //! Serialisierbare Abbilder von Core-Typen ohne serde (camelCase für TypeScript).
 
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use verwaltung_core::storage::backup::BackupStatus;
-use verwaltung_core::storage::lock::LockInfo;
+use verwaltung_core::storage::lock::{is_stale, Identity, LockInfo};
 use verwaltung_core::storage::workspace::SecondaryResult;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -21,14 +22,18 @@ pub struct LockDto {
     pub host: String,
     /// RFC 3339.
     pub since: String,
+    /// Eigene Sperre (gleiche Person, gleicher Rechner) oder älter als 24 h: vermutlich nach Absturz.
+    pub likely_crash: bool,
 }
 
-impl From<&LockInfo> for LockDto {
-    fn from(info: &LockInfo) -> LockDto {
+impl LockDto {
+    pub fn new(info: &LockInfo, own: Option<&Identity>, now: DateTime<Utc>) -> LockDto {
+        let mine = own.is_some_and(|me| me.user == info.user && me.host == info.host);
         LockDto {
             user: info.user.clone(),
             host: info.host.clone(),
             since: info.created_at.to_rfc3339(),
+            likely_crash: mine || is_stale(info, now),
         }
     }
 }

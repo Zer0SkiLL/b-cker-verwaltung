@@ -14,6 +14,7 @@
   let groupApplies = $state<AppliesTo>('Person');
   let newLabel = $state<Record<number, string>>({});
   let editing = $state<{ id: number; name: string } | null>(null);
+  let editingGroup = $state<{ id: number; name: string } | null>(null);
 
   $effect(() => {
     void $dataVersion;
@@ -47,6 +48,12 @@
     if (await act(() => api.renameLabel(id, name))) editing = null;
   }
 
+  async function renameGroup() {
+    if (!editingGroup) return;
+    const { id, name } = editingGroup;
+    if (await act(() => api.renameLabelGroup(id, name))) editingGroup = null;
+  }
+
   async function removeLabel(id: number, name: string, usage: number) {
     const question = usage > 0 ? `Label „${name}“ ist ${usage}-mal vergeben. Trotzdem löschen?` : `Label „${name}“ löschen?`;
     if (await confirmAction(question, 'Löschen')) await act(() => api.deleteLabel(id, usage > 0));
@@ -65,9 +72,20 @@
 {#each tree as g (g.group.id)}
   <div class="card">
     <div class="head">
-      <strong>{g.group.name}</strong>
+      {#if editingGroup?.id === g.group.id}
+        <input bind:value={editingGroup.name} aria-label="Neuer Gruppenname" onkeydown={(e) => e.key === 'Enter' && renameGroup()} />
+        <button class="primary" onclick={renameGroup}>Speichern</button>
+        <button onclick={() => (editingGroup = null)}>Abbrechen</button>
+      {:else}
+        <strong>{g.group.name}</strong>
+      {/if}
       <span class="muted">gilt für {APPLIES[g.group.applies_to]}</span>
-      {#if !readOnly}<button class="danger" onclick={() => removeGroup(g)}>Gruppe löschen</button>{/if}
+      {#if !readOnly && editingGroup?.id !== g.group.id}
+        <span class="push">
+          <button onclick={() => (editingGroup = { id: g.group.id, name: g.group.name })}>Umbenennen</button>
+          <button class="danger" onclick={() => removeGroup(g)}>Gruppe löschen</button>
+        </span>
+      {/if}
     </div>
     <table>
       <tbody>
@@ -117,7 +135,7 @@
 
 <style>
   .head { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem; }
-  .head button { margin-left: auto; }
+  .push { margin-left: auto; display: flex; gap: 0.3rem; }
   .right { text-align: right; white-space: nowrap; }
   .add { margin-top: 0.5rem; }
 </style>

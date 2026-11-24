@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { readOnly as readOnlyStore } from '../lib/session';
   import { untrack } from 'svelte';
   import * as api from '../lib/api';
   import { confirmAction } from '../lib/desktop';
@@ -18,7 +19,7 @@
   let addPerson = $state('');
   let addRole = $state('');
 
-  const readOnly = $derived($sessionInfo?.readOnly ?? false);
+  const readOnly = $derived($readOnlyStore);
   const selected = $derived(teams.find((t) => t.team.id === selectedId) ?? null);
 
   async function load(teamId: number | null) {
@@ -37,45 +38,46 @@
     untrack(() => load(id));
   });
 
-  async function act(task: () => Promise<unknown>) {
+  async function act(task: () => Promise<unknown>): Promise<boolean> {
     try {
       await runWrite(task);
       error = null;
+      return true;
     } catch (err) {
       error = (err as Error).message;
+      return false;
     }
   }
 
   async function create() {
     const name = newName.trim();
     if (!name) return;
-    await act(async () => {
+    const ok = await act(async () => {
       const team = await api.createTeam(name, null);
       selectedId = team.id;
     });
-    newName = '';
+    if (ok) newName = '';
   }
 
   async function saveEdit() {
     if (!selected || !edit) return;
     const { name, description } = edit;
-    await act(() => api.updateTeam(selected.team.id, name, emptyToNull(description)));
-    edit = null;
+    if (await act(() => api.updateTeam(selected.team.id, name, emptyToNull(description)))) edit = null;
   }
 
   async function remove() {
     if (!selected || !(await confirmAction(`Team „${selected.team.name}“ löschen?`, 'Löschen'))) return;
     const id = selected.team.id;
-    selectedId = null;
-    await act(() => api.deleteTeam(id));
+    if (await act(() => api.deleteTeam(id))) selectedId = null;
   }
 
   async function add() {
     if (!selected || addPerson === '') return;
     const teamId = selected.team.id;
-    await act(() => api.addTeamMember(teamId, Number(addPerson), emptyToNull(addRole)));
-    addPerson = '';
-    addRole = '';
+    if (await act(() => api.addTeamMember(teamId, Number(addPerson), emptyToNull(addRole)))) {
+      addPerson = '';
+      addRole = '';
+    }
   }
 
   const setRole = (m: TeamMemberView, role: string) =>
