@@ -338,7 +338,10 @@ fn restoring_oldest_of_full_backup_set_works() {
     let db = dir.path().join("verband.sqlite");
     let mut ws = Workspace::open(&db, &who("anna")).unwrap();
     ws.conn
-        .execute("INSERT INTO organisations(name, search_text) VALUES ('Alt', 'alt')", [])
+        .execute(
+            "INSERT INTO organisations(name, search_text) VALUES ('Alt', 'alt')",
+            [],
+        )
         .unwrap();
     let start = Local::now() - Duration::days(30);
     for i in 0..BACKUP_KEEP as i64 {
