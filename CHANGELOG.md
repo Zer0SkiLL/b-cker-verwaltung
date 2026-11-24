@@ -2,6 +2,12 @@
 
 Hier steht, was in jeder Version neu ist. Die neueste Version steht oben.
 
+## [0.1.1] – 24.11.2026
+
+### Neu
+
+- Link zum Projekt unter „Über das Programm“ öffnet sich im Browser
+
 ## [0.1.0] – 24.11.2026
 
 Erste Version der Mitgliederverwaltung als Ersatz für die Excel-Liste.
