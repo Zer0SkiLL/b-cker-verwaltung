@@ -47,31 +47,13 @@ pub fn backup_to_dir(
     Ok(target)
 }
 
-/// Löscht die ältesten `<stem>-*.sqlite` über `keep` hinaus. Fremde Dateien bleiben unberührt.
+/// Löscht die ältesten Sicherungen von `stem` über `keep` hinaus. Nur Dateien im exakten
+/// Sicherungsformat `<stem>-JJJJMMTT-HHMMSS[-N].sqlite` werden berücksichtigt.
 pub fn prune(dir: &Path, stem: &str, keep: usize) -> Result<()> {
-    let mut names = backup_names(dir, stem)?;
-    names.sort();
-    let excess = names.len().saturating_sub(keep);
-    for name in names.into_iter().take(excess) {
-        fs::remove_file(dir.join(name))?;
+    for old in list(dir, stem)?.into_iter().skip(keep) {
+        fs::remove_file(old.path)?;
     }
     Ok(())
-}
-
-/// Dateinamen aller Sicherungen von `stem` im Ordner (unsortiert).
-pub fn backup_names(dir: &Path, stem: &str) -> Result<Vec<String>> {
-    if !dir.exists() {
-        return Ok(Vec::new());
-    }
-    let prefix = format!("{stem}-");
-    let mut names = Vec::new();
-    for entry in fs::read_dir(dir)? {
-        let name = entry?.file_name().to_string_lossy().into_owned();
-        if name.starts_with(&prefix) && name.ends_with(BACKUP_EXT) {
-            names.push(name);
-        }
-    }
-    Ok(names)
 }
 
 /// Prüft eine Datenbankdatei mit `PRAGMA integrity_check`.
@@ -135,26 +117,28 @@ pub fn status(conn: &Connection, now: chrono::DateTime<chrono::Utc>) -> Result<B
 
 /// Sicherungen eines Ordners, neueste zuerst. Fremde Dateien werden ignoriert.
 pub fn list(dir: &Path, stem: &str) -> Result<Vec<BackupFile>> {
-    let prefix = format!("{stem}-");
-    let mut files: Vec<(BackupFile, u32)> = backup_names(dir, stem)?
-        .into_iter()
-        .filter_map(|name| {
-            let rest = name.strip_prefix(&prefix)?.strip_suffix(BACKUP_EXT)?;
-            let stamp = rest.get(..STAMP_LEN)?;
-            let created = chrono::NaiveDateTime::parse_from_str(stamp, "%Y%m%d-%H%M%S").ok()?;
-            let suffix = match &rest[STAMP_LEN..] {
-                "" => 1,
-                s => s.strip_prefix('-')?.parse().ok()?,
-            };
-            Some((
-                BackupFile {
-                    path: dir.join(&name),
-                    created,
-                },
-                suffix,
-            ))
-        })
-        .collect();
+    if !dir.exists() {
+        return Ok(Vec::new());
+    }
+    let mut files: Vec<(BackupFile, u32)> = Vec::new();
+    for entry in fs::read_dir(dir)? {
+        let name = entry?.file_name().to_string_lossy().into_owned();
+        if let Some((created, suffix)) = parse_backup_name(&name, stem) {
+            files.push((BackupFile { path: dir.join(&name), created }, suffix));
+        }
+    }
     files.sort_by_key(|f| std::cmp::Reverse((f.0.created, f.1)));
     Ok(files.into_iter().map(|(f, _)| f).collect())
+}
+
+/// Zeitstempel und Laufnummer aus `<stem>-JJJJMMTT-HHMMSS[-N].sqlite`, sonst `None`.
+fn parse_backup_name(name: &str, stem: &str) -> Option<(chrono::NaiveDateTime, u32)> {
+    let rest = name.strip_prefix(stem)?.strip_prefix('-')?.strip_suffix(BACKUP_EXT)?;
+    let stamp = rest.get(..STAMP_LEN)?;
+    let created = chrono::NaiveDateTime::parse_from_str(stamp, "%Y%m%d-%H%M%S").ok()?;
+    let suffix = match &rest[STAMP_LEN..] {
+        "" => 1,
+        s => s.strip_prefix('-').filter(|n| n.bytes().all(|b| b.is_ascii_digit()))?.parse().ok()?,
+    };
+    Some((created, suffix))
 }
