@@ -51,7 +51,8 @@ describe('Kernabläufe', () => {
       hostname: config.hostname,
       port: config.port,
       logLevel: 'warn',
-      capabilities: config.capabilities[0],
+      // Nur die WebDriver-Fähigkeiten, ohne runner-interne Optionen wie maxInstances.
+      capabilities: { 'tauri:options': config.capabilities[0]['tauri:options'] },
     });
     try {
       const notice = await second.$('//*[contains(normalize-space(), "Nur lesen")]');

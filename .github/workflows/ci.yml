@@ -70,7 +70,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-latest]
+        # Windows vorerst nicht: msedgedriver/WebView2 startet auf den GitHub-Runnern keine Sitzung
+        # ("DevToolsActivePort file doesn't exist"). Kernabläufe dort manuell prüfen.
+        os: [ubuntu-22.04]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
