@@ -51,6 +51,11 @@ export function openMail(link: string): Promise<void> {
   return openUrl(link);
 }
 
+/** Öffnet eine Webseite im Standard-Browser (nur in den Rechten freigegebene Adressen). */
+export function openWebsite(url: string): Promise<void> {
+  return openUrl(url);
+}
+
 /** Heutiges Datum als JJJJ-MM-TT für Dateinamen. */
 export function todayStamp(): string {
   const t = new Date();

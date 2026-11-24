@@ -16,6 +16,9 @@
       "allow": [
         {
           "url": "mailto:*"
+        },
+        {
+          "url": "https://github.com/Zer0SkiLL/b-cker-verwaltung*"
         }
       ]
     },
