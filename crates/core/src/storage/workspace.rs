@@ -4,7 +4,7 @@ use chrono::{DateTime, Local, Utc};
 use rusqlite::Connection;
 
 use super::backup::{backup_to_dir, db_stem, local_backup_dir, prune, BACKUP_KEEP};
-use super::lock::{Identity, LockGuard, LockInfo};
+use super::lock::{current_holder, Identity, LockGuard, LockInfo};
 use crate::db;
 use crate::error::{CoreError, Result};
 use crate::repo::settings::{self, LAST_SECONDARY_BACKUP, SECONDARY_BACKUP_DIR};
@@ -79,16 +79,36 @@ impl Workspace {
         })
     }
 
+    /// Prüft, ob die eigene Sperre noch besteht. Wurde sie übernommen (z.B. durch die
+    /// Ferienvertretung), wird die Datenbank nur noch lesend geöffnet. Vor dem Schreiben aufrufen.
+    pub fn check_lock(&mut self) -> Result<&AccessMode> {
+        let lost = self.lock.as_ref().is_some_and(|lock| !lock.still_held());
+        if lost {
+            let held_by = current_holder(&self.path).unwrap_or_else(|| LockInfo {
+                user: "unbekannt".into(),
+                host: "unbekannt".into(),
+                created_at: Utc::now(),
+            });
+            self.conn = db::open_connection(&self.path, true)?;
+            self.mode = AccessMode::ReadOnly { held_by };
+            self.lock = None;
+        }
+        Ok(&self.mode)
+    }
+
     /// Schliesst die Datenbank: Sicherung am zweiten Ort, danach wird die Sperre freigegeben.
-    pub fn close(self, now: DateTime<Local>) -> Result<SecondaryResult> {
+    pub fn close(mut self, now: DateTime<Local>) -> Result<SecondaryResult> {
+        self.check_lock()?;
         if !self.is_read_write() {
             return Ok(SecondaryResult::NotConfigured);
         }
         self.backup_secondary(now)
     }
 
+    /// Schreibend geöffnet und die eigene Sperre besteht noch.
     pub(crate) fn require_read_write(&self) -> Result<()> {
-        if self.is_read_write() {
+        let lock_ok = self.lock.as_ref().is_none_or(|lock| lock.still_held());
+        if self.is_read_write() && lock_ok {
             Ok(())
         } else {
             Err(CoreError::ReadOnly)

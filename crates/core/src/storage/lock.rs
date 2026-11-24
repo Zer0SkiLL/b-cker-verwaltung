@@ -73,15 +73,26 @@ impl LockGuard {
     pub fn info(&self) -> &LockInfo {
         &self.info
     }
+
+    /// Prüft, ob die Sperrdatei noch uns gehört (nicht übernommen oder gelöscht wurde).
+    pub fn still_held(&self) -> bool {
+        read_own(&self.path).is_some_and(|i| i == self.info)
+    }
+}
+
+/// Aktueller Inhaber der Sperre, falls eine Sperrdatei existiert.
+pub fn current_holder(db_path: &Path) -> Option<LockInfo> {
+    let path = lock_path(db_path);
+    path.exists().then(|| read_info(&path))
+}
+
+fn read_own(path: &Path) -> Option<LockInfo> {
+    fs::read(path).ok().and_then(|b| serde_json::from_slice::<LockInfo>(&b).ok())
 }
 
 impl Drop for LockGuard {
     fn drop(&mut self) {
-        let still_ours = fs::read(&self.path)
-            .ok()
-            .and_then(|b| serde_json::from_slice::<LockInfo>(&b).ok())
-            .is_some_and(|i| i == self.info);
-        if still_ours {
+        if self.still_held() {
             let _ = fs::remove_file(&self.path);
         }
     }
