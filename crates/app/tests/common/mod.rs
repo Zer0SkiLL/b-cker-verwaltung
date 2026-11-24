@@ -28,3 +28,47 @@ pub fn org_input(name: &str) -> verwaltung_core::repo::organisations::Organisati
         ..Default::default()
     }
 }
+
+/// Schreibt eine Excel-Datei mit Kopfzeile und Textzeilen (erstes Blatt).
+pub fn write_xlsx(path: &Path, headers: &[&str], rows: &[Vec<&str>]) {
+    let mut wb = rust_xlsxwriter::Workbook::new();
+    let ws = wb.add_worksheet();
+    for (col, h) in headers.iter().enumerate() {
+        ws.write_string(0, col as u16, *h).unwrap();
+    }
+    for (r, row) in rows.iter().enumerate() {
+        for (col, value) in row.iter().enumerate() {
+            if !value.is_empty() {
+                ws.write_string(r as u32 + 1, col as u16, *value).unwrap();
+            }
+        }
+    }
+    wb.save(path).unwrap();
+}
+
+/// Kopfzeile der heutigen Mitgliederliste (Spec §6.4).
+pub const LIST_HEADERS: [&str; 23] = [
+    "ID1",
+    "Anzahl",
+    "Kt Verband",
+    "Name/Firma",
+    "Vorname",
+    "Zusatz",
+    "Adresse",
+    "PLZ",
+    "Ort",
+    "Kategorie",
+    "Mail",
+    "Home",
+    "Lehrbetrieb",
+    "Fr Bäck",
+    "Fr Conf",
+    "DH",
+    "Besonderes",
+    "Eintritt",
+    "Austritt",
+    "Filialen",
+    "Telefon",
+    "Mobiltelefon",
+    "Postfach",
+];

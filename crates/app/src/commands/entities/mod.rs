@@ -12,6 +12,5 @@ pub(crate) fn sort_key(name: &str) -> String {
         .replace('ä', "a")
         .replace('ö', "o")
         .replace('ü', "u")
-        .replace('é', "e")
-        .replace('è', "e")
+        .replace(['é', 'è'], "e")
 }

@@ -32,7 +32,9 @@ fn person(last: &str, first: &str) -> PersonInput {
 }
 
 fn function(s: &mut Session, name: &str) -> i64 {
-    s.write(|c| lookups::create(c, LookupKind::Function, name)).unwrap().id
+    s.write(|c| lookups::create(c, LookupKind::Function, name))
+        .unwrap()
+        .id
 }
 
 #[test]
@@ -73,7 +75,10 @@ fn past_affiliations_hidden_unless_requested() {
         valid_to: Some(d(2026, 11, 23)),
     };
     create_affiliation(&mut s, &input).unwrap();
-    assert!(organisation_detail(&s, org.id, false, today()).unwrap().people.is_empty());
+    assert!(organisation_detail(&s, org.id, false, today())
+        .unwrap()
+        .people
+        .is_empty());
     let all = organisation_detail(&s, org.id, true, today()).unwrap();
     assert_eq!(all.people.len(), 1);
     assert!(!all.people[0].current);
@@ -184,7 +189,10 @@ fn updates_refused_read_only() {
     ben.open(&db_path(dir.path()), &who("ben")).unwrap();
     let err = update_organisation(&mut ben, org.id, &org_input("Neu")).unwrap_err();
     assert_eq!(err.0, READ_ONLY);
-    assert_eq!(delete_organisation(&mut ben, org.id).unwrap_err().0, READ_ONLY);
+    assert_eq!(
+        delete_organisation(&mut ben, org.id).unwrap_err().0,
+        READ_ONLY
+    );
 }
 
 #[test]
@@ -196,8 +204,16 @@ fn option_lists_sorted_by_name() {
     create_organisation(&mut s, &org_input("Beck AG")).unwrap();
     create_person(&mut s, &person("Zürcher", "Ida")).unwrap();
     create_person(&mut s, &person("Arnold", "Paul")).unwrap();
-    let orgs: Vec<String> = list_organisations(&s).unwrap().into_iter().map(|o| o.name).collect();
+    let orgs: Vec<String> = list_organisations(&s)
+        .unwrap()
+        .into_iter()
+        .map(|o| o.name)
+        .collect();
     assert_eq!(orgs, vec!["Ähre GmbH", "Beck AG", "Zopf AG"]);
-    let people: Vec<String> = list_people(&s).unwrap().into_iter().map(|p| p.name).collect();
+    let people: Vec<String> = list_people(&s)
+        .unwrap()
+        .into_iter()
+        .map(|p| p.name)
+        .collect();
     assert_eq!(people, vec!["Arnold Paul", "Zürcher Ida"]);
 }

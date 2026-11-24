@@ -10,7 +10,9 @@ use verwaltung_core::repo::organisations;
 fn create_then_write_and_read() {
     let dir = tempfile::tempdir().unwrap();
     let mut s = fresh_session(dir.path());
-    let org = s.write(|c| organisations::create(c, &org_input("Beck AG"))).unwrap();
+    let org = s
+        .write(|c| organisations::create(c, &org_input("Beck AG")))
+        .unwrap();
     let back = s.read(|c| organisations::get(c, org.id)).unwrap();
     assert_eq!(back.name, "Beck AG");
     let info = s.info(Utc::now()).unwrap();
@@ -23,7 +25,9 @@ fn create_refuses_existing_file() {
     let dir = tempfile::tempdir().unwrap();
     let mut s = fresh_session(dir.path());
     s.close(Local::now()).unwrap();
-    let err = Session::default().create(&db_path(dir.path()), &who("anna")).unwrap_err();
+    let err = Session::default()
+        .create(&db_path(dir.path()), &who("anna"))
+        .unwrap_err();
     assert!(err.0.contains("existiert bereits"), "{}", err.0);
 }
 
@@ -35,7 +39,9 @@ fn second_session_is_read_only_and_refuses_writes() {
     let info = ben.open(&db_path(dir.path()), &who("ben")).unwrap();
     assert!(info.read_only);
     assert_eq!(info.held_by.unwrap().user, "anna");
-    let err = ben.write(|c| organisations::create(c, &org_input("X"))).unwrap_err();
+    let err = ben
+        .write(|c| organisations::create(c, &org_input("X")))
+        .unwrap_err();
     assert_eq!(err.0, READ_ONLY);
 }
 
@@ -46,7 +52,9 @@ fn lost_lock_refuses_next_write() {
     let mut ben = Session::default();
     ben.open(&db_path(dir.path()), &who("ben")).unwrap();
     ben.take_over(&who("ben")).unwrap();
-    let err = anna.write(|c| organisations::create(c, &org_input("X"))).unwrap_err();
+    let err = anna
+        .write(|c| organisations::create(c, &org_input("X")))
+        .unwrap_err();
     assert_eq!(err.0, READ_ONLY);
     let info = anna.info(Utc::now()).unwrap();
     assert!(info.read_only);
@@ -61,13 +69,14 @@ fn take_over_makes_writable() {
     ben.open(&db_path(dir.path()), &who("ben")).unwrap();
     let info = ben.take_over(&who("ben")).unwrap();
     assert!(!info.read_only);
-    ben.write(|c| organisations::create(c, &org_input("Ben AG"))).unwrap();
+    ben.write(|c| organisations::create(c, &org_input("Ben AG")))
+        .unwrap();
 }
 
 #[test]
 fn calls_without_open_file_fail() {
     let s = Session::default();
-    let err = s.read(|c| organisations::list(c)).unwrap_err();
+    let err = s.read(organisations::list).unwrap_err();
     assert_eq!(err.0, NO_FILE);
     let err = Session::default().take_over(&who("ben")).unwrap_err();
     assert_eq!(err.0, NO_FILE);
@@ -77,7 +86,10 @@ fn calls_without_open_file_fail() {
 fn close_without_secondary_reports_not_configured() {
     let dir = tempfile::tempdir().unwrap();
     let mut s = fresh_session(dir.path());
-    assert_eq!(s.close(Local::now()).unwrap(), Some(SecondaryResultDto::NotConfigured));
+    assert_eq!(
+        s.close(Local::now()).unwrap(),
+        Some(SecondaryResultDto::NotConfigured)
+    );
     assert_eq!(s.close(Local::now()).unwrap(), None);
 }
 
@@ -86,7 +98,10 @@ fn reopen_closes_previous_and_releases_lock() {
     let dir = tempfile::tempdir().unwrap();
     let mut s = fresh_session(dir.path());
     let info = s.open(&db_path(dir.path()), &who("anna")).unwrap();
-    assert!(!info.read_only, "eigene alte Sperre muss vorher freigegeben werden");
+    assert!(
+        !info.read_only,
+        "eigene alte Sperre muss vorher freigegeben werden"
+    );
 }
 
 #[test]

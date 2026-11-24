@@ -20,8 +20,10 @@ pub fn load_last_path(config_dir: &Path) -> Option<PathBuf> {
 /// Merkt sich den Pfad der Datenbank; legt das Konfigurationsverzeichnis bei Bedarf an.
 pub fn save_last_path(config_dir: &Path, db: &Path) -> AppResult<()> {
     std::fs::create_dir_all(config_dir)?;
-    let text = serde_json::to_string(&LastFile { db: db.to_path_buf() })
-        .map_err(|e| crate::error::AppError(format!("Einstellungen nicht speicherbar: {e}")))?;
+    let text = serde_json::to_string(&LastFile {
+        db: db.to_path_buf(),
+    })
+    .map_err(|e| crate::error::AppError(format!("Einstellungen nicht speicherbar: {e}")))?;
     std::fs::write(config_dir.join(FILE_NAME), text)?;
     Ok(())
 }

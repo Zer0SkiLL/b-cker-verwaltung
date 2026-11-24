@@ -73,7 +73,11 @@ pub fn organisation_detail(
         let member = MemberRef::Organisation(id);
         Ok(OrganisationDetail {
             organisation: organisations::get(c, id)?,
-            people: views(c, affiliations::for_organisation(c, id, include_past, today)?, today)?,
+            people: views(
+                c,
+                affiliations::for_organisation(c, id, include_past, today)?,
+                today,
+            )?,
             memberships: memberships::for_member(c, &member)?,
             labels: assigned_labels(c, &member)?,
         })
@@ -90,7 +94,11 @@ pub fn person_detail(
         let member = MemberRef::Person(id);
         Ok(PersonDetail {
             person: persons::get(c, id)?,
-            organisations: views(c, affiliations::for_person(c, id, include_past, today)?, today)?,
+            organisations: views(
+                c,
+                affiliations::for_person(c, id, include_past, today)?,
+                today,
+            )?,
             memberships: memberships::for_member(c, &member)?,
             labels: assigned_labels(c, &member)?,
             teams: team_roles(c, id)?,
@@ -120,7 +128,10 @@ pub fn list_organisations(s: &Session) -> AppResult<Vec<OptionDto>> {
     let orgs = s.read(organisations::list)?;
     let options = orgs
         .into_iter()
-        .map(|o| OptionDto { id: o.id, name: o.name })
+        .map(|o| OptionDto {
+            id: o.id,
+            name: o.name,
+        })
         .collect();
     Ok(sorted(options))
 }

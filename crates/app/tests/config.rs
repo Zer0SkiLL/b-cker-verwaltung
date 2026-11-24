@@ -5,7 +5,10 @@ use verwaltung_app::config::{load_last_path, save_last_path};
 fn last_path_roundtrip() {
     let dir = tempfile::tempdir().unwrap();
     save_last_path(dir.path(), &PathBuf::from("/x/verband.sqlite")).unwrap();
-    assert_eq!(load_last_path(dir.path()), Some(PathBuf::from("/x/verband.sqlite")));
+    assert_eq!(
+        load_last_path(dir.path()),
+        Some(PathBuf::from("/x/verband.sqlite"))
+    );
 }
 
 #[test]

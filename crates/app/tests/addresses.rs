@@ -55,7 +55,11 @@ fn too_many_addresses_no_mailto() {
     let dir = tempfile::tempdir().unwrap();
     let mut s = fresh_session(dir.path());
     for i in 0..200 {
-        org_with_mail(&mut s, &format!("Bäckerei {i}"), &format!("bestellung.{i}@baeckerei-beispiel.ch"));
+        org_with_mail(
+            &mut s,
+            &format!("Bäckerei {i}"),
+            &format!("bestellung.{i}@baeckerei-beispiel.ch"),
+        );
     }
     let result = search_addresses(&s, &Filter::default(), today()).unwrap();
     assert_eq!(result.email_count, 200);

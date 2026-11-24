@@ -31,7 +31,9 @@ fn delete_used_lookup_needs_confirm() {
     let err = delete_lookup(&mut s, cat.id, false).unwrap_err();
     assert!(err.0.contains("noch 1-mal verwendet"), "{}", err.0);
     delete_lookup(&mut s, cat.id, true).unwrap();
-    assert!(list_lookups(&s, LookupKind::MembershipCategory).unwrap().is_empty());
+    assert!(list_lookups(&s, LookupKind::MembershipCategory)
+        .unwrap()
+        .is_empty());
 }
 
 #[test]
@@ -68,5 +70,8 @@ fn rename_to_empty_is_refused() {
     let f = create_lookup(&mut s, LookupKind::Function, "Inhaber").unwrap();
     let err = rename_lookup(&mut s, f.id, "   ").unwrap_err();
     assert!(!err.0.is_empty());
-    assert_eq!(rename_lookup(&mut s, f.id, "Inhaberin").unwrap().name, "Inhaberin");
+    assert_eq!(
+        rename_lookup(&mut s, f.id, "Inhaberin").unwrap().name,
+        "Inhaberin"
+    );
 }
