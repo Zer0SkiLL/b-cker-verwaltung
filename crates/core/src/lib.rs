@@ -4,6 +4,7 @@ pub mod contact;
 pub mod db;
 pub mod error;
 pub mod export;
+pub mod import;
 pub mod model;
 pub mod query;
 pub mod repo;
