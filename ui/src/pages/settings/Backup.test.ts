@@ -24,6 +24,7 @@ vi.mock('../../lib/api', () => ({
 vi.mock('../../lib/desktop', () => ({
   confirmAction: vi.fn(async () => true),
   pickFolder: vi.fn(async () => null),
+  pickFile: vi.fn(async () => '/stick/verband-20261101-090000.sqlite'),
 }));
 
 import * as api from '../../lib/api';
@@ -53,4 +54,13 @@ test('nur lesend: Sichern und Wiederherstellen gesperrt', async () => {
   render(Backup);
   expect(await screen.findByRole('button', { name: 'Wiederherstellen' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Jetzt sichern' })).toBeDisabled();
+});
+
+test('Wiederherstellen aus einer gewählten Datei (z.B. USB-Stick)', async () => {
+  sessionInfo.set(writable);
+  vi.mocked(api.restoreBackup).mockClear();
+  const user = userEvent.setup();
+  render(Backup);
+  await user.click(await screen.findByRole('button', { name: 'Aus Datei wiederherstellen…' }));
+  expect(api.restoreBackup).toHaveBeenCalledWith('/stick/verband-20261101-090000.sqlite');
 });

@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as api from '../../lib/api';
   import { formatDateTime } from '../../lib/dates';
-  import { confirmAction, pickFolder } from '../../lib/desktop';
+  import { confirmAction, pickFile, pickFolder } from '../../lib/desktop';
   import { dataVersion, refreshSession, runWrite, sessionInfo } from '../../lib/session';
   import type { BackupFileDto, BackupOverview, SecondaryResultDto } from '../../lib/types';
 
@@ -53,6 +53,20 @@
       return 'Zweiter Sicherungsort entfernt.';
     });
 
+  const restoreFromFile = () =>
+    act(async () => {
+      const path = await pickFile('Sicherung', ['sqlite']);
+      if (!path) return null;
+      const ok = await confirmAction(
+        `Sicherung „${path}“ wiederherstellen? Der aktuelle Stand wird vorher gesichert.`,
+        'Wiederherstellen',
+      );
+      if (!ok) return null;
+      await runWrite(() => api.restoreBackup(path));
+      await refreshSession();
+      return `Sicherung „${path}“ wiederhergestellt.`;
+    });
+
   const restore = (file: BackupFileDto) =>
     act(async () => {
       const ok = await confirmAction(
@@ -102,6 +116,8 @@
       {/each}
     </tbody>
   </table>
+  <p class="muted">Sicherung von einem anderen Ort (z.B. USB-Stick) zurückholen:</p>
+  <button disabled={readOnly} onclick={restoreFromFile}>Aus Datei wiederherstellen…</button>
 {/if}
 
 <style>
