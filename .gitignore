@@ -4,3 +4,4 @@
 /ui/dist
 /ui/coverage
 /crates/app/gen
+/ui/.vite
