@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from 'svelte';
+  import { onDestroy, onMount, untrack } from 'svelte';
   import MultiSelect from '../components/MultiSelect.svelte';
   import * as api from '../lib/api';
   import { contactActions } from '../lib/contact';
@@ -94,6 +94,8 @@
     text = '';
     update(emptyFilter());
   }
+
+  onDestroy(() => clearTimeout(timer));
 
   onMount(async () => {
     options = await api.filterOptions().catch(() => null);
