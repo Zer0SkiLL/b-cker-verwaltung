@@ -61,7 +61,7 @@
     {$updateState.message}
     <div class="toolbar">
       <button onclick={() => installUpdate()}>Erneut versuchen</button>
-      <button onclick={() => reopenLastFile().then(() => replace({ page: 'addresses' }))}>Datei wieder öffnen</button>
+      <button onclick={() => reopenLastFile().then((page) => replace({ page }))}>Datei wieder öffnen</button>
     </div>
   </div>
 {/if}

@@ -89,3 +89,40 @@ test('Download-Fehler: Datei geschlossen, Ausweg bleibt', async () => {
   expect(d.openFile).toHaveBeenCalledWith('/daten/verband.sqlite');
   expect(get(updateState)).toEqual({ kind: 'idle' });
 });
+
+test('Schliessen scheitert: Fehler sichtbar, Datei gilt als geschlossen', async () => {
+  const d = deps({ closeFile: vi.fn(async () => { throw new Error('Sperre verloren'); }) });
+  await checkForUpdates({ silent: true }, d);
+  await installUpdate(d);
+  expect(get(updateState)).toEqual({ kind: 'failed', message: 'Update fehlgeschlagen: Sperre verloren', fileClosed: true });
+});
+
+test('Doppelklick startet nur eine Installation', async () => {
+  const d = deps() as UpdateDeps & { calls: string[] };
+  await checkForUpdates({ silent: true }, d);
+  await Promise.all([installUpdate(d), installUpdate(d)]);
+  expect(d.calls.filter((c) => c === 'close')).toHaveLength(1);
+  expect(d.calls.filter((c) => c === 'download')).toHaveLength(1);
+});
+
+test('Installation zeigt sofort, dass die Datei geschlossen wird', async () => {
+  let seen: unknown = null;
+  const d = deps({ closeFile: vi.fn(async () => { seen = get(updateState); return null; }) });
+  await checkForUpdates({ silent: true }, d);
+  await installUpdate(d);
+  expect(seen).toEqual({ kind: 'installing', percent: null, note: 'Datei wird geschlossen …' });
+});
+
+test('Datei wieder öffnen: ohne gemerkten Pfad zur Startseite', async () => {
+  expect(await reopenLastFile(deps({ lastPath: vi.fn(async () => null) }))).toBe('start');
+});
+
+test('Datei wieder öffnen: Fehler führt zur Startseite statt ins Leere', async () => {
+  const d = deps({ openFile: vi.fn(async () => { throw new Error('Netzlaufwerk fehlt'); }) });
+  expect(await reopenLastFile(d)).toBe('start');
+  expect(get(updateState)).toEqual({ kind: 'idle' });
+});
+
+test('Datei wieder öffnen: Erfolg führt zu den Adressen', async () => {
+  expect(await reopenLastFile(deps())).toBe('addresses');
+});

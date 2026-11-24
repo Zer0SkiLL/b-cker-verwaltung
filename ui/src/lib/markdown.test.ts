@@ -11,3 +11,9 @@ test('Skripte und Ereignis-Attribute werden entfernt', () => {
   expect(html).not.toContain('<script');
   expect(html).not.toContain('onerror');
 });
+
+test('Links verlassen das Programm nicht (kein href)', () => {
+  const html = renderMarkdown('Siehe [Repo](https://example.org) und https://example.org/x');
+  expect(html).not.toContain('href');
+  expect(html).toContain('Repo');
+});

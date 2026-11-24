@@ -64,15 +64,18 @@ function closeNote(result: SecondaryResultDto | null): string | null {
   return result?.kind === 'unavailable' ? `Hinweis: ${result.reason}` : null;
 }
 
+let inProgress = false;
+
 /** Schliesst die Datei sauber, lädt das Update, installiert es und startet neu. */
 export async function installUpdate(deps = defaultDeps): Promise<void> {
   const update = pending;
-  if (!update) return;
-  let fileClosed = false;
+  if (!update || inProgress) return;
+  inProgress = true;
+  updateState.set({ kind: 'installing', percent: null, note: 'Datei wird geschlossen …' });
+  // Auch wenn das Schliessen scheitert, ist die Datei danach nicht mehr offen (Rust gibt sie frei).
+  let fileClosed = true;
   try {
-    const note = closeNote(await deps.closeFile());
-    fileClosed = true;
-    sessionInfo.set(null);
+    const note = closeNote(await deps.closeFile().finally(() => sessionInfo.set(null)));
     let total: number | null = null;
     let received = 0;
     updateState.set({ kind: 'installing', percent: null, note });
@@ -85,14 +88,24 @@ export async function installUpdate(deps = defaultDeps): Promise<void> {
     await deps.relaunch();
   } catch (err) {
     updateState.set({ kind: 'failed', message: `Update fehlgeschlagen: ${(err as Error).message}`, fileClosed });
+  } finally {
+    inProgress = false;
   }
 }
 
-/** Nach einem gescheiterten Update: zuletzt geöffnete Datei wieder öffnen. */
-export async function reopenLastFile(deps = defaultDeps): Promise<void> {
-  const path = await deps.lastPath();
-  if (!path) return;
-  const result = await deps.openFile(path);
-  sessionInfo.set(result.info);
+/**
+ * Nach einem gescheiterten Update: zuletzt geöffnete Datei wieder öffnen.
+ * Liefert die Seite, auf die es weitergeht; ohne Pfad oder bei Fehler die Startseite (Datei wählen).
+ */
+export async function reopenLastFile(deps = defaultDeps): Promise<'addresses' | 'start'> {
   updateState.set({ kind: 'idle' });
+  try {
+    const path = await deps.lastPath();
+    if (!path) return 'start';
+    const result = await deps.openFile(path);
+    sessionInfo.set(result.info);
+    return 'addresses';
+  } catch {
+    return 'start';
+  }
 }
