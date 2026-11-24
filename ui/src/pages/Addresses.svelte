@@ -50,8 +50,21 @@
 
   async function copyMails() {
     if (!result) return;
-    await copyText(result.joinedEmails);
-    info = `${result.emailCount} Adressen kopiert – in Outlook unter „Bcc“ einfügen.`;
+    try {
+      await copyText(result.joinedEmails);
+      info = `${result.emailCount} Adressen kopiert – in Outlook unter „Bcc“ einfügen.`;
+    } catch (err) {
+      error = `Kopieren nicht möglich: ${(err as Error).message ?? err}`;
+    }
+  }
+
+  async function openMailProgram() {
+    if (!result?.mailto) return;
+    try {
+      await openMail(result.mailto);
+    } catch (err) {
+      error = `Mailprogramm konnte nicht geöffnet werden: ${String(err)}. Bitte „Mails kopieren“ verwenden.`;
+    }
   }
 
   async function exportList(format: ExportFormat) {
@@ -168,7 +181,7 @@
     </div>
     <div class="toolbar">
       <button class="primary" disabled={!actions?.canCopy} onclick={copyMails}>Mails kopieren</button>
-      <button disabled={!actions?.canMailto} onclick={() => result?.mailto && openMail(result.mailto)}>Mail öffnen</button>
+      <button disabled={!actions?.canMailto} onclick={openMailProgram}>Mail öffnen</button>
       <button disabled={result.rows.length === 0} onclick={() => exportList('xlsx')}>Excel</button>
       <button disabled={result.rows.length === 0} onclick={() => exportList('csv')}>CSV</button>
       {#if groupName === null}
