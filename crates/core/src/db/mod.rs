@@ -52,7 +52,8 @@ pub fn migrate(conn: &Connection) -> Result<()> {
     let current = schema_version(conn)?;
     if current > SCHEMA_VERSION {
         return Err(CoreError::Validation(
-            "Die Datei stammt von einer neueren Programmversion. Bitte das Programm aktualisieren.".into(),
+            "Die Datei stammt von einer neueren Programmversion. Bitte das Programm aktualisieren."
+                .into(),
         ));
     }
     for (index, sql) in MIGRATIONS.iter().enumerate() {

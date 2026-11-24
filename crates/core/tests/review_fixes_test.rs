@@ -175,12 +175,21 @@ fn open_refuses_database_from_newer_version() {
     let dir = tempfile::tempdir().unwrap();
     let db = dir.path().join("daten.sqlite");
     drop(Workspace::open(&db, &who("reto")).unwrap());
-    rusqlite::Connection::open(&db).unwrap().pragma_update(None, "user_version", 99).unwrap();
+    rusqlite::Connection::open(&db)
+        .unwrap()
+        .pragma_update(None, "user_version", 99)
+        .unwrap();
     match Workspace::open(&db, &who("reto")) {
         Err(CoreError::Validation(m)) => assert!(m.contains("neueren Programmversion"), "{m}"),
-        other => panic!("expected Validation, got {:?}", other.map(|w| w.is_read_write())),
+        other => panic!(
+            "expected Validation, got {:?}",
+            other.map(|w| w.is_read_write())
+        ),
     }
-    assert!(LockGuard::acquire(&db, &who("x")).is_ok(), "Sperre muss freigegeben sein");
+    assert!(
+        LockGuard::acquire(&db, &who("x")).is_ok(),
+        "Sperre muss freigegeben sein"
+    );
 }
 
 // I4
@@ -188,9 +197,18 @@ fn open_refuses_database_from_newer_version() {
 fn two_digit_years_are_invalid_not_year_0019() {
     use verwaltung_core::import::sheet::Cell;
     use verwaltung_core::import::values::{as_date, DateResult};
-    assert_eq!(as_date(&Cell::Text("05.03.19".into())), DateResult::Invalid("05.03.19".into()));
-    assert_eq!(as_date(&Cell::Text("5.3.95".into())), DateResult::Invalid("5.3.95".into()));
-    assert_eq!(as_date(&Cell::Text("5.3.1995".into())), DateResult::Date(d(1995, 3, 5)));
+    assert_eq!(
+        as_date(&Cell::Text("05.03.19".into())),
+        DateResult::Invalid("05.03.19".into())
+    );
+    assert_eq!(
+        as_date(&Cell::Text("5.3.95".into())),
+        DateResult::Invalid("5.3.95".into())
+    );
+    assert_eq!(
+        as_date(&Cell::Text("5.3.1995".into())),
+        DateResult::Date(d(1995, 3, 5))
+    );
 }
 
 // I5
@@ -198,15 +216,118 @@ fn two_digit_years_are_invalid_not_year_0019() {
 fn mapping_works_by_column_position_with_duplicate_headers() {
     use verwaltung_core::import::mapping::{plan, Field, Mapping};
     use verwaltung_core::import::sheet::{Cell, Sheet, SheetRow};
-    let headers: Vec<String> = ["Name/Firma", "Vorname", "Telefon", "Telefon"].iter().map(|h| h.to_string()).collect();
+    let headers: Vec<String> = ["Name/Firma", "Vorname", "Telefon", "Telefon"]
+        .iter()
+        .map(|h| h.to_string())
+        .collect();
     let mut mapping = Mapping::default_for(&headers);
     mapping.columns[3].1 = Field::Mobile;
     let t = |s: &str| Cell::Text(s.into());
     let sheet = Sheet {
         headers,
-        rows: vec![SheetRow { line: 2, cells: vec![t("Muster"), t("Hans"), t("031 111 11 11"), t("079 222 22 22")] }],
+        rows: vec![SheetRow {
+            line: 2,
+            cells: vec![
+                t("Muster"),
+                t("Hans"),
+                t("031 111 11 11"),
+                t("079 222 22 22"),
+            ],
+        }],
     };
     let p = plan(&sheet, &mapping);
-    assert_eq!(p.rows[0].organisation.phone.as_deref(), Some("031 111 11 11"));
-    assert_eq!(p.rows[0].person.as_ref().unwrap().mobile.as_deref(), Some("079 222 22 22"));
+    assert_eq!(
+        p.rows[0].organisation.phone.as_deref(),
+        Some("031 111 11 11")
+    );
+    assert_eq!(
+        p.rows[0].person.as_ref().unwrap().mobile.as_deref(),
+        Some("079 222 22 22")
+    );
+}
+
+// Minor 1 (hochgestuft): wieder eingetretene Mitglieder sind nicht "ausgetreten"
+#[test]
+fn rejoined_member_is_not_exited() {
+    use verwaltung_core::model::MemberRef;
+    use verwaltung_core::query::filter::{search, Filter, MembershipStatus};
+    use verwaltung_core::repo::memberships::{self, MembershipInput};
+    use verwaltung_core::repo::organisations::{self, OrganisationInput};
+    let conn = common::test_conn();
+    let org = organisations::create(
+        &conn,
+        &OrganisationInput {
+            name: "Beck".into(),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let m = MemberRef::Organisation(org.id);
+    memberships::create(
+        &conn,
+        &MembershipInput {
+            member: m,
+            category_id: None,
+            joined_on: Some(d(2000, 1, 1)),
+            left_on: Some(d(2010, 1, 1)),
+        },
+    )
+    .unwrap();
+    memberships::create(
+        &conn,
+        &MembershipInput {
+            member: m,
+            category_id: None,
+            joined_on: Some(d(2015, 1, 1)),
+            left_on: None,
+        },
+    )
+    .unwrap();
+    let today = d(2026, 1, 1);
+    let exited = search(
+        &conn,
+        &Filter {
+            membership: MembershipStatus::Exited,
+            ..Default::default()
+        },
+        today,
+    )
+    .unwrap();
+    assert!(exited.is_empty());
+    let active = search(
+        &conn,
+        &Filter {
+            membership: MembershipStatus::Active,
+            ..Default::default()
+        },
+        today,
+    )
+    .unwrap();
+    assert_eq!(active.len(), 1);
+}
+
+// Minor 2 (hochgestuft): Austritt vor Eintritt → Austritt behalten, damit kein Ex-Mitglied aktiv wird
+#[test]
+fn import_keeps_austritt_when_dates_are_swapped() {
+    use verwaltung_core::import::mapping::{plan, Mapping};
+    use verwaltung_core::import::sheet::{Cell, Sheet, SheetRow};
+    let headers: Vec<String> = ["Name/Firma", "Eintritt", "Austritt"]
+        .iter()
+        .map(|h| h.to_string())
+        .collect();
+    let t = |s: &str| Cell::Text(s.into());
+    let sheet = Sheet {
+        headers: headers.clone(),
+        rows: vec![SheetRow {
+            line: 2,
+            cells: vec![t("Beck"), t("01.01.2020"), t("31.12.2019")],
+        }],
+    };
+    let p = plan(&sheet, &Mapping::default_for(&headers));
+    assert_eq!(p.rows[0].left, Some(d(2019, 12, 31)));
+    assert_eq!(p.rows[0].joined, None);
+    assert_eq!(
+        p.report[0].message,
+        "Eintritt liegt nach Austritt, Eintritt ignoriert"
+    );
 }

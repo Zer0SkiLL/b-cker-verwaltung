@@ -149,7 +149,9 @@ fn column_index(sheet: &Sheet, mapping: &Mapping) -> Index {
     let width = sheet.headers.len();
     for (pos, (header, field)) in mapping.columns.iter().enumerate().take(width) {
         if *field != Field::Ignore {
-            index.entry(*field).or_insert((pos, header.trim().to_string()));
+            index
+                .entry(*field)
+                .or_insert((pos, header.trim().to_string()));
         }
     }
     index
@@ -318,10 +320,10 @@ fn membership_dates(ctx: &mut RowCtx) -> (Option<NaiveDate>, Option<NaiveDate>) 
     match (joined, left) {
         (Some(j), Some(l)) if l < j => {
             ctx.note(
-                Some(Field::Left),
-                "Austritt liegt vor Eintritt, Austritt ignoriert".into(),
+                Some(Field::Joined),
+                "Eintritt liegt nach Austritt, Eintritt ignoriert".into(),
             );
-            (joined, None)
+            (None, left)
         }
         _ => (joined, left),
     }

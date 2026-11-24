@@ -125,27 +125,21 @@ fn org_column(w: &mut Where, s: Subject, column: &str, ids: &[i64], day: &Value)
     any_of(w, &template, ids, &leading);
 }
 
+const ACTIVE: &str = "(m.left_on IS NULL OR m.left_on > ?)";
+const LEFT: &str = "(m.left_on IS NOT NULL AND m.left_on <= ?)";
+
 /// Kategorie und Status müssen von derselben Mitgliedschaft erfüllt werden.
+/// "Ausgetreten" heisst zusätzlich: keine aktive Mitgliedschaft (wieder Eingetretene zählen nicht).
 fn membership(w: &mut Where, f: &Filter, s: Subject, day: &Value) {
     let status = match f.membership {
         MembershipStatus::Any => None,
-        MembershipStatus::Active => Some("(m.left_on IS NULL OR m.left_on > ?)"),
-        MembershipStatus::Exited => Some("(m.left_on IS NOT NULL AND m.left_on <= ?)"),
+        MembershipStatus::Active => Some(ACTIVE),
+        MembershipStatus::Exited => Some(LEFT),
     };
     if status.is_none() && f.category_ids.is_empty() {
         return;
     }
-    let mut params = Vec::new();
-    let owner = match s {
-        Subject::Organisation => "m.organisation_id = o.id".to_string(),
-        Subject::Person => {
-            params.push(day.clone());
-            format!(
-                "(m.person_id = p.id OR m.organisation_id IN \
-                 (SELECT a.organisation_id FROM affiliations a WHERE a.person_id = p.id AND {CURRENT}))"
-            )
-        }
-    };
+    let (owner, mut params) = owner_clause(s, day);
     let mut parts = vec![owner];
     if let Some(cond) = status {
         parts.push(cond.into());
@@ -165,6 +159,28 @@ fn membership(w: &mut Where, f: &Filter, s: Subject, day: &Value) {
         ),
         params,
     );
+    if f.membership == MembershipStatus::Exited {
+        let (owner, mut params) = owner_clause(s, day);
+        params.push(day.clone());
+        w.push(
+            format!("NOT EXISTS (SELECT 1 FROM memberships m WHERE {owner} AND {ACTIVE})"),
+            params,
+        );
+    }
+}
+
+/// Wem eine Mitgliedschaft "gehört": dem Betrieb bzw. der Person oder ihren aktuellen Betrieben.
+fn owner_clause(s: Subject, day: &Value) -> (String, Vec<Value>) {
+    match s {
+        Subject::Organisation => ("m.organisation_id = o.id".to_string(), vec![]),
+        Subject::Person => (
+            format!(
+                "(m.person_id = p.id OR m.organisation_id IN \
+                 (SELECT a.organisation_id FROM affiliations a WHERE a.person_id = p.id AND {CURRENT}))"
+            ),
+            vec![day.clone()],
+        ),
+    }
 }
 
 /// Fügt `template` mit `{}` als Platzhalterliste ein, falls `ids` nicht leer ist.
