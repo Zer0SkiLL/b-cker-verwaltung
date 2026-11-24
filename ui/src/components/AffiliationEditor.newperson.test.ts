@@ -60,3 +60,16 @@ test('scheitert die Verknüpfung, sagt die Meldung, dass die Person angelegt ist
     await screen.findByText('Person wurde angelegt, die Verknüpfung aber nicht: Datenbankfehler: x'),
   ).toBeInTheDocument();
 });
+
+test('erneutes Speichern nach gescheiterter Verknüpfung legt die Person nicht doppelt an', async () => {
+  vi.mocked(api.createPerson).mockClear();
+  vi.mocked(api.createAffiliation).mockClear();
+  vi.mocked(api.createAffiliation).mockRejectedValueOnce(new Error('Datenbankfehler: x'));
+  const user = userEvent.setup();
+  render(AffiliationEditor, props());
+  await fillNewPerson(user);
+  await screen.findByText(/Person wurde angelegt/);
+  await user.click(screen.getByRole('button', { name: 'Speichern' }));
+  expect(api.createPerson).toHaveBeenCalledTimes(1);
+  expect(api.createAffiliation).toHaveBeenLastCalledWith(expect.objectContaining({ person_id: 42 }));
+});

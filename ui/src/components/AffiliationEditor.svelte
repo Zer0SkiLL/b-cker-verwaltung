@@ -25,6 +25,7 @@
   } = $props();
 
   const NEW_PERSON = 'new';
+  // „Neue Person“: Platzhalter-ID 0, damit die Formularprüfung durchläuft; die echte ID setzt saveWithNewPerson.
   const toId = (v: string) => (v === '' ? null : v === NEW_PERSON ? 0 : Number(v));
   const initial = () => existing;
   let person = $state(String(initial()?.person_id ?? ''));
@@ -33,6 +34,8 @@
   let from = $state(formatDate(initial()?.valid_from ?? null));
   let to = $state(formatDate(initial()?.valid_to ?? null));
   let newLast = $state('');
+  // Bereits angelegte neue Person (nach gescheiterter Verknüpfung nicht nochmals anlegen).
+  let createdId = $state<number | null>(null);
   let newFirst = $state('');
   let errors = $state<Errors>({});
   let failure = $state<string | null>(null);
@@ -71,15 +74,17 @@
 
   /** Legt die Person an und verknüpft sie; meldet klar, wenn nur der erste Schritt geklappt hat. */
   async function saveWithNewPerson(personInput: PersonInput, input: AffiliationInput) {
-    let created: { id: number };
-    try {
-      created = await runWrite(() => api.createPerson(personInput));
-    } catch (err) {
-      failure = (err as Error).message;
-      return;
+    if (createdId === null) {
+      try {
+        createdId = (await runWrite(() => api.createPerson(personInput))).id;
+      } catch (err) {
+        failure = (err as Error).message;
+        return;
+      }
     }
+    const id = createdId;
     try {
-      await runWrite(() => api.createAffiliation({ ...input, person_id: created.id }));
+      await runWrite(() => api.createAffiliation({ ...input, person_id: id }));
       onDone();
     } catch (err) {
       failure = `Person wurde angelegt, die Verknüpfung aber nicht: ${(err as Error).message}`;
