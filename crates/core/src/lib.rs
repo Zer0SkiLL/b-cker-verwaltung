@@ -3,6 +3,7 @@
 pub mod db;
 pub mod error;
 pub mod model;
+pub mod query;
 pub mod repo;
 pub mod storage;
 pub mod text;
