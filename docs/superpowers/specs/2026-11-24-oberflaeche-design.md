@@ -41,9 +41,9 @@ Alltag ersetzt werden kann: suchen, filtern, kontaktieren, exportieren, erfassen
 - **Adressen**: Hauptansicht. Klick auf Zeile → Detailansicht; „Zurück" behält die Filter.
 - **Detail Betrieb**: Stammdaten, verknüpfte Personen (Funktion, Von/Bis, frühere ein-/ausblendbar),
   Labels, Teams, Mitgliedschaften. Bearbeiten, Person verknüpfen/neu anlegen, löschen (mit Rückfrage).
-- **Detail Person**: Stammdaten inkl. Ausbildungsbetrieb, Lehrgänge, Prüfungsexperte, Vorstand,
-  ÜK-Zentrum, Honorar/Lohn (Infotext) – so wie im Core-Modell vorhanden; Betriebe, Labels, Teams,
-  Mitgliedschaft.
+- **Detail Person**: Stammdaten inkl. Honorar/Lohn (Infotext); Betriebe, Labels, Teams,
+  Mitgliedschaft. Prüfungsexperte, Vorstand, Lehrgänge, ÜK-Zentrum, Ausbildungsbetrieb werden –
+  wie im Core-Modell – als Labels bzw. Funktionen/Zugehörigkeiten abgebildet, nicht als eigene Felder.
 - **Teams**: Liste der Teams, Mitglieder mit Rolle, hinzufügen/entfernen.
 - **Gruppen**: gespeicherte Filter; Klick öffnet „Adressen" mit diesem Filter; umbenennen/löschen.
 - **Einstellungen**: Labels & Label-Gruppen, Auswahllisten, Datensicherung (Status, Liste,
