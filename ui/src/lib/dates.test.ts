@@ -33,3 +33,10 @@ describe('parseDate', () => {
     },
   );
 });
+
+import { todayIso } from './dates';
+
+test('todayIso liefert das lokale Datum als ISO', () => {
+  const t = new Date(2026, 0, 5, 23, 30);
+  expect(todayIso(t)).toBe('2026-01-05');
+});

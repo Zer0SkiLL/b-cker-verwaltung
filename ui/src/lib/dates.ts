@@ -31,3 +31,7 @@ export function parseDate(input: string): DateParse {
   if (!valid) return { ok: false, error: DATE_ERROR };
   return { ok: true, iso: `${year}-${pad(month)}-${pad(day)}` };
 }
+
+export function todayIso(now: Date = new Date()): IsoDate {
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
