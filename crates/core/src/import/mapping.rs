@@ -73,6 +73,7 @@ const FLAG_FIELDS: &[(Field, &str)] = &[
     (Field::Dh, "DH"),
 ];
 
+/// Zuordnung pro Spalte, in Spaltenreihenfolge des Blatts (Kopfzeile nur zur Anzeige).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Mapping {
     pub columns: Vec<(String, Field)>,
@@ -138,20 +139,17 @@ pub fn plan(sheet: &Sheet, mapping: &Mapping) -> ImportPlan {
     result
 }
 
-/// Feld → (Spaltenindex, Kopfzeile); bei doppelter Zuordnung gilt die erste Spalte.
+/// Feld → (Spaltenindex, Kopfzeile). `mapping.columns[i]` gehört zur Spalte `i` des Blatts,
+/// damit auch doppelte oder leere Kopfzeilen eindeutig zugeordnet werden können.
+/// Wird ein Feld mehrfach zugeordnet, gilt die erste Spalte.
 type Index = HashMap<Field, (usize, String)>;
 
 fn column_index(sheet: &Sheet, mapping: &Mapping) -> Index {
     let mut index = Index::new();
-    for (header, field) in &mapping.columns {
-        let pos = sheet
-            .headers
-            .iter()
-            .position(|h| h.trim().eq_ignore_ascii_case(header.trim()));
-        if let (Some(pos), false) = (pos, *field == Field::Ignore) {
-            index
-                .entry(*field)
-                .or_insert((pos, header.trim().to_string()));
+    let width = sheet.headers.len();
+    for (pos, (header, field)) in mapping.columns.iter().enumerate().take(width) {
+        if *field != Field::Ignore {
+            index.entry(*field).or_insert((pos, header.trim().to_string()));
         }
     }
     index

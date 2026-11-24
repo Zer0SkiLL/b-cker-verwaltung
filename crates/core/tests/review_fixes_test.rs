@@ -192,3 +192,21 @@ fn two_digit_years_are_invalid_not_year_0019() {
     assert_eq!(as_date(&Cell::Text("5.3.95".into())), DateResult::Invalid("5.3.95".into()));
     assert_eq!(as_date(&Cell::Text("5.3.1995".into())), DateResult::Date(d(1995, 3, 5)));
 }
+
+// I5
+#[test]
+fn mapping_works_by_column_position_with_duplicate_headers() {
+    use verwaltung_core::import::mapping::{plan, Field, Mapping};
+    use verwaltung_core::import::sheet::{Cell, Sheet, SheetRow};
+    let headers: Vec<String> = ["Name/Firma", "Vorname", "Telefon", "Telefon"].iter().map(|h| h.to_string()).collect();
+    let mut mapping = Mapping::default_for(&headers);
+    mapping.columns[3].1 = Field::Mobile;
+    let t = |s: &str| Cell::Text(s.into());
+    let sheet = Sheet {
+        headers,
+        rows: vec![SheetRow { line: 2, cells: vec![t("Muster"), t("Hans"), t("031 111 11 11"), t("079 222 22 22")] }],
+    };
+    let p = plan(&sheet, &mapping);
+    assert_eq!(p.rows[0].organisation.phone.as_deref(), Some("031 111 11 11"));
+    assert_eq!(p.rows[0].person.as_ref().unwrap().mobile.as_deref(), Some("079 222 22 22"));
+}
