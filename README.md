@@ -38,6 +38,24 @@ vorher gesichert.
 Leiste zeigt, wer sie geöffnet hat. Mit „Übernehmen“ kann man die Datei bei Bedarf
 übernehmen, z.B. wenn das Programm vorher abgestürzt ist.
 
+## Neue Version veröffentlichen
+
+1. Commits auf Deutsch und aus Nutzersicht schreiben, z.B. `feat: Gruppen lassen sich umbenennen`
+   oder `fix: Mail öffnen funktioniert wieder`. Daraus entstehen die Release Notes
+   („Neu", „Verbessert", „Behoben"). `chore`, `ci`, `test`, `docs` erscheinen dort nicht.
+2. Auf `main` mit sauberem Arbeitsbaum: `pnpm release 0.2.0` (Probelauf: `pnpm release 0.2.0 --dry-run`).
+   Das Skript prüft alles, erhöht die Version, schreibt `CHANGELOG.md`, committet, taggt und pusht.
+3. GitHub baut die Installer (ca. 30–40 Minuten) und legt einen **Entwurf** an:
+   https://github.com/Zer0SkiLL/b-cker-verwaltung/releases
+4. Entwurf prüfen (Dateien für Windows, Linux, macOS und `latest.json`) und **veröffentlichen**.
+   Erst dann zeigen installierte Programme „Version … ist verfügbar".
+
+Der Signaturschlüssel für Updates liegt in `~/.tauri/mitgliederverwaltung.key` (Passwort in
+`~/.tauri/mitgliederverwaltung.password`) und als GitHub-Secrets. Beides gut sichern: ohne den
+Schlüssel nehmen installierte Programme keine Updates mehr an.
+
+Windows-Installer sind nicht signiert: beim ersten Start „Weitere Informationen → Trotzdem ausführen".
+
 ## Entwicklung
 
 Voraussetzungen:
