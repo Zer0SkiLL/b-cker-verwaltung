@@ -75,3 +75,13 @@ fn rename_to_empty_is_refused() {
         "Inhaberin"
     );
 }
+
+#[test]
+fn rename_label_group_command() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = fresh_session(dir.path());
+    let g = create_label_group(&mut s, "Alt", AppliesTo::Both).unwrap();
+    let renamed =
+        verwaltung_app::commands::catalog::rename_label_group(&mut s, g.id, "Neu").unwrap();
+    assert_eq!(renamed.name, "Neu");
+}

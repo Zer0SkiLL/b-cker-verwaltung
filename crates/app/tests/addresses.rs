@@ -127,3 +127,12 @@ fn filter_options_lists_labels_by_group() {
         .unwrap();
     assert_eq!(rollen.labels.len(), 2);
 }
+
+#[test]
+fn rename_group_command() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = fresh_session(dir.path());
+    let id = save_group(&mut s, "Alt", &Filter::default()).unwrap();
+    verwaltung_app::commands::addresses::rename_group(&mut s, id, "Neu").unwrap();
+    assert_eq!(list_groups(&s).unwrap()[0].name, "Neu");
+}

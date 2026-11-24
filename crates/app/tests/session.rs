@@ -132,3 +132,68 @@ fn open_refuses_missing_file() {
     assert!(err.0.starts_with("Datei nicht gefunden"), "{}", err.0);
     assert!(!missing.exists(), "es darf keine leere Datei entstehen");
 }
+
+fn write_lock(dir: &std::path::Path, user: &str, created_at: chrono::DateTime<Utc>) {
+    let info = verwaltung_core::storage::lock::LockInfo {
+        user: user.into(),
+        host: format!("pc-{user}"),
+        created_at,
+    };
+    let path = verwaltung_core::storage::lock::lock_path(&db_path(dir));
+    std::fs::write(path, serde_json::to_vec(&info).unwrap()).unwrap();
+}
+
+fn closed_file(dir: &std::path::Path) {
+    let mut s = fresh_session(dir);
+    s.close(Local::now()).unwrap();
+}
+
+#[test]
+fn own_lock_is_likely_crash() {
+    let dir = tempfile::tempdir().unwrap();
+    closed_file(dir.path());
+    write_lock(dir.path(), "anna", Utc::now());
+    let info = Session::default()
+        .open(&db_path(dir.path()), &who("anna"))
+        .unwrap();
+    assert!(info.read_only);
+    assert!(info.held_by.unwrap().likely_crash);
+}
+
+#[test]
+fn foreign_fresh_lock_is_not_likely_crash() {
+    let dir = tempfile::tempdir().unwrap();
+    let _anna = fresh_session(dir.path());
+    let info = Session::default()
+        .open(&db_path(dir.path()), &who("ben"))
+        .unwrap();
+    assert!(!info.held_by.unwrap().likely_crash);
+}
+
+#[test]
+fn foreign_stale_lock_is_likely_crash() {
+    let dir = tempfile::tempdir().unwrap();
+    closed_file(dir.path());
+    write_lock(dir.path(), "anna", Utc::now() - chrono::Duration::days(2));
+    let info = Session::default()
+        .open(&db_path(dir.path()), &who("ben"))
+        .unwrap();
+    assert!(info.held_by.unwrap().likely_crash);
+}
+
+#[test]
+fn failed_take_over_keeps_file_open_read_only() {
+    let dir = tempfile::tempdir().unwrap();
+    closed_file(dir.path());
+    write_lock(dir.path(), "anna", Utc::now());
+    let mut ben = Session::default();
+    ben.open(&db_path(dir.path()), &who("ben")).unwrap();
+    // Sperrdatei durch einen Ordner ersetzen: das Schreiben der neuen Sperre schlägt fehl.
+    let lock = verwaltung_core::storage::lock::lock_path(&db_path(dir.path()));
+    std::fs::remove_file(&lock).unwrap();
+    std::fs::create_dir(&lock).unwrap();
+    assert!(ben.take_over(&who("ben")).is_err());
+    let info = ben.info(Utc::now()).unwrap();
+    assert!(info.read_only);
+    assert!(ben.read(organisations::list).unwrap().is_empty());
+}

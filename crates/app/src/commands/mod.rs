@@ -5,4 +5,5 @@ pub mod backup;
 pub mod catalog;
 pub mod entities;
 pub mod import;
+pub mod session;
 pub mod teams;
