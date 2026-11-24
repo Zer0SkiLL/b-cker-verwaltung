@@ -1,11 +1,13 @@
 //! Datenzugriff pro Fachbereich. Alle Funktionen nehmen `&Connection` und liefern neue Werte.
 
 pub mod affiliations;
+pub mod assignments;
 pub mod labels;
 pub mod lookups;
 pub mod memberships;
 pub mod organisations;
 pub mod persons;
+pub mod teams;
 
 use crate::error::{CoreError, Result};
 
