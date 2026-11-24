@@ -1,5 +1,5 @@
 import { remote } from 'webdriverio';
-import { config } from '../wdio.conf.mjs';
+import { config, startTauriDriver } from '../wdio.conf.mjs';
 import { button, byText, clickButton, goTo } from './helpers.mjs';
 
 describe('Kernabläufe', () => {
@@ -47,9 +47,11 @@ describe('Kernabläufe', () => {
   });
 
   it('zweite Instanz derselben Datei öffnet nur lesend', async () => {
+    const secondDriver = startTauriDriver(4446, 4447);
+    await new Promise((r) => setTimeout(r, 2000));
     const second = await remote({
       hostname: config.hostname,
-      port: config.port,
+      port: 4446,
       logLevel: 'warn',
       // Nur die WebDriver-Fähigkeiten, ohne runner-interne Optionen wie maxInstances.
       capabilities: { 'tauri:options': config.capabilities[0]['tauri:options'] },
@@ -59,6 +61,7 @@ describe('Kernabläufe', () => {
       await notice.waitForDisplayed({ timeout: 20000 });
     } finally {
       await second.deleteSession();
+      secondDriver.kill();
     }
   });
 });

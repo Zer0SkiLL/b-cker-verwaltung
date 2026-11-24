@@ -13,6 +13,13 @@ process.env.MITGLIEDERVERWALTUNG_DB = join(mkdtempSync(join(tmpdir(), 'mv-e2e-')
 
 let driver;
 
+/** Startet einen tauri-driver; ein Treiber erlaubt nur eine Sitzung (eine Programm-Instanz). */
+export function startTauriDriver(port = 4444, nativePort = 4445) {
+  const native = process.env.NATIVE_DRIVER ? ['--native-driver', process.env.NATIVE_DRIVER] : [];
+  const args = ['--port', String(port), '--native-port', String(nativePort), ...native];
+  return spawn(tauriDriver, args, { stdio: [null, process.stdout, process.stderr] });
+}
+
 export const config = {
   runner: 'local',
   hostname: '127.0.0.1',
@@ -26,8 +33,7 @@ export const config = {
   mochaOpts: { ui: 'bdd', timeout: 60000 },
   waitforTimeout: 15000,
   beforeSession: () => {
-    const args = process.env.NATIVE_DRIVER ? ['--native-driver', process.env.NATIVE_DRIVER] : [];
-    driver = spawn(tauriDriver, args, { stdio: [null, process.stdout, process.stderr] });
+    driver = startTauriDriver();
   },
   afterSession: () => driver?.kill(),
 };
