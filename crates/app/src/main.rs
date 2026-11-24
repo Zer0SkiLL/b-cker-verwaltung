@@ -1,11 +1,11 @@
 // Verhindert unter Windows ein zusätzliches Konsolenfenster im Release-Build.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::{Manager, WindowEvent};
-use verwaltung_app::tauri_commands::{catalog, data, entities, session, AppState};
+use tauri::{Manager, RunEvent, WindowEvent};
+use verwaltung_app::tauri_commands::{catalog, close_session, data, entities, session, AppState};
 
 fn main() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -16,10 +16,7 @@ fn main() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { .. } = event {
-                let state = window.state::<AppState>();
-                if let Err(err) = state.with(|s| s.close(chrono::Local::now())) {
-                    eprintln!("Fehler beim Schliessen: {err}");
-                }
+                close_session(&window.state::<AppState>());
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -80,6 +77,12 @@ fn main() {
             catalog::add_team_member,
             catalog::remove_team_member,
         ])
-        .run(tauri::generate_context!())
+        .build(tauri::generate_context!())
         .expect("Programm konnte nicht gestartet werden");
+    // Auch bei Cmd+Q, Abmelden oder Herunterfahren sauber schliessen.
+    app.run(|handle, event| {
+        if let RunEvent::Exit = event {
+            close_session(&handle.state::<AppState>());
+        }
+    });
 }

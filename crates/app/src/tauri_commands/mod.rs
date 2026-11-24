@@ -37,3 +37,11 @@ impl AppState {
 pub(crate) fn today() -> chrono::NaiveDate {
     chrono::Local::now().date_naive()
 }
+
+/// Schliesst die offene Datei (Sicherung am zweiten Ort, Sperre freigeben).
+/// Wird beim Fenster-Schliessen und beim Programmende aufgerufen; mehrfach unschädlich.
+pub fn close_session(state: &AppState) {
+    if let Err(err) = state.with(|s| s.close(chrono::Local::now())) {
+        eprintln!("Fehler beim Schliessen: {err}");
+    }
+}
