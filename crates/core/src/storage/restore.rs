@@ -1,7 +1,7 @@
 //! Wiederherstellen einer Sicherung: prüfen, aktuellen Stand sichern, dann ersetzen.
 //! Schlägt etwas fehl, bleibt die bisherige Datei geöffnet und die Sperre gehalten.
 
-use std::fs::{self, File};
+use std::fs::{self, OpenOptions};
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Local};
@@ -74,7 +74,8 @@ fn replace_file(backup: &Path, target: &Path) -> Result<()> {
     tmp.push(".restore-tmp");
     let tmp = PathBuf::from(tmp);
     let result = fs::copy(backup, &tmp)
-        .and_then(|_| File::open(&tmp)?.sync_all())
+        // Mit Schreibzugriff öffnen: unter Windows verlangt das Leeren auf die Platte (FlushFileBuffers) ein schreibbares Handle.
+        .and_then(|_| OpenOptions::new().write(true).open(&tmp)?.sync_all())
         .and_then(|_| fs::rename(&tmp, target));
     if result.is_err() {
         let _ = fs::remove_file(&tmp);
