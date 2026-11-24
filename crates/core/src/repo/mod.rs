@@ -1,7 +1,9 @@
 //! Datenzugriff pro Fachbereich. Alle Funktionen nehmen `&Connection` und liefern neue Werte.
 
+pub mod affiliations;
 pub mod labels;
 pub mod lookups;
+pub mod memberships;
 pub mod organisations;
 pub mod persons;
 
@@ -22,4 +24,16 @@ pub(crate) fn guard_in_use(count: i64, confirm: bool) -> Result<()> {
         return Err(CoreError::InUse { count });
     }
     Ok(())
+}
+
+/// Prüft, dass ein Bis-Datum nicht vor dem Von-Datum liegt.
+pub(crate) fn check_date_order(
+    from: Option<chrono::NaiveDate>,
+    to: Option<chrono::NaiveDate>,
+    message: &str,
+) -> Result<()> {
+    match (from, to) {
+        (Some(f), Some(t)) if t < f => Err(CoreError::Validation(message.into())),
+        _ => Ok(()),
+    }
 }

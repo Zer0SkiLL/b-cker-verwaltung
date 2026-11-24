@@ -71,3 +71,28 @@ pub struct Label {
     pub group_id: i64,
     pub name: String,
 }
+
+/// Verweis auf ein Mitglied bzw. Label-Ziel: Betrieb oder Person.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MemberRef {
+    Organisation(i64),
+    Person(i64),
+}
+
+impl MemberRef {
+    /// (organisation_id, person_id) für die beiden Fremdschlüsselspalten.
+    pub fn columns(self) -> (Option<i64>, Option<i64>) {
+        match self {
+            MemberRef::Organisation(id) => (Some(id), None),
+            MemberRef::Person(id) => (None, Some(id)),
+        }
+    }
+
+    pub fn from_columns(organisation_id: Option<i64>, person_id: Option<i64>) -> Option<MemberRef> {
+        match (organisation_id, person_id) {
+            (Some(o), None) => Some(MemberRef::Organisation(o)),
+            (None, Some(p)) => Some(MemberRef::Person(p)),
+            _ => None,
+        }
+    }
+}

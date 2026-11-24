@@ -20,3 +20,13 @@ pub fn raw_person(conn: &Connection, last_name: &str) -> i64 {
 pub fn count(conn: &Connection, table: &str) -> i64 {
     conn.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0)).unwrap()
 }
+
+pub fn d(y: i32, m: u32, day: u32) -> chrono::NaiveDate {
+    chrono::NaiveDate::from_ymd_opt(y, m, day).unwrap()
+}
+
+pub fn function(conn: &Connection, name: &str) -> i64 {
+    verwaltung_core::repo::lookups::find_or_create(conn, verwaltung_core::model::LookupKind::Function, name)
+        .unwrap()
+        .id
+}
