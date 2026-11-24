@@ -1,0 +1,31 @@
+# Release Notes auf Deutsch aus Conventional Commits.
+# Nur Nutzerrelevantes: feat → Neu, perf/refactor → Verbessert, fix → Behoben.
+
+[changelog]
+header = ""
+body = """
+{% if version %}## [{{ version | trim_start_matches(pat="v") }}] – {{ timestamp | date(format="%d.%m.%Y") }}{% else %}## [Unveröffentlicht]{% endif %}
+{% if commits | length == 0 %}
+Interne Verbesserungen ohne sichtbare Änderungen.
+{% else %}{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+
+{% for commit in commits %}- {{ commit.message | split(pat="\n") | first | trim | upper_first }}
+{% endfor %}{% endfor %}{% endif %}
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+commit_parsers = [
+  { message = "^feat", group = "<!-- 0 -->Neu" },
+  { message = "^(perf|refactor)", group = "<!-- 1 -->Verbessert" },
+  { message = "^fix", group = "<!-- 2 -->Behoben" },
+  { message = ".*", skip = true },
+]
+filter_commits = true
+tag_pattern = "v[0-9]*"
+sort_commits = "oldest"

@@ -5,3 +5,4 @@
 /ui/coverage
 /crates/app/gen
 /ui/.vite
+/node_modules
