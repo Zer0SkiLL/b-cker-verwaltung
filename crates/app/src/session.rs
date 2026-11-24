@@ -57,9 +57,16 @@ impl Session {
         match Workspace::open_taking_over(&path, who) {
             Ok(ws) => self.ws = Some(ws),
             Err(err) => {
-                // Datei wieder (nur lesend) öffnen, damit die Ansichten weiter funktionieren.
-                self.ws = Workspace::open(&path, who).ok();
-                return Err(err.into());
+                // Datei wieder nur lesend öffnen (ohne neue Sperre), damit die Ansichten weiter funktionieren.
+                return Err(match Workspace::open_read_only_at(&path) {
+                    Ok(ws) => {
+                        self.ws = Some(ws);
+                        AppError(format!("Übernehmen nicht möglich: {err}"))
+                    }
+                    Err(reopen) => AppError(format!(
+                        "Übernehmen nicht möglich: {err}. Datei konnte auch nicht wieder geöffnet werden: {reopen}"
+                    )),
+                });
             }
         }
         self.who = Some(who.clone());

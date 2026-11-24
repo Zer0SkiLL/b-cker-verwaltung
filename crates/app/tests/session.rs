@@ -197,3 +197,20 @@ fn failed_take_over_keeps_file_open_read_only() {
     assert!(info.read_only);
     assert!(ben.read(organisations::list).unwrap().is_empty());
 }
+
+#[test]
+fn take_over_failing_after_lock_written_keeps_file_open_read_only() {
+    let dir = tempfile::tempdir().unwrap();
+    closed_file(dir.path());
+    write_lock(dir.path(), "anna", Utc::now());
+    let mut ben = Session::default();
+    ben.open(&db_path(dir.path()), &who("ben")).unwrap();
+    // Sicherungsordner durch eine Datei ersetzen: das Öffnen zum Schreiben scheitert nach dem Sperren.
+    let backups = verwaltung_core::storage::backup::local_backup_dir(&db_path(dir.path()));
+    let _ = std::fs::remove_dir_all(&backups);
+    std::fs::write(&backups, "kein Ordner").unwrap();
+    assert!(ben.take_over(&who("ben")).is_err());
+    let info = ben.info(Utc::now()).unwrap();
+    assert!(info.read_only, "Sitzung muss nur lesend offen bleiben");
+    assert!(ben.read(organisations::list).unwrap().is_empty());
+}
