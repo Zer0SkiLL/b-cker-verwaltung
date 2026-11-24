@@ -331,3 +331,28 @@ fn import_keeps_austritt_when_dates_are_swapped() {
         "Eintritt liegt nach Austritt, Eintritt ignoriert"
     );
 }
+
+#[test]
+fn restoring_oldest_of_full_backup_set_works() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("verband.sqlite");
+    let mut ws = Workspace::open(&db, &who("anna")).unwrap();
+    ws.conn
+        .execute("INSERT INTO organisations(name, search_text) VALUES ('Alt', 'alt')", [])
+        .unwrap();
+    let start = Local::now() - Duration::days(30);
+    for i in 0..BACKUP_KEEP as i64 {
+        ws.backup_now(start + Duration::hours(i)).unwrap();
+    }
+    let stem = backup::db_stem(&db);
+    let files = backup::list(&local_backup_dir(&db), &stem).unwrap();
+    assert_eq!(files.len(), BACKUP_KEEP);
+    let oldest = files.last().unwrap().path.clone();
+    ws.conn.execute("DELETE FROM organisations", []).unwrap();
+    ws.restore(&oldest, Local::now()).unwrap();
+    let count: i64 = ws
+        .conn
+        .query_row("SELECT COUNT(*) FROM organisations", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(count, 1);
+}

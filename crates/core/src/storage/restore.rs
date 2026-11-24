@@ -24,7 +24,7 @@ impl Workspace {
         let stem = db_stem(&path);
         let dir = local_backup_dir(&path);
         backup_to_dir(&self.conn, &dir, &stem, now)?;
-        prune(&dir, &stem, BACKUP_KEEP)?;
+        // Aufräumen erst nach dem Ersetzen: sonst könnte die gewählte (älteste) Sicherung gelöscht werden.
         // Verbindung schliessen, damit die Datei ersetzt werden kann.
         drop(std::mem::replace(
             &mut self.conn,
@@ -35,7 +35,7 @@ impl Workspace {
                 let conn = db::open_unmigrated(&path, false)?;
                 db::migrate(&conn)?;
                 self.conn = conn;
-                Ok(())
+                prune(&dir, &stem, BACKUP_KEEP)
             }
             Err(err) => {
                 self.conn = db::open_connection(&path, false)?;
