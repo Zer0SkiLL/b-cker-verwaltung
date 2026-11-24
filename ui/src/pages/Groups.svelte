@@ -1,5 +1,55 @@
 <script lang="ts">
-  // Folgt in einem späteren Schritt.
+  import * as api from '../lib/api';
+  import { confirmAction } from '../lib/desktop';
+  import { navigate } from '../lib/router';
+  import { dataVersion, runWrite, sessionInfo } from '../lib/session';
+  import type { GroupDto } from '../lib/types';
+
+  let groups = $state<GroupDto[]>([]);
+  let error = $state<string | null>(null);
+  const readOnly = $derived($sessionInfo?.readOnly ?? false);
+
+  $effect(() => {
+    void $dataVersion;
+    api.listGroups().then((g) => (groups = g)).catch((err) => (error = (err as Error).message));
+  });
+
+  async function openGroup(group: GroupDto) {
+    try {
+      navigate({ page: 'addresses', filter: await api.loadGroup(group.id) });
+    } catch (err) {
+      error = (err as Error).message;
+    }
+  }
+
+  async function remove(group: GroupDto) {
+    if (!(await confirmAction(`Gruppe „${group.name}“ löschen? Die Adressen bleiben erhalten.`, 'Löschen'))) return;
+    try {
+      await runWrite(() => api.deleteGroup(group.id));
+    } catch (err) {
+      error = (err as Error).message;
+    }
+  }
 </script>
 
-<h1>Groups</h1>
+<h1>Gruppen</h1>
+<p class="muted">Gespeicherte Filter, z.B. „Alle Prüfungsexperten“. Neue Gruppen unter „Adressen“ › „Als Gruppe speichern“.</p>
+{#if error}<div class="form-error">{error}</div>{/if}
+<table>
+  <tbody>
+    {#each groups as group (group.id)}
+      <tr>
+        <td><button class="link" onclick={() => openGroup(group)}>{group.name}</button></td>
+        <td class="actions">
+          {#if !readOnly}<button class="danger" onclick={() => remove(group)}>Löschen</button>{/if}
+        </td>
+      </tr>
+    {:else}
+      <tr><td class="muted">Noch keine Gruppen gespeichert.</td></tr>
+    {/each}
+  </tbody>
+</table>
+
+<style>
+  .actions { text-align: right; }
+</style>
