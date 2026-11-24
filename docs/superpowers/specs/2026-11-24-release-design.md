@@ -1,7 +1,7 @@
 # Installer, automatische Builds und Release Notes (Plan 3) – Design
 
 Datum: 2026-11-24 · Ergänzt `2026-11-24-mitgliederverwaltung-design.md` (§9 Qualität, §10 Build und Auslieferung).
-Status: Weg „Repo öffentlich" und Vorschlag zu Release Notes vom Auftraggeber freigegeben.
+Status: vom Auftraggeber freigegeben (inkl. Abschnitt 11).
 
 ## 1. Zweck
 
@@ -139,7 +139,7 @@ Gestaltung des Update-Hinweises im Rahmen der bestehenden Hinweisleiste.
 1. **Installer-Formate:**
    - Windows: **nur NSIS** (pro Benutzer), kein MSI.
    - Linux: **AppImage** (mit Updater) + **deb**.
-   - macOS: **dmg** + Updater-Archiv `.app.tar.gz`, nur zum Testen.
+   - macOS: **dmg** + Updater-Archiv `.app.tar.gz`, vorerst zum Testen, **potentiell später als produktive App** (Auftraggeber). Dafür bleibt der Weg offen: Signieren/Notarisieren braucht ein Apple-Entwicklerkonto (kostenpflichtig) und wird dann nur im Release-Workflow ergänzt.
    - `bundle.createUpdaterArtifacts: true`, `latest.json` mit Einträgen für alle drei Plattformen.
 2. **Erste Version 0.1.0** ist eine echte, installierbare Version zum Testen unter Windows.
    - Ihr `CHANGELOG.md`-Abschnitt wird von Hand geschrieben („Erste Version" mit Funktionsüberblick).
