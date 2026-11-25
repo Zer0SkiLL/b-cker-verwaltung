@@ -2,6 +2,29 @@
 
 Hier steht, was in jeder Version neu ist. Die neueste Version steht oben.
 
+## [0.3.0] – 25.11.2026
+
+### Neu
+
+- Vor dem Update fragt das Programm, ob alle Änderungen gespeichert sind
+- Betriebe haben Felder für Handelsregister-Nr und Kostenstellen-Nr
+- Excel-Import versteht Firma, Personen und Einzelmitglieder der Mitgliederliste
+- Import-Seite mit Zusammenfassung, Filter, Rückfrage und Rückgängig
+- Sicherungen werden nach Alter ausgedünnt (einstellbar)
+- Sicherung während der Arbeit und sofortiger Hinweis, wenn der zweite Sicherungsort fehlt
+- Das Programm führt ein Protokoll für Problemberichte
+- Problem melden erstellt einen Bericht zum Kopieren
+
+### Behoben
+
+- Erneuter Klick auf „?“ oder „Hilfe“ schliesst die Hilfe wieder
+- Datensicherung beschreibt die neue Aufbewahrung statt „die letzten 20“
+- Import verliert bei Einzelmitgliedern keine Angaben und zeigt alle Hinweise; Hinweis zum zweiten Sicherungsort verschwindet zuverlässig
+- Nach Wiederherstellen, Übernehmen oder „Jetzt sichern“ entsteht keine überflüssige Sicherung mehr
+- Pausen oder eine falsch gehende Uhr löschen keine älteren Sicherungen mehr
+- Import nennt bei abweichenden Angaben beide Werte und übernimmt doppelte Mandate nur einmal
+- Import rückgängig machen nimmt nur die Sicherung dieses Imports; Öffnen und Schliessen stehen im Protokoll
+
 ## [0.2.0] – 25.11.2026
 
 ### Neu
