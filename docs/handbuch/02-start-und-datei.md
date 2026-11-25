@@ -2,6 +2,8 @@
 
 Dieses Kapitel erklärt, wie Sie die Datei mit den Vereinsdaten öffnen oder neu anlegen.
 
+Zum ersten Mal hier? Installation, der richtige Ort für die Datei und die Datensicherung stehen unter [Einrichten: allein oder zu mehreren](02b-einrichten.md).
+
 ## Datei öffnen
 
 Beim Start zeigt das Programm die Startseite.

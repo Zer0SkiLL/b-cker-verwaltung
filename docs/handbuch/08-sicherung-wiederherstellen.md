@@ -10,6 +10,8 @@ Dieses Kapitel erklärt, wie Ihre Daten gesichert werden und wie Sie eine Sicher
 
 ## Zweiten Sicherungsort einrichten
 
+Welche Lösung zu Ihnen passt, allein oder zu mehreren, steht unter [Einrichten: allein oder zu mehreren](02b-einrichten.md).
+
 Ein zweiter Ort schützt auch dann, wenn das Netzlaufwerk oder der PC ausfällt. Geeignet ist zum Beispiel ein USB-Stick oder ein anderes Laufwerk.
 
 1. Gehen Sie auf **Einstellungen** › **Datensicherung**.

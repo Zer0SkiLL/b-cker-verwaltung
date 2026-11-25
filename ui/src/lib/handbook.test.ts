@@ -22,10 +22,11 @@ test('jede Seite und jeder Einstellungs-Tab hat ein vorhandenes Kapitel', () => 
 });
 
 test('Kapitel folgen inhalt.json und sind nicht leer', () => {
-  expect(CHAPTERS).toHaveLength(20);
+  expect(CHAPTERS).toHaveLength(21);
   expect(slugs()[0]).toBe('01-willkommen');
-  expect(slugs()[19]).toBe('20-haeufige-fragen');
-  expect(CHAPTERS[2].part).toBe('Abläufe');
+  expect(slugs()[2]).toBe('02b-einrichten');
+  expect(slugs()[20]).toBe('20-haeufige-fragen');
+  expect(CHAPTERS[3].part).toBe('Abläufe');
   for (const c of CHAPTERS) expect(c.markdown.trim()).not.toBe('');
 });
 

@@ -22,6 +22,13 @@ Netzlaufwerk.
 - **Excel-Import** der bisherigen Liste, mit Probelauf und Bericht.
 - **Gesamtexport** aller Daten als Excel-Datei.
 
+## Installation
+
+Installer der neuesten Version: https://github.com/Zer0SkiLL/b-cker-verwaltung/releases/latest
+(Windows: `…_x64-setup.exe`). Updates kommen danach automatisch. Einrichtung allein oder zu
+mehreren und die Sicherungsstrategie stehen im Handbuch, Kapitel „Einrichten: allein oder zu
+mehreren“ (`docs/handbuch/02b-einrichten.md`). Hinweise für KI-Agenten: `CLAUDE.md`.
+
 ## Datensicherung
 
 1. **Automatisch beim Öffnen:** Das Programm sichert die Datei in den Ordner `backups/`
