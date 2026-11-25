@@ -297,6 +297,8 @@ fn organisation(
         legacy_id: ctx.text(Field::LegacyId),
         org_type_id: None,
         cantonal_association_id: None,
+        commercial_register_no: None,
+        cost_center_no: None,
     }
 }
 

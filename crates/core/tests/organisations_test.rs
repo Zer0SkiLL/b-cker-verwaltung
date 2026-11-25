@@ -107,3 +107,50 @@ fn delete_organisation_keeps_persons() {
         Err(CoreError::NotFound { .. })
     ));
 }
+
+#[test]
+fn create_and_get_keeps_numbers() {
+    let conn = test_conn();
+    let org = organisations::create(
+        &conn,
+        &OrganisationInput {
+            name: "Beck AG".into(),
+            commercial_register_no: Some(" CHE-123.456.789 ".into()),
+            cost_center_no: Some("4711".into()),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let back = organisations::get(&conn, org.id).unwrap();
+    assert_eq!(
+        back.commercial_register_no.as_deref(),
+        Some("CHE-123.456.789")
+    );
+    assert_eq!(back.cost_center_no.as_deref(), Some("4711"));
+}
+
+#[test]
+fn search_finds_commercial_register_no() {
+    use verwaltung_core::query::filter::{search, Filter};
+    let conn = test_conn();
+    organisations::create(
+        &conn,
+        &OrganisationInput {
+            name: "Beck AG".into(),
+            commercial_register_no: Some("CHE-123.456.789".into()),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let today = chrono::NaiveDate::from_ymd_opt(2026, 11, 25).unwrap();
+    let found = search(
+        &conn,
+        &Filter {
+            text: Some("CHE-123".into()),
+            ..Default::default()
+        },
+        today,
+    )
+    .unwrap();
+    assert_eq!(found.len(), 1);
+}

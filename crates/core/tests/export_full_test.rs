@@ -188,3 +188,15 @@ fn dates_swiss_format() {
     assert_eq!(sheet(&mut wb, "Zugehörigkeiten")[1][6], "01.04.2001");
     assert_eq!(sheet(&mut wb, "Mitgliedschaften")[1][5], "01.01.1999");
 }
+
+#[test]
+fn organisations_sheet_has_number_columns() {
+    let (_d, mut wb) = export(&filled());
+    let rows = sheet(&mut wb, "Betriebe");
+    assert!(
+        rows[0].contains(&"Handelsregister-Nr".to_string()),
+        "{:?}",
+        rows[0]
+    );
+    assert!(rows[0].contains(&"Kostenstellen-Nr".to_string()));
+}

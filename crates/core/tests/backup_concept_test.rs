@@ -38,10 +38,10 @@ fn team_names(ws: &Workspace) -> Vec<String> {
 }
 
 #[test]
-fn schema_version_is_2_and_settings_roundtrip() {
+fn schema_version_is_current_and_settings_roundtrip() {
     let (_d, _db, ws) = setup();
-    assert_eq!(SCHEMA_VERSION, 2);
-    assert_eq!(schema_version(&ws.conn).unwrap(), 2);
+    assert_eq!(SCHEMA_VERSION, 3);
+    assert_eq!(schema_version(&ws.conn).unwrap(), 3);
     assert_eq!(settings::get(&ws.conn, "x").unwrap(), None);
     settings::set(&ws.conn, "x", "1").unwrap();
     settings::set(&ws.conn, "x", "2").unwrap();

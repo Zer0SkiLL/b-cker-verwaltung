@@ -32,9 +32,11 @@ fn definitions() -> [(Vec<&'static str>, String, Vec<usize>); 11] {
     [
         (
             vec!["ID", "Name/Firma", "Zusatz", "Adresse", "Postfach", "PLZ", "Ort", "Telefon", "Mail", "Website",
-                 "Filialen", "Anzahl Lernende", "Bemerkungen", "Alt-ID", "Typ", "Kantonalverband"],
+                 "Filialen", "Anzahl Lernende", "Bemerkungen", "Alt-ID", "Typ", "Kantonalverband",
+                 "Handelsregister-Nr", "Kostenstellen-Nr"],
             "SELECT o.id, o.name, o.addition, o.street, o.po_box, o.zip, o.city, o.phone, o.email, o.website, \
-             o.branches, o.apprentice_count, o.notes, o.legacy_id, t.name, k.name FROM organisations o \
+             o.branches, o.apprentice_count, o.notes, o.legacy_id, t.name, k.name, o.commercial_register_no, \
+             o.cost_center_no FROM organisations o \
              LEFT JOIN lookup_values t ON t.id = o.org_type_id \
              LEFT JOIN lookup_values k ON k.id = o.cantonal_association_id ORDER BY o.id".into(),
             vec![],

@@ -135,6 +135,8 @@ export interface OrganisationInput {
   legacy_id: string | null;
   org_type_id: number | null;
   cantonal_association_id: number | null;
+  commercial_register_no: string | null;
+  cost_center_no: string | null;
 }
 
 export interface Organisation extends OrganisationInput {

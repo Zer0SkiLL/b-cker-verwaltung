@@ -47,6 +47,7 @@ function dateField(errors: Errors, key: string, value: string): string | null {
 
 const ORG_TEXT = [
   'addition', 'street', 'po_box', 'zip', 'city', 'phone', 'email', 'website', 'notes', 'legacy_id',
+  'commercial_register_no', 'cost_center_no',
 ] as const;
 
 export interface OrganisationForm {
@@ -63,6 +64,8 @@ export interface OrganisationForm {
   apprentice_count: string;
   notes: string;
   legacy_id: string;
+  commercial_register_no: string;
+  cost_center_no: string;
   org_type_id: number | null;
   cantonal_association_id: number | null;
 }
@@ -71,7 +74,7 @@ export function emptyOrganisationForm(): OrganisationForm {
   return {
     name: '', addition: '', street: '', po_box: '', zip: '', city: '', phone: '', email: '',
     website: '', branches: '', apprentice_count: '', notes: '', legacy_id: '',
-    org_type_id: null, cantonal_association_id: null,
+    commercial_register_no: '', cost_center_no: '', org_type_id: null, cantonal_association_id: null,
   };
 }
 

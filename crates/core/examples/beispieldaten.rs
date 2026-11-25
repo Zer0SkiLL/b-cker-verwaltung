@@ -117,6 +117,7 @@ fn betriebe(conn: &Connection) -> Result<Vec<i64>> {
                 phone: Some(format!("071 000 00 {:02}", index + 1)),
                 email: Some(format!("info{}@beispiel.ch", index + 1)),
                 cantonal_association_id: Some(canton_id),
+                commercial_register_no: (index < 3).then(|| format!("CHE-100.000.00{}", index + 1)),
                 ..Default::default()
             },
         )?;

@@ -24,6 +24,8 @@
   <TextField id="org-email" label="Mail" type="email" bind:value={form.email} />
   <TextField id="org-web" label="Website" bind:value={form.website} />
   <TextField id="org-legacy" label="Alt-ID (alte Liste)" bind:value={form.legacy_id} />
+  <TextField id="org-hr" label="Handelsregister-Nr" bind:value={form.commercial_register_no} />
+  <TextField id="org-kst" label="Kostenstellen-Nr" bind:value={form.cost_center_no} />
   <TextField id="org-branches" label="Filialen" bind:value={form.branches} error={errors.branches} />
   <TextField id="org-apprentices" label="Anzahl Lernende" bind:value={form.apprentice_count} error={errors.apprentice_count} />
   <div class="field">
