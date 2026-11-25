@@ -57,6 +57,12 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Rust-Tests
         run: cargo test --workspace
+      - name: Beispieldaten erzeugen
+        shell: bash
+        run: |
+          out=$(cargo run -q -p verwaltung_core --example beispieldaten -- "$RUNNER_TEMP/beispiel.sqlite")
+          echo "$out"
+          grep -q "15 Betriebe, 25 Personen" <<< "$out"
       - name: Oberflächen-Tests
         run: pnpm --dir ui exec vitest run
       - name: Typprüfung
