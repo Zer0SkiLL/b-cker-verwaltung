@@ -169,6 +169,7 @@ Nach jeder Sicherung wird **an diesem Ort** ausgedünnt. Massgebend ist der Zeit
 | älter | gelöscht | |
 
 - **Die neueste Sicherung bleibt immer erhalten,** unabhängig vom Alter.
+- **Nachtrag (nach Review):** Gezählt werden nicht Kalendertage ab heute, sondern die *A* bzw. *B* neuesten Tage, *C* neuesten Wochen und *D* neuesten Monate **mit Sicherungen**. So löschen eine lange Pause oder ein Vorsprung der PC-Uhr keine Sicherungen; die eben erstellte Sicherung bleibt immer (Uhr rückwärts). Eine Netzwerk-Uhr wurde verworfen (Firewall, offline, zusätzliche Abhängigkeit beim Sichern).
 - **Überall die neue Regel:** Sie ersetzt `BACKUP_KEEP` an allen drei Stellen (beim Öffnen, bei `backup_now`, am zweiten Ort).
 - **Vor den Migrationen:** Die Sicherung beim Öffnen läuft vor den Migrationen. Fehlt die Tabelle `settings` oder ein Wert, gelten die Standardwerte.
 - Sicherungen fremder Dateien im selben Ordner bleiben unberührt (wie heute: nur der eigene Dateistamm).

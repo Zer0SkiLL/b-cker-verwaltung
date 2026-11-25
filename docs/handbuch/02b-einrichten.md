@@ -47,7 +47,7 @@ Die Daten werden in drei Stufen gesichert. Jede Stufe schützt vor etwas anderem
 
 | Stufe | Wann | Schützt vor |
 |---|---|---|
-| **1. Automatische Sicherung neben der Datei** (Ordner **backups**, ausgedünnt nach Alter) | Beim Öffnen, während der Arbeit und mit **Jetzt sichern** | Versehentlichem Löschen oder falschen Änderungen |
+| **1. Automatische Sicherung neben der Datei** (Ordner **backups**, ältere werden ausgedünnt) | Beim Öffnen, während der Arbeit und mit **Jetzt sichern** | Versehentlichem Löschen oder falschen Änderungen |
 | **2. Zweiter Sicherungsort** | Während der Arbeit, beim Schliessen und mit **Jetzt sichern** | Ausfall des Laufwerks, auf dem die Datei liegt |
 | **3. Gesamtexport als Excel** | Von Hand, zum Beispiel einmal pro Jahr nach der GV | Totalverlust; lesbar auch ohne dieses Programm |
 

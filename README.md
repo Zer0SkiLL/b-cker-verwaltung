@@ -36,8 +36,9 @@ mehreren“ (`docs/handbuch/02b-einrichten.md`). Hinweise für KI-Agenten: `CLAU
 2. **Zweiter Sicherungsort,** z.B. ein USB-Stick oder ein anderes Laufwerk, eingerichtet unter
    Einstellungen › Datensicherung. Gesichert wird dort während der Arbeit, beim Schliessen und mit
    „Jetzt sichern“. Ist er nicht erreichbar, erscheint sofort ein Hinweis.
-   Ältere Sicherungen werden an beiden Orten nach Alter ausgedünnt (alle der letzten 2 Tage, dann je
-   eine pro Tag/Woche/Monat bis 14 Tage/8 Wochen/12 Monate; einstellbar unter „Aufbewahrung“).
+   Ältere Sicherungen werden an beiden Orten ausgedünnt (alle der letzten 2 Arbeitstage, dann je
+   eine pro Tag/Woche/Monat für 14 Arbeitstage/8 Wochen/12 Monate mit Arbeit; einstellbar unter
+   „Aufbewahrung“). Gezählt werden nur Tage mit Sicherungen – Ferien oder eine falsche Uhr kosten nichts.
 3. **Gesamtexport als Excel,** zur Archivierung. Die Datei ist auch ohne dieses Programm lesbar.
 
 **Wiederherstellen** geht unter Einstellungen › Datensicherung. Der aktuelle Stand wird

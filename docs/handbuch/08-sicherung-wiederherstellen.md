@@ -17,17 +17,19 @@ Wer an einem Tag drei Stunden arbeitet, hat danach etwa 4–5 Sicherungen von di
 
 ## Wie lange Sicherungen aufbewahrt werden
 
-Damit man auch Wochen und Monate zurückkommt, ohne dass sich die Dateien stapeln, werden ältere Sicherungen **ausgedünnt**. Jede Sicherung wird nach ihrem Alter eingeordnet:
+Damit man auch Wochen und Monate zurückkommt, ohne dass sich die Dateien stapeln, werden ältere Sicherungen **ausgedünnt**. Gezählt werden dabei nur die Tage, an denen gesichert wurde, also die Tage, an denen jemand mit der Datei gearbeitet hat:
 
-| Alter der Sicherung | Was bleibt |
+| Sicherungen | Was bleibt |
 |---|---|
-| jünger als 2 Tage | **alle** |
-| 2 Tage bis 2 Wochen | die neueste **pro Tag** |
-| 2 Wochen bis 8 Wochen | die neueste **pro Woche** |
-| 8 Wochen bis 12 Monate | die neueste **pro Monat** |
-| älter als 12 Monate | gelöscht |
+| vom heutigen und vom letzten Arbeitstag davor | **alle** |
+| der letzten 14 Arbeitstage | die neueste **pro Tag** |
+| der letzten 8 Wochen mit Arbeit | die neueste **pro Woche** |
+| der letzten 12 Monate mit Arbeit | die neueste **pro Monat** |
+| ältere | gelöscht |
 
 **Ein Beispiel:** Ein Fehler vom Montag wird erst am Freitag bemerkt. Dann gibt es noch den Stand von Sonntagabend, dazu den Stand jeder Woche der letzten zwei Monate und jedes Monats im letzten Jahr. Zusammen sind das höchstens etwa 40 Dateien pro Ort. **Die neueste Sicherung bleibt immer erhalten.**
+
+**Ferien und falsche Uhrzeit:** Weil nur Arbeitstage zählen, gehen in einer Pause keine Sicherungen verloren. Nach drei Wochen Ferien sind die Stände vor den Ferien noch alle da. Dasselbe gilt, wenn die Uhr des Computers einmal falsch geht.
 
 Alle vier Zeiten und die 60 Minuten lassen sich unter **Einstellungen** › **Datensicherung** › **Aufbewahrung** ändern (siehe [Datensicherung](16-datensicherung.md)).
 
