@@ -105,6 +105,55 @@ mod during_work {
         assert!(backup_if_changed(&mut s, Local::now()).unwrap().is_none());
     }
 
+    fn local_backups(dir: &std::path::Path) -> usize {
+        let db = db_path(dir);
+        let stem = verwaltung_core::storage::backup::db_stem(&db);
+        verwaltung_core::storage::backup::list(
+            &verwaltung_core::storage::backup::local_backup_dir(&db),
+            &stem,
+        )
+        .map(|f| f.len())
+        .unwrap_or(0)
+    }
+
+    #[test]
+    fn manual_backup_resets_change_counter() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut s = fresh_session(dir.path());
+        s.write(|c| organisations::create(c, &org_input("Beck AG")))
+            .unwrap();
+        backup_now(&mut s, Local::now()).unwrap();
+        assert!(backup_if_changed(&mut s, Local::now()).unwrap().is_none());
+    }
+
+    #[test]
+    fn restore_resets_change_counter() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut s = fresh_session(dir.path());
+        s.write(|c| organisations::create(c, &org_input("Beck AG")))
+            .unwrap();
+        let saved = backup_if_changed(&mut s, Local::now())
+            .unwrap()
+            .unwrap()
+            .local;
+        s.write(|c| organisations::create(c, &org_input("Mehl GmbH")))
+            .unwrap();
+        restore_backup(&mut s, std::path::Path::new(&saved), Local::now()).unwrap();
+        assert!(backup_if_changed(&mut s, Local::now()).unwrap().is_none());
+    }
+
+    #[test]
+    fn take_over_creates_exactly_one_local_backup() {
+        let dir = tempfile::tempdir().unwrap();
+        let _anna = fresh_session(dir.path());
+        let mut ben = Session::default();
+        ben.open(&db_path(dir.path()), &who("ben")).unwrap();
+        let before = local_backups(dir.path());
+        ben.take_over(&who("ben")).unwrap();
+        assert_eq!(local_backups(dir.path()), before + 1);
+        assert!(backup_if_changed(&mut ben, Local::now()).unwrap().is_none());
+    }
+
     #[test]
     fn own_secondary_bookkeeping_does_not_count_as_change() {
         let dir = tempfile::tempdir().unwrap();

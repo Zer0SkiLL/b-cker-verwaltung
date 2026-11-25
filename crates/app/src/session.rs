@@ -76,8 +76,9 @@ impl Session {
         }
         self.who = Some(who.clone());
         // Nach einem Absturz fehlt die Sicherung am zweiten Ort vom Schliessen: jetzt nachholen.
-        let outcome = self.writable()?.backup_now(Local::now())?;
-        self.note_secondary(&outcome.secondary);
+        // Lokal wurde schon beim Öffnen gesichert.
+        let secondary = self.writable()?.backup_secondary_now(Local::now())?;
+        self.note_secondary(&secondary);
         self.info(Utc::now())
     }
 

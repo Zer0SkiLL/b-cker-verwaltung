@@ -24,7 +24,7 @@ impl Workspace {
         let path = self.path().to_path_buf();
         let stem = db_stem(&path);
         let dir = local_backup_dir(&path);
-        backup_to_dir(&self.conn, &dir, &stem, now)?;
+        let saved = backup_to_dir(&self.conn, &dir, &stem, now)?;
         // Aufräumen erst nach dem Ersetzen: sonst könnte die gewählte (älteste) Sicherung gelöscht werden.
         // Verbindung schliessen, damit die Datei ersetzt werden kann.
         drop(std::mem::replace(
@@ -36,8 +36,10 @@ impl Workspace {
                 let conn = db::open_unmigrated(&path, false)?;
                 db::migrate(&conn)?;
                 self.conn = conn;
+                // Der wiederhergestellte Stand liegt schon als Sicherung vor.
+                self.mark_backed_up();
                 log::info!("Sicherung wiederhergestellt");
-                apply_retention(&dir, &stem, now.naive_local(), &load_policy(&self.conn))
+                apply_retention(&dir, &stem, &saved, &load_policy(&self.conn))
             }
             Err(err) => {
                 self.conn = db::open_connection(&path, false)?;

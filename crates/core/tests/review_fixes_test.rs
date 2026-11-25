@@ -20,12 +20,12 @@ fn prune_ignores_backups_of_similar_named_database() {
     let main = dir.path().join("verband.sqlite");
     let copy = dir.path().join("verband-kopie.sqlite");
     let start = Local::now();
-    let ws_copy = Workspace::open(&copy, &who("reto")).unwrap();
+    let mut ws_copy = Workspace::open(&copy, &who("reto")).unwrap();
     for i in 0..20 {
         ws_copy.backup_now(start + Duration::seconds(i)).unwrap();
     }
     drop(ws_copy);
-    let ws = Workspace::open(&main, &who("reto")).unwrap();
+    let mut ws = Workspace::open(&main, &who("reto")).unwrap();
     let out = ws.backup_now(start + Duration::seconds(100)).unwrap();
     assert!(out.local.exists(), "eigene Sicherung wurde gelöscht");
     let backups = local_backup_dir(&main);
@@ -112,7 +112,7 @@ fn backup_now_after_takeover_is_refused() {
     use verwaltung_core::error::CoreError;
     let dir = tempfile::tempdir().unwrap();
     let db = dir.path().join("daten.sqlite");
-    let anna = Workspace::open(&db, &who("anna")).unwrap();
+    let mut anna = Workspace::open(&db, &who("anna")).unwrap();
     let _vertretung = Workspace::open_taking_over(&db, &who("vertretung")).unwrap();
     assert!(matches!(
         anna.backup_now(Local::now()),

@@ -81,31 +81,43 @@ impl Workspace {
     }
 
     /// Sichert lokal und (falls eingerichtet) am zweiten Ort. Nur bei schreibendem Zugriff.
-    pub fn backup_now(&self, now: DateTime<Local>) -> Result<BackupOutcome> {
+    /// Danach gilt der Stand als gesichert (keine weitere Sicherung während der Arbeit nötig).
+    pub fn backup_now(&mut self, now: DateTime<Local>) -> Result<BackupOutcome> {
         self.require_read_write()?;
         let dir = local_backup_dir(&self.path);
         let stem = db_stem(&self.path);
         let local = backup_to_dir(&self.conn, &dir, &stem, now)?;
         log::info!("Sicherung neben der Datei erstellt");
-        apply_retention(&dir, &stem, now.naive_local(), &load_policy(&self.conn))?;
-        Ok(BackupOutcome {
-            local,
-            secondary: self.backup_secondary(now)?,
-        })
+        apply_retention(&dir, &stem, &local, &load_policy(&self.conn))?;
+        let secondary = self.backup_secondary(now)?;
+        self.mark_backed_up();
+        Ok(BackupOutcome { local, secondary })
+    }
+
+    /// Nur am zweiten Ort sichern (z.B. nach dem Übernehmen: die lokale Sicherung entstand
+    /// schon beim Öffnen).
+    pub fn backup_secondary_now(&mut self, now: DateTime<Local>) -> Result<SecondaryResult> {
+        self.require_read_write()?;
+        let result = self.backup_secondary(now)?;
+        self.mark_backed_up();
+        Ok(result)
+    }
+
+    /// Merkt sich den aktuellen Änderungszähler als „gesichert“. Wird nach der Sicherung
+    /// gelesen, weil die Sicherung selbst den Zeitpunkt am zweiten Ort speichert.
+    pub(crate) fn mark_backed_up(&mut self) {
+        self.changes_at_backup = self.conn.total_changes();
     }
 
     /// Sichert lokal und am zweiten Ort, aber nur wenn seit der letzten Sicherung etwas geändert
-    /// wurde und schreibend geöffnet ist. Der Zähler wird nach der Sicherung gelesen, weil die
-    /// Sicherung selbst den Zeitpunkt am zweiten Ort speichert.
+    /// wurde und schreibend geöffnet ist.
     pub fn backup_if_changed(&mut self, now: DateTime<Local>) -> Result<Option<BackupOutcome>> {
         if self.check_lock()? != &AccessMode::ReadWrite
             || self.conn.total_changes() == self.changes_at_backup
         {
             return Ok(None);
         }
-        let outcome = self.backup_now(now)?;
-        self.changes_at_backup = self.conn.total_changes();
-        Ok(Some(outcome))
+        self.backup_now(now).map(Some)
     }
 
     /// Prüft, ob die eigene Sperre noch besteht. Wurde sie übernommen (z.B. durch die
@@ -163,7 +175,7 @@ impl Workspace {
         let dir = PathBuf::from(dir);
         let stem = db_stem(&self.path);
         let attempt = backup_to_dir(&self.conn, &dir, &stem, now).and_then(|path| {
-            apply_retention(&dir, &stem, now.naive_local(), &load_policy(&self.conn)).map(|_| path)
+            apply_retention(&dir, &stem, &path, &load_policy(&self.conn)).map(|_| path)
         });
         match attempt {
             Ok(path) => {
@@ -190,10 +202,9 @@ impl Workspace {
         if existed {
             let dir = local_backup_dir(db_path);
             let stem = db_stem(db_path);
-            let now = Local::now();
-            backup_to_dir(&conn, &dir, &stem, now)?;
+            let saved = backup_to_dir(&conn, &dir, &stem, Local::now())?;
             // Vor der Migration: fehlt `settings` noch, gilt der Standard.
-            apply_retention(&dir, &stem, now.naive_local(), &load_policy(&conn))?;
+            apply_retention(&dir, &stem, &saved, &load_policy(&conn))?;
         }
         db::migrate(&conn)?;
         Ok(Self::from_parts(conn, db_path.to_path_buf(), lock))
