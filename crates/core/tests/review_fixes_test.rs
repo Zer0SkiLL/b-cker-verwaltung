@@ -2,7 +2,7 @@
 mod common;
 use chrono::{Duration, Local};
 use common::d;
-use verwaltung_core::storage::backup::{self, local_backup_dir, prune, BACKUP_KEEP};
+use verwaltung_core::storage::backup::{self, local_backup_dir, prune};
 use verwaltung_core::storage::lock::Identity;
 use verwaltung_core::storage::workspace::Workspace;
 
@@ -21,7 +21,7 @@ fn prune_ignores_backups_of_similar_named_database() {
     let copy = dir.path().join("verband-kopie.sqlite");
     let start = Local::now();
     let ws_copy = Workspace::open(&copy, &who("reto")).unwrap();
-    for i in 0..BACKUP_KEEP as i64 {
+    for i in 0..20 {
         ws_copy.backup_now(start + Duration::seconds(i)).unwrap();
     }
     drop(ws_copy);
@@ -29,10 +29,7 @@ fn prune_ignores_backups_of_similar_named_database() {
     let out = ws.backup_now(start + Duration::seconds(100)).unwrap();
     assert!(out.local.exists(), "eigene Sicherung wurde gelöscht");
     let backups = local_backup_dir(&main);
-    assert_eq!(
-        backup::list(&backups, "verband-kopie").unwrap().len(),
-        BACKUP_KEEP
-    );
+    assert_eq!(backup::list(&backups, "verband-kopie").unwrap().len(), 20);
 }
 
 // C1
@@ -344,12 +341,12 @@ fn restoring_oldest_of_full_backup_set_works() {
         )
         .unwrap();
     let start = Local::now() - Duration::days(30);
-    for i in 0..BACKUP_KEEP as i64 {
+    for i in 0..20 {
         ws.backup_now(start + Duration::hours(i)).unwrap();
     }
     let stem = backup::db_stem(&db);
     let files = backup::list(&local_backup_dir(&db), &stem).unwrap();
-    assert_eq!(files.len(), BACKUP_KEEP);
+    assert_eq!(files.len(), 20);
     let oldest = files.last().unwrap().path.clone();
     ws.conn.execute("DELETE FROM organisations", []).unwrap();
     ws.restore(&oldest, Local::now()).unwrap();

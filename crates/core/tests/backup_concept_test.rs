@@ -4,7 +4,7 @@ use chrono::{Duration, Local, Utc};
 use verwaltung_core::db::{schema_version, SCHEMA_VERSION};
 use verwaltung_core::error::CoreError;
 use verwaltung_core::repo::settings::{self, LAST_SECONDARY_BACKUP, SECONDARY_BACKUP_DIR};
-use verwaltung_core::storage::backup::{self, local_backup_dir, BACKUP_KEEP};
+use verwaltung_core::storage::backup::{self, local_backup_dir};
 use verwaltung_core::storage::lock::{Identity, LockGuard};
 use verwaltung_core::storage::workspace::{SecondaryResult, Workspace};
 
@@ -90,15 +90,28 @@ fn unavailable_secondary_does_not_fail() {
 }
 
 #[test]
-fn secondary_pruned_to_20() {
+fn secondary_uses_age_based_retention() {
     let (dir, _db, ws) = setup();
     let usb = dir.path().join("usb");
     set_secondary(&ws, &usb);
     let start = Local::now();
+    // Viele Sicherungen kurz hintereinander bleiben alle (jünger als 2 Tage).
     for i in 0..22 {
         ws.backup_now(start + Duration::seconds(i)).unwrap();
     }
-    assert_eq!(backup::list(&usb, "daten").unwrap().len(), BACKUP_KEEP);
+    assert_eq!(backup::list(&usb, "daten").unwrap().len(), 22);
+    // Drei Sicherungen desselben Tages vor 20 Tagen: nach der nächsten Sicherung bleibt eine.
+    let old = start - Duration::days(20);
+    for h in 0..3 {
+        ws.backup_now(old + Duration::hours(h)).unwrap();
+    }
+    ws.backup_now(start + Duration::seconds(30)).unwrap();
+    let files = backup::list(&usb, "daten").unwrap();
+    let old_day = files
+        .iter()
+        .filter(|f| f.created.date() == old.date_naive())
+        .count();
+    assert_eq!(old_day, 1);
 }
 
 #[test]

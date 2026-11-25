@@ -7,7 +7,8 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Local};
 use rusqlite::Connection;
 
-use super::backup::{backup_to_dir, db_stem, local_backup_dir, prune, verify, BACKUP_KEEP};
+use super::backup::{backup_to_dir, db_stem, local_backup_dir, verify};
+use super::retention::{apply_retention, load_policy};
 use super::workspace::Workspace;
 use crate::db::{self, SCHEMA_VERSION};
 use crate::error::{CoreError, Result};
@@ -35,7 +36,7 @@ impl Workspace {
                 let conn = db::open_unmigrated(&path, false)?;
                 db::migrate(&conn)?;
                 self.conn = conn;
-                prune(&dir, &stem, BACKUP_KEEP)
+                apply_retention(&dir, &stem, now.naive_local(), &load_policy(&self.conn))
             }
             Err(err) => {
                 self.conn = db::open_connection(&path, false)?;

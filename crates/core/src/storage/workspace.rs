@@ -3,8 +3,9 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Local, Utc};
 use rusqlite::Connection;
 
-use super::backup::{backup_to_dir, db_stem, local_backup_dir, prune, BACKUP_KEEP};
+use super::backup::{backup_to_dir, db_stem, local_backup_dir};
 use super::lock::{current_holder, Identity, LockGuard, LockInfo};
+use super::retention::{apply_retention, load_policy};
 use crate::db;
 use crate::error::{CoreError, Result};
 use crate::repo::settings::{self, LAST_SECONDARY_BACKUP, SECONDARY_BACKUP_DIR};
@@ -82,7 +83,7 @@ impl Workspace {
         let dir = local_backup_dir(&self.path);
         let stem = db_stem(&self.path);
         let local = backup_to_dir(&self.conn, &dir, &stem, now)?;
-        prune(&dir, &stem, BACKUP_KEEP)?;
+        apply_retention(&dir, &stem, now.naive_local(), &load_policy(&self.conn))?;
         Ok(BackupOutcome {
             local,
             secondary: self.backup_secondary(now)?,
@@ -140,8 +141,9 @@ impl Workspace {
         };
         let dir = PathBuf::from(dir);
         let stem = db_stem(&self.path);
-        let attempt = backup_to_dir(&self.conn, &dir, &stem, now)
-            .and_then(|path| prune(&dir, &stem, BACKUP_KEEP).map(|_| path));
+        let attempt = backup_to_dir(&self.conn, &dir, &stem, now).and_then(|path| {
+            apply_retention(&dir, &stem, now.naive_local(), &load_policy(&self.conn)).map(|_| path)
+        });
         match attempt {
             Ok(path) => {
                 settings::set(
@@ -163,8 +165,10 @@ impl Workspace {
         if existed {
             let dir = local_backup_dir(db_path);
             let stem = db_stem(db_path);
-            backup_to_dir(&conn, &dir, &stem, Local::now())?;
-            prune(&dir, &stem, BACKUP_KEEP)?;
+            let now = Local::now();
+            backup_to_dir(&conn, &dir, &stem, now)?;
+            // Vor der Migration: fehlt `settings` noch, gilt der Standard.
+            apply_retention(&dir, &stem, now.naive_local(), &load_policy(&conn))?;
         }
         db::migrate(&conn)?;
         Ok(Self::from_parts(conn, db_path.to_path_buf(), lock))
