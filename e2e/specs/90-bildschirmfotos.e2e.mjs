@@ -7,6 +7,7 @@
 import { join, resolve } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { clickButton, goTo } from './helpers.mjs';
+import { entfernen, markieren, zeiger } from './markierungen.mjs';
 
 const OUT = resolve(import.meta.dirname, '..', '..', 'docs', 'handbuch', 'bilder');
 mkdirSync(OUT, { recursive: true });
@@ -14,6 +15,7 @@ mkdirSync(OUT, { recursive: true });
 async function shot(name) {
   await browser.pause(600); // Ladeanzeigen und Übergänge abwarten
   await browser.saveScreenshot(join(OUT, `${name}.png`));
+  await entfernen();
 }
 
 // Zeile über die Spalte „Name“ finden (der Betriebsname steht auch bei dessen Personen).
@@ -52,6 +54,9 @@ describe('Bildschirmfotos', () => {
     await (await $('summary*=Labels')).click();
     await (await $('label*=provisorisch')).click();
     await (await row('Bäckerei Neuanfang')).waitForDisplayed();
+    await markieren('summary*=Labels', { nummer: 1 });
+    await markieren('label*=provisorisch', { nummer: 2 });
+    await markieren('button=Als Gruppe speichern', { nummer: 3 });
     await shot('adressen-filter');
     await clickButton('Als Gruppe speichern');
     await (await $('input[placeholder="Name der Gruppe"]')).setValue('Provisorische Mitglieder');
@@ -102,6 +107,8 @@ describe('Bildschirmfotos', () => {
     await clickButton('Mitgliederkategorien');
     await shot('einstellungen-kategorien');
     await settingsTab('Datensicherung');
+    await markieren('button=Jetzt sichern');
+    await zeiger('button=Jetzt sichern');
     await shot('einstellungen-sicherung');
     await scrollToSection('Aufbewahrung');
     await (await $('#ret-intervalMinutes')).waitForDisplayed();
@@ -120,6 +127,8 @@ describe('Bildschirmfotos', () => {
     const field = await $('#report-description');
     await field.waitForDisplayed();
     await field.setValue('Beispiel: Beim Speichern erschien eine Fehlermeldung');
+    await markieren('#report-description', { nummer: 1 });
+    await markieren('button=Bericht kopieren', { nummer: 2 });
     await shot('problem-melden');
     await clickButton('Schliessen');
   });
