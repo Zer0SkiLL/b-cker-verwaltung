@@ -31,3 +31,13 @@ test('gescheitertes Übernehmen prüft die Sitzung neu; Meldung verschwindet nac
   bumpData();
   await vi.waitFor(() => expect(screen.queryByText(/Übernehmen nicht möglich/)).toBeNull());
 });
+
+test('nur lesend: „Was heisst das?“ öffnet das passende Kapitel', async () => {
+  const { helpState } = await import('../lib/help');
+  const { get } = await import('svelte/store');
+  sessionInfo.set(readOnlyInfo);
+  const user = userEvent.setup();
+  render(NoticeBar);
+  await user.click(screen.getByRole('button', { name: 'Was heisst das?' }));
+  expect(get(helpState)).toMatchObject({ open: true, view: { kind: 'chapter', slug: '02-start-und-datei' } });
+});

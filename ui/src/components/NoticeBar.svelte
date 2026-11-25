@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { openHelp } from '../lib/help';
   import * as api from '../lib/api';
   import { confirmAction } from '../lib/desktop';
   import { navigate } from '../lib/router';
@@ -70,7 +71,8 @@
   <div class="notice" role="status">
     <span>{notice.text}</span>
     {#if notice.kind === 'readOnly'}
-      <button onclick={takeOver}>Übernehmen</button>
+      <button onclick={takeOver} title="Die Datei hier schreibend öffnen; die andere Person kann danach nicht mehr speichern">Übernehmen</button>
+      <button class="link" onclick={() => openHelp('02-start-und-datei')}>Was heisst das?</button>
     {:else}
       <button class="link" onclick={() => navigate({ page: 'settings', tab: 'backup' })}>
         Datensicherung einrichten

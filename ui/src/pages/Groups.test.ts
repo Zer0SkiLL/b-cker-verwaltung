@@ -45,3 +45,10 @@ test('Gruppe umbenennen', async () => {
   await user.click(screen.getByRole('button', { name: 'Speichern' }));
   expect(api.renameGroup).toHaveBeenCalledWith(7, 'Vorstand 2027');
 });
+
+test('ohne Gruppen erklärt ein Hinweis, wie man eine anlegt', async () => {
+  vi.mocked(api.listGroups).mockResolvedValueOnce([]);
+  render(Groups);
+  expect(await screen.findByText(/Noch keine Gruppen\. Stellen Sie unter „Adressen“ einen Filter zusammen/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Wie stelle ich einen Versand zusammen?' })).toBeInTheDocument();
+});

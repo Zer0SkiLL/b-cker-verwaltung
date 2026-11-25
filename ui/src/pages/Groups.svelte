@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyHint from '../components/EmptyHint.svelte';
   import HelpButton from '../components/HelpButton.svelte';
   import { readOnly as readOnlyStore } from '../lib/session';
   import * as api from '../lib/api';
@@ -71,7 +72,10 @@
         </td>
       </tr>
     {:else}
-      <tr><td class="muted">Noch keine Gruppen gespeichert.</td></tr>
+      <tr><td><EmptyHint
+        text="Noch keine Gruppen. Stellen Sie unter „Adressen“ einen Filter zusammen und klicken Sie auf „Als Gruppe speichern“."
+        help={{ label: 'Wie stelle ich einen Versand zusammen?', slug: '07-versand' }}
+      /></td></tr>
     {/each}
   </tbody>
 </table>

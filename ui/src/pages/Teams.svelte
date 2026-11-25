@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyHint from '../components/EmptyHint.svelte';
   import HelpButton from '../components/HelpButton.svelte';
   import { readOnly as readOnlyStore } from '../lib/session';
   import { untrack } from 'svelte';
@@ -96,7 +97,10 @@
         {t.team.name} <span class="muted">({t.memberCount})</span>
       </button>
     {:else}
-      <p class="muted">Noch keine Teams.</p>
+      <EmptyHint
+        text="Noch keine Teams. Teams fassen Personen für eine Aufgabe zusammen, z.B. die Prüfungsexperten. Geben Sie unten einen Namen ein und klicken Sie auf „Anlegen“."
+        help={{ label: 'Mehr zu Teams', slug: '14-teams' }}
+      />
     {/each}
     {#if !readOnly}
       <div class="toolbar new">

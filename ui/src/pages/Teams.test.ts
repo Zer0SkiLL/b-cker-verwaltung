@@ -32,3 +32,9 @@ test('fehlgeschlagenes Anlegen behält die Eingabe', async () => {
   expect(await screen.findByText('Name ist bereits vergeben')).toBeInTheDocument();
   expect(input).toHaveValue('Vorstand');
 });
+
+test('ohne Teams erklärt ein Hinweis den Zweck', async () => {
+  render(Teams);
+  expect(await screen.findByText(/Noch keine Teams\. Teams fassen Personen für eine Aufgabe zusammen/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Mehr zu Teams' })).toBeInTheDocument();
+});

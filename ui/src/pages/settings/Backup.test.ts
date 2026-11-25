@@ -64,3 +64,10 @@ test('Wiederherstellen aus einer gewählten Datei (z.B. USB-Stick)', async () =>
   await user.click(await screen.findByRole('button', { name: 'Aus Datei wiederherstellen…' }));
   expect(api.restoreBackup).toHaveBeenCalledWith('/stick/verband-20261101-090000.sqlite');
 });
+
+test('ohne Sicherungen erklärt ein Hinweis, wann eine entsteht', async () => {
+  vi.mocked(api.backupOverview).mockResolvedValueOnce({ ...overview, files: [] });
+  sessionInfo.set(writable);
+  render(Backup);
+  expect(await screen.findByText(/Noch keine Sicherungen\. Beim nächsten Öffnen der Datei wird automatisch eine angelegt/)).toBeInTheDocument();
+});

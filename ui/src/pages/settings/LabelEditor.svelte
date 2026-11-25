@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyHint from '../../components/EmptyHint.svelte';
   import * as api from '../../lib/api';
   import { confirmAction } from '../../lib/desktop';
   import { dataVersion, runWrite } from '../../lib/session';
@@ -119,7 +120,10 @@
     {/if}
   </div>
 {:else}
-  <p class="muted">Noch keine Label-Gruppen. Beispiele: „Rollen“ (Vorstand, Prüfungsexperte), „Ausbildung“ (Lehrbetrieb, ÜK-Zentrum).</p>
+  <EmptyHint
+    text="Noch keine Label-Gruppen. Legen Sie unten eine Gruppe an, z.B. „Ausbildung“, und darin Labels wie „Lehrbetrieb“."
+    help={{ label: 'Mehr zu Labels', slug: '15-listen-und-labels' }}
+  />
 {/each}
 {#if !readOnly}
   <div class="toolbar">

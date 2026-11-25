@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyHint from '../../components/EmptyHint.svelte';
   import { readOnly as readOnlyStore } from '../../lib/session';
   import * as api from '../../lib/api';
   import { formatDateTime } from '../../lib/dates';
@@ -113,7 +114,10 @@
           <td class="right"><button disabled={readOnly} onclick={() => restore(file)}>Wiederherstellen</button></td>
         </tr>
       {:else}
-        <tr><td class="muted">Noch keine Sicherungen.</td></tr>
+        <tr><td><EmptyHint
+          text="Noch keine Sicherungen. Beim nächsten Öffnen der Datei wird automatisch eine angelegt, oder Sie klicken jetzt auf „Jetzt sichern“."
+          help={{ label: 'Mehr zur Datensicherung', slug: '08-sicherung-wiederherstellen' }}
+        /></td></tr>
       {/each}
     </tbody>
   </table>

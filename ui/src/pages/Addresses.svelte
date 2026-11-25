@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyHint from '../components/EmptyHint.svelte';
   import HelpButton from '../components/HelpButton.svelte';
   import { onDestroy, onMount, untrack } from 'svelte';
   import MultiSelect from '../components/MultiSelect.svelte';
@@ -143,7 +144,7 @@
     <MultiSelect label="Kt. Verband" options={options.cantonal} selected={filter.cantonal_ids} onToggle={toggle('cantonal_ids')} />
   {/if}
   {#if activeFilterCount(filter) > 0}
-    <button class="link" onclick={reset}>Filter zurücksetzen</button>
+    <button class="link" onclick={reset} title="Alle Filter und die Suche leeren">Filter zurücksetzen</button>
   {/if}
 </div>
 
@@ -166,7 +167,16 @@
             <td>{row.phone ?? row.mobile ?? ''}</td>
           </tr>
         {:else}
-          <tr><td colspan="6" class="muted">Keine Einträge gefunden.</td></tr>
+          <tr><td colspan="6">
+            {#if activeFilterCount(filter) > 0}
+              <p class="muted">Keine Treffer für diesen Filter.</p>
+            {:else}
+              <EmptyHint
+                text="Noch keine Adressen. Legen Sie mit „Neuer Betrieb“ oder „Neue Person“ den ersten Eintrag an."
+                help={{ label: 'Wie nehme ich ein Mitglied auf?', slug: '03-mitglied-aufnehmen' }}
+              />
+            {/if}
+          </td></tr>
         {/each}
       </tbody>
     </table>
@@ -188,7 +198,7 @@
       <button disabled={result.rows.length === 0} onclick={() => exportList('xlsx')}>Excel</button>
       <button disabled={result.rows.length === 0} onclick={() => exportList('csv')}>CSV</button>
       {#if groupName === null}
-        <button disabled={$readOnly} onclick={() => (groupName = '')}>Als Gruppe speichern</button>
+        <button disabled={$readOnly} onclick={() => (groupName = '')} title="Diesen Filter unter einem Namen speichern (erscheint unter „Gruppen“)">Als Gruppe speichern</button>
       {:else}
         <input placeholder="Name der Gruppe" bind:value={groupName} onkeydown={(e) => e.key === 'Enter' && saveGroup()} />
         <button class="primary" onclick={saveGroup}>Speichern</button>

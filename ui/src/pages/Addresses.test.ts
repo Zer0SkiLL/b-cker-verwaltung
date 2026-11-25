@@ -11,6 +11,7 @@ vi.mock('../lib/desktop', () => ({}));
 
 import { replace, route } from '../lib/router';
 import Addresses from './Addresses.svelte';
+import { emptyFilter } from '../lib/filters';
 
 test('verlassene Seite: ausstehende Suche holt nicht zurück', async () => {
   vi.useFakeTimers();
@@ -24,4 +25,16 @@ test('verlassene Seite: ausstehende Suche holt nicht zurück', async () => {
   } finally {
     vi.useRealTimers();
   }
+});
+
+test('leere Datei: Hinweis auf den ersten Eintrag', async () => {
+  render(Addresses, {});
+  expect(await screen.findByText(/Noch keine Adressen\. Legen Sie mit „Neuer Betrieb“ oder „Neue Person“/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Wie nehme ich ein Mitglied auf?' })).toBeInTheDocument();
+});
+
+test('aktiver Filter ohne Treffer: eigener Hinweis', async () => {
+  render(Addresses, { filter: { ...emptyFilter(), text: 'xyz' } });
+  expect(await screen.findByText('Keine Treffer für diesen Filter.')).toBeInTheDocument();
+  expect(screen.queryByText(/Noch keine Adressen/)).not.toBeInTheDocument();
 });
