@@ -21,6 +21,10 @@ Sie finden die Seite unter **Einstellungen** › **Excel-Import**. Der Import is
 5. **Vorschau als Excel speichern…** (in der Zusammenfassung) legt eine Liste an, Zeile für Zeile, zum Vergleich mit der Originalliste.
 6. **Übernehmen** (ebenfalls in der Zusammenfassung): Das Programm fragt mit den Zahlen nach („… anlegen?“). Erst jetzt wird gespeichert, und zwar alles oder nichts.
 
+![Die Import-Seite nach dem Wählen der Excel-Datei](bilder/import-vorschau.png)
+
+![Die Vorschau, nur Einträge mit Hinweisen](bilder/import-hinweise.png)
+
 Ganz unten steht der eingeklappte **Import-Bericht** mit allen Hinweisen als Liste; **Bericht als CSV speichern…** speichert ihn zum Nacharbeiten.
 
 ## Rückgängig machen

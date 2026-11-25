@@ -47,12 +47,17 @@ jobs:
       - name: Beispieldaten
         run: cargo run -q -p verwaltung_core --example beispieldaten -- "$RUNNER_TEMP/beispiel.sqlite"
 
+      - name: Musterliste für den Import
+        run: cargo run -q -p verwaltung_core --example musterliste -- "$RUNNER_TEMP/musterliste.xlsx"
+
       - name: Programm bauen (Debug)
         run: pnpm tauri build --debug --no-bundle
 
       - name: Bildschirmfotos aufnehmen
         env:
           BEISPIEL_DB: ${{ runner.temp }}/beispiel.sqlite
+          MUSTERLISTE: ${{ runner.temp }}/musterliste.xlsx
+          LEERE_DB: ${{ runner.temp }}/leer.sqlite
         run: |
           rm -f docs/handbuch/bilder/*.png
           xvfb-run --server-args="-screen 0 1280x800x24" pnpm --dir e2e bildschirmfotos

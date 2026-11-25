@@ -2,12 +2,14 @@
 // Erzeugte Bilder: adressen, adressen-filter, adressen-gruppe-speichern, neuer-betrieb, betrieb,
 // betrieb-offiziell, betrieb-provisorisch, betrieb-ausgetreten, person, gruppen, teams, einstellungen-labels,
 // einstellungen-kategorien, einstellungen-sicherung, einstellungen-import, einstellungen-export,
-// einstellungen-ueber, einstellungen-aufbewahrung, problem-melden, hilfe, hilfe-suche.
+// einstellungen-ueber, einstellungen-aufbewahrung, problem-melden, hilfe, hilfe-suche,
+// import-vorschau, import-hinweise (zuletzt: wechselt auf eine neue, leere Datei).
+// Blaue Markierungen: Nummern entsprechen den Schritten im Handbuchtext, Rahmen heben hervor.
 // Die Seiten werden nur angesehen, nicht gespeichert: die Beispieldaten bleiben unverändert.
 import { join, resolve } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { clickButton, goTo } from './helpers.mjs';
-import { entfernen, markieren, zeiger } from './markierungen.mjs';
+import { befehl, dialogeBeantworten, entfernen, markieren } from './markierungen.mjs';
 
 const OUT = resolve(import.meta.dirname, '..', '..', 'docs', 'handbuch', 'bilder');
 mkdirSync(OUT, { recursive: true });
@@ -54,12 +56,13 @@ describe('Bildschirmfotos', () => {
     await (await $('summary*=Labels')).click();
     await (await $('label*=provisorisch')).click();
     await (await row('Bäckerei Neuanfang')).waitForDisplayed();
-    await markieren('summary*=Labels', { nummer: 1 });
-    await markieren('label*=provisorisch', { nummer: 2 });
-    await markieren('button=Als Gruppe speichern', { nummer: 3 });
+    await markieren('summary*=Labels');
+    await markieren('label*=provisorisch');
     await shot('adressen-filter');
     await clickButton('Als Gruppe speichern');
     await (await $('input[placeholder="Name der Gruppe"]')).setValue('Provisorische Mitglieder');
+    await markieren('input[placeholder="Name der Gruppe"]', { nummer: 3 });
+    await markieren('button=Speichern');
     await shot('adressen-gruppe-speichern');
     await clickButton('Abbrechen');
     await (await $('button=Filter zurücksetzen')).click();
@@ -69,6 +72,7 @@ describe('Bildschirmfotos', () => {
     await goTo('Adressen');
     await clickButton('Neuer Betrieb');
     await (await $('#org-name')).waitForDisplayed();
+    await markieren('#org-name', { nummer: 2 });
     await shot('neuer-betrieb');
   });
 
@@ -107,8 +111,9 @@ describe('Bildschirmfotos', () => {
     await clickButton('Mitgliederkategorien');
     await shot('einstellungen-kategorien');
     await settingsTab('Datensicherung');
-    await markieren('button=Jetzt sichern');
-    await zeiger('button=Jetzt sichern');
+    await markieren('button=Datensicherung', { nummer: 1 });
+    await markieren('button=Zweiten Ort wählen…', { nummer: 2 });
+    await markieren('button=Jetzt sichern', { nummer: 3 });
     await shot('einstellungen-sicherung');
     await scrollToSection('Aufbewahrung');
     await (await $('#ret-intervalMinutes')).waitForDisplayed();
@@ -118,6 +123,7 @@ describe('Bildschirmfotos', () => {
     await settingsTab('Gesamtexport');
     await shot('einstellungen-export');
     await settingsTab('Über das Programm');
+    await markieren('button*=Nach Updates suchen');
     await shot('einstellungen-ueber');
   });
 
@@ -127,8 +133,9 @@ describe('Bildschirmfotos', () => {
     const field = await $('#report-description');
     await field.waitForDisplayed();
     await field.setValue('Beispiel: Beim Speichern erschien eine Fehlermeldung');
-    await markieren('#report-description', { nummer: 1 });
-    await markieren('button=Bericht kopieren', { nummer: 2 });
+    await markieren('//nav//button[normalize-space()="Problem melden"]', { nummer: 1 });
+    await markieren('#report-description', { nummer: 2 });
+    await markieren('button=Bericht kopieren', { nummer: 3 });
     await shot('problem-melden');
     await clickButton('Schliessen');
   });
@@ -137,9 +144,34 @@ describe('Bildschirmfotos', () => {
     await goTo('Adressen');
     await (await $('button[aria-label="Hilfe"]')).click();
     await (await $('section[aria-label="Hilfe"]')).waitForDisplayed();
+    await markieren('main button[aria-label="Hilfe"]');
     await shot('hilfe');
     await (await $('input[placeholder="Im Handbuch suchen"]')).setValue('Austritt');
     await shot('hilfe-suche');
     await browser.keys('Escape');
+  });
+
+  it('Excel-Import mit der Musterliste', async () => {
+    const liste = process.env.MUSTERLISTE;
+    const leer = process.env.LEERE_DB;
+    if (!liste || !leer) throw new Error('MUSTERLISTE und LEERE_DB fehlen (siehe Workflow).');
+    // Import geht nur in eine leere Datei: neue Datei anlegen, Dateiauswahl vorbeantworten.
+    const result = await befehl('create_file', { path: leer });
+    if (result?.fehler) throw new Error(result.fehler);
+    await dialogeBeantworten({ 'plugin:dialog|open': liste });
+    await settingsTab('Excel-Import');
+    await clickButton('1. Excel-Datei wählen…');
+    await (await $('strong*=Zeilen →')).waitForDisplayed();
+    await markieren('button=1. Excel-Datei wählen…', { nummer: 1 });
+    await markieren('summary*=Spalten zuordnen', { nummer: 2 });
+    await markieren('strong*=Zeilen →', { nummer: 3 });
+    await markieren('button=Vorschau als Excel speichern…', { nummer: 5 });
+    await markieren('button=Übernehmen', { nummer: 6 });
+    await shot('import-vorschau');
+    await (await $('label*=Nur mit Hinweisen')).click();
+    const vorschau = await $('h3=Vorschau');
+    await browser.execute((el) => el.scrollIntoView({ block: 'start' }), vorschau);
+    await markieren('label*=Nur mit Hinweisen', { nummer: 4 });
+    await shot('import-hinweise');
   });
 });
