@@ -21,8 +21,10 @@ const row = (name) => $(`//tr[td[2][normalize-space()="${name}"]]`);
 
 async function openRow(text) {
   await goTo('Adressen');
-  const cell = await row(text);
-  await cell.waitForClickable();
+  // Die Zelle anklicken (eine ganze Tabellenzeile gilt im WebDriver nicht als klickbar).
+  const cell = await $(`//tr[td[2][normalize-space()="${text}"]]/td[2]`);
+  await cell.waitForDisplayed();
+  await cell.scrollIntoView();
   await cell.click();
   await (await $(`h1=${text}`)).waitForDisplayed();
 }
