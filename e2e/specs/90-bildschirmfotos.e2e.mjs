@@ -1,6 +1,6 @@
 // Bildschirmfotos fürs Handbuch (docs/handbuch/bilder), mit den Beispieldaten.
 // Erzeugte Bilder: adressen, adressen-filter, adressen-gruppe-speichern, neuer-betrieb, betrieb,
-// betrieb-provisorisch, betrieb-ausgetreten, person, gruppen, teams, einstellungen-labels,
+// betrieb-offiziell, betrieb-provisorisch, betrieb-ausgetreten, person, gruppen, teams, einstellungen-labels,
 // einstellungen-kategorien, einstellungen-sicherung, einstellungen-import, einstellungen-export,
 // einstellungen-ueber, hilfe, hilfe-suche.
 // Die Seiten werden nur angesehen, nicht gespeichert: die Beispieldaten bleiben unverändert.
@@ -27,6 +27,13 @@ async function openRow(text) {
   await cell.scrollIntoView();
   await cell.click();
   await (await $(`h1=${text}`)).waitForDisplayed();
+}
+
+/** Scrollt einen Abschnitt (Überschrift h2) an den oberen Rand, z.B. „Personen“. */
+async function scrollToSection(title) {
+  const heading = await $(`h2=${title}`);
+  await heading.waitForDisplayed();
+  await browser.execute((el) => el.scrollIntoView({ block: 'start' }), heading);
 }
 
 async function settingsTab(name) {
@@ -63,9 +70,13 @@ describe('Bildschirmfotos', () => {
   it('Betriebe', async () => {
     await openRow('Bäckerei Muster AG');
     await shot('betrieb');
+    await scrollToSection('Personen');
+    await shot('betrieb-offiziell');
     await openRow('Bäckerei Neuanfang');
+    await scrollToSection('Personen');
     await shot('betrieb-provisorisch');
     await openRow('Bäckerei Abschied');
+    await scrollToSection('Personen');
     await shot('betrieb-ausgetreten');
   });
 

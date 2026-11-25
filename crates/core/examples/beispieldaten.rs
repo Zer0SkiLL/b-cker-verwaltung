@@ -4,7 +4,7 @@
 use std::path::Path;
 use std::process::ExitCode;
 
-use chrono::{Local, NaiveDate};
+use chrono::{Local, NaiveDate, Utc};
 use rusqlite::Connection;
 use verwaltung_core::model::{AppliesTo, LookupKind, MemberRef};
 use verwaltung_core::query::filter::Filter;
@@ -17,6 +17,7 @@ use verwaltung_core::repo::defaults::{
 use verwaltung_core::repo::memberships::{self, MembershipInput};
 use verwaltung_core::repo::organisations::{self, OrganisationInput};
 use verwaltung_core::repo::persons::{self, PersonInput};
+use verwaltung_core::repo::settings::{self, LAST_SECONDARY_BACKUP, SECONDARY_BACKUP_DIR};
 use verwaltung_core::repo::{labels, lookups, teams};
 use verwaltung_core::storage::lock::Identity;
 use verwaltung_core::storage::workspace::Workspace;
@@ -241,6 +242,16 @@ fn main() -> ExitCode {
     let result = Workspace::open(path, &who).and_then(|ws| {
         let counts = fill(&ws.conn)?;
         ws.close(Local::now())?;
+        // Erst nach dem Schliessen: ein zweiter Sicherungsort (fiktiv, wie unter Windows), damit die
+        // Bilder nicht überall die Erinnerung „Kein zweiter Sicherungsort“ zeigen. Vor dem Schliessen
+        // würde das Programm dorthin zu sichern versuchen.
+        let conn = Connection::open(path)?;
+        settings::set(
+            &conn,
+            SECONDARY_BACKUP_DIR,
+            "E:\\Sicherung Mitgliederverwaltung",
+        )?;
+        settings::set(&conn, LAST_SECONDARY_BACKUP, &Utc::now().to_rfc3339())?;
         Ok(counts)
     });
     match result {
