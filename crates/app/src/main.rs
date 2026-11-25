@@ -45,6 +45,8 @@ fn main() {
             data::export_all,
             data::import_preview,
             data::import_apply,
+            data::import_undo,
+            data::export_import_preview,
             data::export_report,
             entities::organisation_detail,
             entities::person_detail,

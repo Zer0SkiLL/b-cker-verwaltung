@@ -214,9 +214,10 @@ fn two_digit_years_are_invalid_not_year_0019() {
 // I5
 #[test]
 fn mapping_works_by_column_position_with_duplicate_headers() {
-    use verwaltung_core::import::mapping::{plan, Field, Mapping};
+    use verwaltung_core::import::mapping::{Field, Mapping};
+    use verwaltung_core::import::plan::plan;
     use verwaltung_core::import::sheet::{Cell, Sheet, SheetRow};
-    let headers: Vec<String> = ["Name/Firma", "Vorname", "Telefon", "Telefon"]
+    let headers: Vec<String> = ["Firma", "Name", "Telefon", "Telefon"]
         .iter()
         .map(|h| h.to_string())
         .collect();
@@ -228,20 +229,18 @@ fn mapping_works_by_column_position_with_duplicate_headers() {
         rows: vec![SheetRow {
             line: 2,
             cells: vec![
+                t("Bäckerei Muster"),
                 t("Muster"),
-                t("Hans"),
                 t("031 111 11 11"),
                 t("079 222 22 22"),
             ],
         }],
     };
     let p = plan(&sheet, &mapping);
+    let org = &p.organisations[0];
+    assert_eq!(org.input.phone.as_deref(), Some("031 111 11 11"));
     assert_eq!(
-        p.rows[0].organisation.phone.as_deref(),
-        Some("031 111 11 11")
-    );
-    assert_eq!(
-        p.rows[0].person.as_ref().unwrap().mobile.as_deref(),
+        org.persons[0].input.mobile.as_deref(),
         Some("079 222 22 22")
     );
 }
@@ -309,9 +308,10 @@ fn rejoined_member_is_not_exited() {
 // Minor 2 (hochgestuft): Austritt vor Eintritt → Austritt behalten, damit kein Ex-Mitglied aktiv wird
 #[test]
 fn import_keeps_austritt_when_dates_are_swapped() {
-    use verwaltung_core::import::mapping::{plan, Mapping};
+    use verwaltung_core::import::mapping::Mapping;
+    use verwaltung_core::import::plan::plan;
     use verwaltung_core::import::sheet::{Cell, Sheet, SheetRow};
-    let headers: Vec<String> = ["Name/Firma", "Eintritt", "Austritt"]
+    let headers: Vec<String> = ["Firma", "Eintritt", "Austritt"]
         .iter()
         .map(|h| h.to_string())
         .collect();
@@ -324,8 +324,8 @@ fn import_keeps_austritt_when_dates_are_swapped() {
         }],
     };
     let p = plan(&sheet, &Mapping::default_for(&headers));
-    assert_eq!(p.rows[0].left, Some(d(2019, 12, 31)));
-    assert_eq!(p.rows[0].joined, None);
+    assert_eq!(p.organisations[0].left, Some(d(2019, 12, 31)));
+    assert_eq!(p.organisations[0].joined, None);
     assert_eq!(
         p.report[0].message,
         "Eintritt liegt nach Austritt, Eintritt ignoriert"

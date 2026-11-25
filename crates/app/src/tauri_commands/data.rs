@@ -90,7 +90,22 @@ pub fn import_apply(
     path: String,
     mapping: Vec<String>,
 ) -> AppResult<imp::ImportSummaryDto> {
-    state.with(|s| imp::import_apply(s, &PathBuf::from(path), mapping))
+    state.with(|s| imp::import_apply(s, &PathBuf::from(path), mapping, Local::now()))
+}
+
+#[tauri::command(async)]
+pub fn import_undo(state: State<AppState>, backup: String) -> AppResult<()> {
+    state.with(|s| imp::import_undo(s, &PathBuf::from(backup), Local::now()))
+}
+
+#[tauri::command(async)]
+pub fn export_import_preview(
+    state: State<AppState>,
+    path: String,
+    mapping: Option<Vec<String>>,
+    out: String,
+) -> AppResult<()> {
+    state.with(|s| imp::export_preview(s, &PathBuf::from(path), mapping, &PathBuf::from(out)))
 }
 
 #[tauri::command(async)]
