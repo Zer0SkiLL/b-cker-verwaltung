@@ -21,6 +21,15 @@
     });
   });
 
+  // Vor dem Update nachfragen: ungespeicherte Eingaben gingen beim Neustart verloren.
+  async function confirmInstall(version: string) {
+    const ok = await confirmAction(
+      `Sind alle Änderungen gespeichert? Das Programm schliesst die Datei, installiert Version ${version} und startet danach automatisch neu.`,
+      'Installieren',
+    );
+    if (ok) await installUpdate();
+  }
+
   async function takeOver() {
     const ok = await confirmAction(
       'Wer die Datei noch offen hat, kann danach nicht mehr speichern. Übernehmen?',
@@ -50,7 +59,7 @@
         </details>
       {/if}
     </div>
-    <button class="primary" onclick={() => installUpdate()}>Jetzt installieren</button>
+    <button class="primary" onclick={() => confirmInstall($updateState.kind === 'available' ? $updateState.version : '')}>Jetzt installieren</button>
   </div>
 {:else if $updateState.kind === 'installing'}
   <div class="notice update" role="status">

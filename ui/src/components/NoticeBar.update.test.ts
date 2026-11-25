@@ -26,3 +26,19 @@ test('Update-Hinweis: Was ist neu und Jetzt installieren', async () => {
   await user.click(screen.getByRole('button', { name: 'Jetzt installieren' }));
   expect(updates.installUpdate).toHaveBeenCalled();
 });
+
+import * as desktop from '../lib/desktop';
+
+test('Jetzt installieren fragt nach; bei Abbrechen wird nicht installiert', async () => {
+  vi.mocked(updates.installUpdate).mockClear();
+  vi.mocked(desktop.confirmAction).mockClear();
+  vi.mocked(desktop.confirmAction).mockResolvedValueOnce(false);
+  const user = userEvent.setup();
+  render(NoticeBar);
+  await user.click(screen.getByRole('button', { name: 'Jetzt installieren' }));
+  expect(desktop.confirmAction).toHaveBeenCalledWith(
+    'Sind alle Änderungen gespeichert? Das Programm schliesst die Datei, installiert Version 0.3.0 und startet danach automatisch neu.',
+    'Installieren',
+  );
+  expect(updates.installUpdate).not.toHaveBeenCalled();
+});

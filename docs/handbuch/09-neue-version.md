@@ -18,8 +18,9 @@ Sie können auch selbst nachsehen: **Einstellungen** › **Über das Programm** 
 
 1. Speichern Sie offene Änderungen.
 2. Klicken Sie auf **Jetzt installieren**.
-3. Das Programm schliesst die Datei, lädt das Update und startet neu. Das dauert meist unter einer Minute.
-4. Öffnen Sie die Datei auf der Startseite mit **Öffnen** wieder.
+3. Das Programm fragt: „Sind alle Änderungen gespeichert? …“. Klicken Sie auf **Installieren**, oder mit **Abbrechen** zuerst speichern.
+4. Das Programm schliesst die Datei, lädt das Update und startet neu. Das dauert meist unter einer Minute.
+5. Öffnen Sie die Datei auf der Startseite mit **Öffnen** wieder.
 
 Die Daten bleiben dabei unverändert. Sie liegen in Ihrer Datei, nicht im Programm.
 
