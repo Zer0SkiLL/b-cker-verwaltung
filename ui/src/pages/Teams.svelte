@@ -1,4 +1,5 @@
 <script lang="ts">
+  import HelpButton from '../components/HelpButton.svelte';
   import { readOnly as readOnlyStore } from '../lib/session';
   import { untrack } from 'svelte';
   import * as api from '../lib/api';
@@ -86,7 +87,7 @@
     selected && act(() => api.removeTeamMember(selected.team.id, m.personId));
 </script>
 
-<h1>Teams</h1>
+<div class="title-row"><h1>Teams</h1><HelpButton /></div>
 {#if error}<div class="form-error">{error}</div>{/if}
 <div class="split">
   <div class="list">

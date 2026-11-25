@@ -1,4 +1,5 @@
 <script lang="ts">
+  import HelpButton from '../components/HelpButton.svelte';
   import { onDestroy, onMount, untrack } from 'svelte';
   import MultiSelect from '../components/MultiSelect.svelte';
   import * as api from '../lib/api';
@@ -109,7 +110,7 @@
 </script>
 
 <div class="head">
-  <h1>Adressen</h1>
+  <div class="title-row"><h1>Adressen</h1><HelpButton /></div>
   <div class="toolbar">
     <button disabled={$readOnly} onclick={() => navigate({ page: 'organisation', id: null })}>Neuer Betrieb</button>
     <button disabled={$readOnly} onclick={() => navigate({ page: 'person', id: null })}>Neue Person</button>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import HelpButton from '../components/HelpButton.svelte';
   import { replace, type SettingsTab } from '../lib/router';
   import Backup from './settings/Backup.svelte';
   import Catalog from './settings/Catalog.svelte';
@@ -17,7 +18,7 @@
   ];
 </script>
 
-<h1>Einstellungen</h1>
+<div class="title-row"><h1>Einstellungen</h1><HelpButton /></div>
 <div class="tabs">
   {#each TABS as t (t.key)}
     <button class:active={tab === t.key} onclick={() => replace({ page: 'settings', tab: t.key })}>{t.label}</button>

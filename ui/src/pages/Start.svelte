@@ -1,4 +1,5 @@
 <script lang="ts">
+  import HelpButton from '../components/HelpButton.svelte';
   import { onMount } from 'svelte';
   import * as api from '../lib/api';
   import { pickDatabase, pickNewDatabase, showInfo } from '../lib/desktop';
@@ -51,7 +52,7 @@
 </script>
 
 <div class="start">
-  <h1>Mitgliederverwaltung</h1>
+  <div class="title-row"><h1>Mitgliederverwaltung</h1><HelpButton /></div>
   <p class="muted">Bitte die Datei mit den Mitgliederdaten öffnen oder eine neue anlegen.</p>
   {#if error}<div class="form-error">{error}</div>{/if}
   {#if last}

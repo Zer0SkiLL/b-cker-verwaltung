@@ -1,4 +1,5 @@
 <script lang="ts">
+  import HelpButton from '../components/HelpButton.svelte';
   import { readOnly as readOnlyStore } from '../lib/session';
   import { onDestroy, untrack } from 'svelte';
   import AffiliationList from '../components/AffiliationList.svelte';
@@ -98,7 +99,7 @@
 </script>
 
 <div class="toolbar"><button class="link" onclick={back}>← Zurück</button></div>
-<h1>{id === null ? 'Neue Person' : title || 'Person'}</h1>
+<div class="title-row"><h1>{id === null ? 'Neue Person' : title || 'Person'}</h1><HelpButton /></div>
 {#if failure}<div class="form-error">{failure}</div>{/if}
 
 <section class="card">

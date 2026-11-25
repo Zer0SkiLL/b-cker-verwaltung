@@ -1,4 +1,5 @@
 <script lang="ts">
+  import HelpButton from '../components/HelpButton.svelte';
   import { readOnly as readOnlyStore } from '../lib/session';
   import * as api from '../lib/api';
   import { confirmAction } from '../lib/desktop';
@@ -46,7 +47,7 @@
   }
 </script>
 
-<h1>Gruppen</h1>
+<div class="title-row"><h1>Gruppen</h1><HelpButton /></div>
 <p class="muted">Gespeicherte Filter, z.B. „Alle Prüfungsexperten“. Neue Gruppen unter „Adressen“ › „Als Gruppe speichern“.</p>
 {#if error}<div class="form-error">{error}</div>{/if}
 <table>
