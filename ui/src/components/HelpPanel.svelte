@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { openWebsite } from '../lib/desktop';
+  import { reportOpen } from '../lib/diagnostics';
   import { PARTS, pdfUrl, renderChapter, searchChapters, slugFromHref } from '../lib/handbook';
   import { closeHelp, helpBack, helpState, openHelp, showSearch, showToc } from '../lib/help';
 
@@ -92,6 +93,7 @@
     <button onclick={openPdf} disabled={!version} title="Das ganze Handbuch zum Ausdrucken (braucht Internet)">
       Handbuch als PDF
     </button>
+    <button onclick={() => reportOpen.set(true)} title="Bericht für den Entwickler erstellen">Problem melden</button>
   </footer>
 </section>
 

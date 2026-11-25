@@ -1,6 +1,7 @@
 // Einfache Navigation mit Verlauf (für „Zurück", das den Adressen-Filter erhält).
 // Ein Schutz (z.B. ungespeicherte Eingaben) kann das Verlassen der Seite abfragen.
 import { get, writable } from 'svelte/store';
+import { recordPage } from './diagnostics';
 import type { Filter } from './types';
 
 export type SettingsTab = 'catalog' | 'backup' | 'import' | 'export' | 'about';
@@ -35,11 +36,13 @@ export async function navigate(next: Route): Promise<void> {
   guard = null;
   history = [...history, get(route)];
   route.set(next);
+  recordPage(next);
 }
 
 /** Ersetzt die aktuelle Seite ohne Verlaufseintrag und ohne Schutzabfrage (z.B. neu gespeichert). */
 export function replace(next: Route): void {
   route.set(next);
+  recordPage(next);
 }
 
 export async function back(): Promise<void> {
@@ -48,6 +51,7 @@ export async function back(): Promise<void> {
   guard = null;
   history = history.slice(0, -1);
   route.set(previous);
+  recordPage(previous);
 }
 
 export function resetRouter(): void {

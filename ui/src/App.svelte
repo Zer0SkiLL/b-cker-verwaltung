@@ -1,6 +1,7 @@
 <script lang="ts">
   import HelpPanel from './components/HelpPanel.svelte';
   import NoticeBar from './components/NoticeBar.svelte';
+  import ReportDialog from './components/ReportDialog.svelte';
   import Sidebar from './components/Sidebar.svelte';
   import Addresses from './pages/Addresses.svelte';
   import Groups from './pages/Groups.svelte';
@@ -68,6 +69,7 @@
 {/if}
 {#if $helpState.open}<HelpPanel />{/if}
 </div>
+<ReportDialog />
 
 <style>
   .shell { display: grid; grid-template-columns: 1fr; height: 100vh; }
