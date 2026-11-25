@@ -221,12 +221,24 @@ fn flags(ctx: &mut RowCtx) -> Vec<&'static str> {
     flags
 }
 
+/// Teilt „a; b, c“ auf; doppelte Einträge (ohne Gross-/Kleinschreibung) nur einmal.
 fn split_list(text: String) -> Vec<String> {
-    text.split([',', ';'])
+    let mut out = Vec::new();
+    for item in text
+        .split([',', ';'])
         .map(str::trim)
         .filter(|s| !s.is_empty())
-        .map(String::from)
-        .collect()
+    {
+        push_unique(&mut out, item.to_string());
+    }
+    out
+}
+
+/// Hängt an, sofern noch kein gleicher Eintrag (ohne Gross-/Kleinschreibung) vorhanden ist.
+fn push_unique(list: &mut Vec<String>, item: String) {
+    if !list.iter().any(|m| norm(m) == norm(&item)) {
+        list.push(item);
+    }
 }
 
 /// Person der Zeile (nur Name und Mobiltelefon; übrige Kontaktdaten gehören zunächst dem Betrieb).
@@ -315,22 +327,29 @@ fn merge_into(
     person: Option<PlannedPerson>,
 ) {
     let first = org.lines[0];
-    let mut deviations: Vec<&str> = Vec::new();
-    let mut check = |deviates: bool, label: &'static str| {
-        if deviates {
-            deviations.push(label);
+    let mut deviations: Vec<(&str, String, String)> = Vec::new();
+    let mut check = |deviation: Deviation, label: &'static str| {
+        if let Some((kept, dropped)) = deviation {
+            deviations.push((label, kept, dropped));
         }
     };
     check(fill(&mut org.input.addition, d.addition), "Zusatz");
     check(fill(&mut org.input.city, d.city), "Ort");
     check(fill(&mut org.cantonal, d.cantonal), "Kantonalverband");
     check(fill(&mut org.category, d.category), "Kategorie");
-    check(fill_eq(&mut org.joined, d.joined), "Eintritt");
-    check(fill_eq(&mut org.left, d.left), "Austritt");
+    check(fill_eq(&mut org.joined, d.joined, swiss_date), "Eintritt");
+    check(fill_eq(&mut org.left, d.left, swiss_date), "Austritt");
     check(fill(&mut org.input.website, d.website), "Website");
-    check(fill_eq(&mut org.input.branches, d.branches), "Filialen");
     check(
-        fill_eq(&mut org.input.apprentice_count, d.apprentice_count),
+        fill_eq(&mut org.input.branches, d.branches, i64::to_string),
+        "Filialen",
+    );
+    check(
+        fill_eq(
+            &mut org.input.apprentice_count,
+            d.apprentice_count,
+            i64::to_string,
+        ),
         "Anzahl Lernende",
     );
     check(
@@ -344,10 +363,12 @@ fn merge_into(
         ),
         "Handelsregister-Nr",
     );
-    for label in deviations {
+    for (label, kept, dropped) in deviations {
         ctx.note(
             None,
-            format!("Abweichende Angabe für {label} (erste Zeile {first} gilt)"),
+            format!(
+                "Abweichende Angabe für {label}: „{dropped}“ (erste Zeile {first} gilt: „{kept}“)"
+            ),
         );
     }
     for flag in d.flags {
@@ -393,9 +414,7 @@ fn merge_into(
                 }
             }
             for m in d.mandates {
-                if !org.mandates.contains(&m) {
-                    org.mandates.push(m);
-                }
+                push_unique(&mut org.mandates, m);
             }
         }
     }
@@ -455,27 +474,38 @@ fn report_merged(plan: &mut ImportPlan) {
     }
 }
 
-/// Füllt einen leeren Text; liefert `true`, wenn ein vorhandener Wert abweicht.
-fn fill(slot: &mut Option<String>, new: Option<String>) -> bool {
+/// Abweichung einer weiteren Zeile: (gültiger Wert, verworfener Wert).
+type Deviation = Option<(String, String)>;
+
+/// Füllt einen leeren Text; liefert die Werte, wenn ein vorhandener abweicht.
+fn fill(slot: &mut Option<String>, new: Option<String>) -> Deviation {
     match (slot.as_ref(), new) {
         (None, Some(v)) => {
             *slot = Some(v);
-            false
+            None
         }
-        (Some(old), Some(v)) => norm(old) != norm(&v),
-        _ => false,
+        (Some(old), Some(v)) if norm(old) != norm(&v) => Some((old.clone(), v)),
+        _ => None,
     }
 }
 
-fn fill_eq<T: PartialEq>(slot: &mut Option<T>, new: Option<T>) -> bool {
+fn fill_eq<T: PartialEq>(
+    slot: &mut Option<T>,
+    new: Option<T>,
+    show: fn(&T) -> String,
+) -> Deviation {
     match (slot.as_ref(), new) {
         (None, Some(v)) => {
             *slot = Some(v);
-            false
+            None
         }
-        (Some(old), Some(v)) => *old != v,
-        _ => false,
+        (Some(old), Some(v)) if *old != v => Some((show(old), show(&v))),
+        _ => None,
     }
+}
+
+fn swiss_date(d: &NaiveDate) -> String {
+    d.format("%d.%m.%Y").to_string()
 }
 
 /// Wert einer weiteren Zeile, der nicht genau dem des Betriebs entspricht.

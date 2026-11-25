@@ -199,8 +199,51 @@ fn deviating_category_is_reported() {
         Some("Mitglied mit Geschäft")
     );
     assert!(
-        messages(&p).contains(&"Abweichende Angabe für Kategorie (erste Zeile 2 gilt)".to_string())
+        messages(&p).contains(
+            &"Abweichende Angabe für Kategorie: „Kein Mitglied“ (erste Zeile 2 gilt: „Mitglied mit Geschäft“)"
+                .to_string()
+        ),
+        "{:?}",
+        messages(&p)
     );
+}
+
+#[test]
+fn deviating_date_is_reported_in_swiss_format() {
+    let p = planned(vec![
+        firm(2, "Beck AG", &[("Eintritt", t("01.02.2001"))]),
+        firm(3, "Beck AG", &[("Eintritt", t("03.04.2005"))]),
+    ]);
+    assert!(
+        messages(&p).contains(
+            &"Abweichende Angabe für Eintritt: „03.04.2005“ (erste Zeile 2 gilt: „01.02.2001“)"
+                .to_string()
+        ),
+        "{:?}",
+        messages(&p)
+    );
+}
+
+#[test]
+fn duplicate_mandates_ignore_case() {
+    let p = planned(vec![firm(
+        2,
+        "Beck AG",
+        &[
+            ("Name", t("Keller")),
+            ("Mandat", t("Vorstand; vorstand, VORSTAND")),
+        ],
+    )]);
+    assert_eq!(p.organisations[0].persons[0].mandates, vec!["Vorstand"]);
+}
+
+#[test]
+fn merged_org_mandates_ignore_case() {
+    let p = planned(vec![
+        firm(2, "Beck AG", &[("Mandat", t("Revisor"))]),
+        firm(3, "Beck AG", &[("Mandat", t("revisor"))]),
+    ]);
+    assert_eq!(p.organisations[0].mandates, vec!["Revisor"]);
 }
 
 #[test]
