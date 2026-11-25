@@ -1,0 +1,97 @@
+[
+  {
+    "teil": "Erste Schritte",
+    "kapitel": [
+      {
+        "datei": "01-willkommen.md",
+        "titel": "Willkommen"
+      },
+      {
+        "datei": "02-start-und-datei.md",
+        "titel": "Programm starten und Datei öffnen"
+      }
+    ]
+  },
+  {
+    "teil": "Abläufe",
+    "kapitel": [
+      {
+        "datei": "03-mitglied-aufnehmen.md",
+        "titel": "Mitglied aufnehmen"
+      },
+      {
+        "datei": "04-daten-aendern.md",
+        "titel": "Mitgliederdaten ändern"
+      },
+      {
+        "datei": "05-austritt.md",
+        "titel": "Austritt"
+      },
+      {
+        "datei": "06-daten-ueberpruefen.md",
+        "titel": "Mitgliederdaten überprüfen"
+      },
+      {
+        "datei": "07-versand.md",
+        "titel": "Adressen für einen Versand zusammenstellen"
+      },
+      {
+        "datei": "08-sicherung-wiederherstellen.md",
+        "titel": "Datensicherung und Wiederherstellen"
+      },
+      {
+        "datei": "09-neue-version.md",
+        "titel": "Neue Version installieren"
+      }
+    ]
+  },
+  {
+    "teil": "Nachschlagen",
+    "kapitel": [
+      {
+        "datei": "10-adressen.md",
+        "titel": "Adressen"
+      },
+      {
+        "datei": "11-betrieb.md",
+        "titel": "Betrieb"
+      },
+      {
+        "datei": "12-person.md",
+        "titel": "Person"
+      },
+      {
+        "datei": "13-gruppen.md",
+        "titel": "Gruppen"
+      },
+      {
+        "datei": "14-teams.md",
+        "titel": "Teams"
+      },
+      {
+        "datei": "15-listen-und-labels.md",
+        "titel": "Listen und Labels"
+      },
+      {
+        "datei": "16-datensicherung.md",
+        "titel": "Datensicherung"
+      },
+      {
+        "datei": "17-excel-import.md",
+        "titel": "Excel-Import"
+      },
+      {
+        "datei": "18-gesamtexport.md",
+        "titel": "Gesamtexport"
+      },
+      {
+        "datei": "19-ueber-das-programm.md",
+        "titel": "Über das Programm"
+      },
+      {
+        "datei": "20-haeufige-fragen.md",
+        "titel": "Häufige Fragen und Probleme"
+      }
+    ]
+  }
+]
