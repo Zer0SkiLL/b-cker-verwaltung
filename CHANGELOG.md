@@ -2,6 +2,14 @@
 
 Hier steht, was in jeder Version neu ist. Die neueste Version steht oben.
 
+## [0.3.1] – 25.11.2026
+
+### Behoben
+
+- Abgebrochene Sicherungen hinterlassen keine halben Dateien, und schreibgeschützte Sicherungen lassen sich wiederherstellen
+- Hilfe zeigt bei „Zurück“ den Suchbegriff wieder, und Esc im Suchfeld leert zuerst die Suche
+- Wird die Datei beim Umbenennen nur lesend, verschwindet die Eingabe
+
 ## [0.3.0] – 25.11.2026
 
 ### Neu
