@@ -70,7 +70,7 @@ Dateien in `docs/handbuch/`. Die Reihenfolge legt eine Inhaltsdatei fest, `docs/
    - Nach der GV: Label „provisorisch“ entfernen und **Eintrittsdatum** setzen.
    - Abgelehnter Antrag: Person bzw. Betrieb löschen. Er war nie Mitglied.
    - Alle provisorischen Mitglieder findet man über den Label-Filter „provisorisch“, z.B. für die Traktandenliste der GV.
-   - Hinweis im Kapitel: Provisorische zählen im Filter „aktive Mitglieder“ mit, weil ihre Mitgliedschaft nicht ausgetreten ist. Wer nur die definitiven will, schliesst das Label „provisorisch“ aus.
+   - Hinweis im Kapitel: Provisorische zählen im Filter „aktive Mitglieder“ mit, weil ihre Mitgliedschaft nicht ausgetreten ist. Labels lassen sich heute nicht ausschliessen. Das Kapitel zeigt deshalb, wie man die Provisorischen über den Label-Filter separat auflistet. Ein Filter „ohne Label“ wäre eine spätere Erweiterung und gehört nicht zu diesem Projekt.
 4. Mitgliederdaten ändern (mutieren): Adresse, Personen eines Betriebs, Funktionen.
 5. Austritt: **Austrittsdatum setzen, nicht löschen.** Die Geschichte bleibt so erhalten. Zusätzlich: wie man Ausgetretene findet.
 6. Mitgliederdaten überprüfen: Liste filtern, Mailadressen kopieren bzw. exportieren, Korrekturen einpflegen.
