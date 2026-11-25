@@ -1,8 +1,8 @@
 //! Datenzugriff pro Fachbereich. Alle Funktionen nehmen `&Connection` und liefern neue Werte.
 
 pub mod affiliations;
-pub mod defaults;
 pub mod assignments;
+pub mod defaults;
 pub mod labels;
 pub mod lookups;
 pub mod memberships;

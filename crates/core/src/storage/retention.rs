@@ -1,11 +1,13 @@
-//! Aufbewahrung der Sicherungen nach Alter: alle der letzten Tage, danach eine pro Tag, Woche
-//! und Monat. Die neueste Sicherung bleibt immer. Einstellbar pro Datei (Tabelle `settings`).
+//! Aufbewahrung der Sicherungen: alle der letzten Tage, danach eine pro Tag, Woche und Monat.
+//! Gezählt werden Tage/Wochen/Monate mit Sicherungen, nicht die Uhrzeit (robust gegen Pausen
+//! und falsch gehende Uhren). Die neueste Sicherung bleibt immer. Einstellbar pro Datei.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::hash::Hash;
 use std::path::{Path, PathBuf};
 
-use chrono::{Datelike, Duration, NaiveDateTime};
+use chrono::Datelike;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 
@@ -111,42 +113,60 @@ pub fn save_policy(conn: &Connection, policy: &RetentionPolicy) -> Result<()> {
     Ok(())
 }
 
-fn months_between(now: NaiveDateTime, then: NaiveDateTime) -> i64 {
-    (now.year() as i64 * 12 + now.month() as i64) - (then.year() as i64 * 12 + then.month() as i64)
+/// Rang jedes Schlüssels (Tag, Woche, Monat) unter den vorkommenden, neuester zuerst.
+fn ranks<K: Eq + Hash>(
+    sorted: &[&BackupFile],
+    key: impl Fn(&BackupFile) -> K,
+) -> HashMap<K, usize> {
+    let mut out = HashMap::new();
+    for f in sorted {
+        let next = out.len();
+        out.entry(key(f)).or_insert(next);
+    }
+    out
 }
 
-/// Welche Sicherungen gelöscht werden. `files` beliebig sortiert; rein, ohne Dateizugriff.
-pub fn to_delete(
-    files: &[BackupFile],
-    now: NaiveDateTime,
-    policy: &RetentionPolicy,
-) -> Vec<PathBuf> {
+fn week_of(f: &BackupFile) -> (i32, u32) {
+    let w = f.created.iso_week();
+    (w.year(), w.week())
+}
+
+fn month_of(f: &BackupFile) -> (i32, u32) {
+    (f.created.year(), f.created.month())
+}
+
+/// Welche Sicherungen gelöscht werden. Gezählt werden nur Tage, Wochen und Monate, an denen
+/// gesichert wurde – nicht die Zeit seit heute. Eine Pause oder eine falsch gehende Uhr kostet so
+/// keine Sicherungen. `keep` (die eben erstellte) und die neueste bleiben immer.
+/// `files` beliebig sortiert; rein, ohne Dateizugriff.
+pub fn to_delete(files: &[BackupFile], keep: &Path, policy: &RetentionPolicy) -> Vec<PathBuf> {
     let mut sorted: Vec<&BackupFile> = files.iter().collect();
     // Neueste zuerst; bei gleichem Zeitstempel ist die Datei mit Suffix (-2, -3 … -10) die neuere:
     // längerer Name zuerst, bei gleicher Länge der grössere.
     let key = |f: &&BackupFile| (f.created, f.path.as_os_str().len(), f.path.clone());
     sorted.sort_by_key(|f| std::cmp::Reverse(key(f)));
+    let day_rank = ranks(&sorted, |f| f.created.date());
+    let week_rank = ranks(&sorted, week_of);
+    let month_rank = ranks(&sorted, month_of);
     let mut days = HashSet::new();
     let mut weeks = HashSet::new();
     let mut months = HashSet::new();
     let mut delete = Vec::new();
     for (i, f) in sorted.iter().enumerate() {
-        let age = now - f.created;
+        let day = day_rank[&f.created.date()];
         // Die neueste bleibt immer, belegt aber trotzdem ihren Tag/ihre Woche/ihren Monat.
-        let in_tier = if age < Duration::days(policy.keep_all_days as i64) {
+        let in_tier = if day < policy.keep_all_days as usize {
             true
-        } else if age < Duration::days(policy.daily_days as i64) {
+        } else if day < policy.daily_days as usize {
             days.insert(f.created.date())
-        } else if age < Duration::weeks(policy.weekly_weeks as i64) {
-            let w = f.created.iso_week();
-            weeks.insert((w.year(), w.week()))
-        } else if months_between(now, f.created) < policy.monthly_months as i64 {
-            months.insert((f.created.year(), f.created.month()))
+        } else if week_rank[&week_of(f)] < policy.weekly_weeks as usize {
+            weeks.insert(week_of(f))
+        } else if month_rank[&month_of(f)] < policy.monthly_months as usize {
+            months.insert(month_of(f))
         } else {
             false
         };
-        let keep = in_tier || i == 0;
-        if !keep {
+        if !(in_tier || i == 0 || f.path == keep) {
             delete.push(f.path.clone());
         }
     }
@@ -154,13 +174,14 @@ pub fn to_delete(
 }
 
 /// Dünnt die Sicherungen eines Ordners aus (nur die eigenen, erkennbar am Dateistamm).
+/// `keep` ist die eben erstellte Sicherung.
 pub fn apply_retention(
     dir: &Path,
     stem: &str,
-    now: NaiveDateTime,
+    keep: &Path,
     policy: &RetentionPolicy,
 ) -> Result<()> {
-    for path in to_delete(&list(dir, stem)?, now, policy) {
+    for path in to_delete(&list(dir, stem)?, keep, policy) {
         fs::remove_file(path)?;
     }
     Ok(())
@@ -169,7 +190,7 @@ pub fn apply_retention(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::NaiveDate;
+    use chrono::{Duration, NaiveDate, NaiveDateTime};
 
     fn at(y: i32, m: u32, d: u32, h: u32, min: u32) -> NaiveDateTime {
         NaiveDate::from_ymd_opt(y, m, d)
@@ -185,8 +206,16 @@ mod tests {
         }
     }
 
-    fn kept(files: &[BackupFile], now: NaiveDateTime, p: &RetentionPolicy) -> Vec<NaiveDateTime> {
-        let gone = to_delete(files, now, p);
+    fn kept(files: &[BackupFile], p: &RetentionPolicy) -> Vec<NaiveDateTime> {
+        kept_protecting(files, &files_newest(files).path, p)
+    }
+
+    fn kept_protecting(
+        files: &[BackupFile],
+        keep: &Path,
+        p: &RetentionPolicy,
+    ) -> Vec<NaiveDateTime> {
+        let gone = to_delete(files, keep, p);
         let mut out: Vec<_> = files
             .iter()
             .filter(|f| !gone.contains(&f.path))
@@ -196,89 +225,139 @@ mod tests {
         out
     }
 
+    fn files_newest(files: &[BackupFile]) -> &BackupFile {
+        files.iter().max_by_key(|f| f.created).unwrap()
+    }
+
     // Mittwoch, 25.11.2026, 12:00
     fn now() -> NaiveDateTime {
         at(2026, 11, 25, 12, 0)
     }
 
-    #[test]
-    fn keeps_all_younger_than_keep_all_days() {
-        let files: Vec<_> = (0..10)
-            .map(|h| file(now() - Duration::hours(h * 4)))
-            .collect();
-        assert_eq!(kept(&files, now(), &RetentionPolicy::default()).len(), 10);
+    fn only_today_all() -> RetentionPolicy {
+        RetentionPolicy {
+            keep_all_days: 1,
+            daily_days: 1,
+            ..Default::default()
+        }
     }
 
     #[test]
-    fn keeps_newest_per_day_in_daily_tier() {
-        let day = at(2026, 11, 20, 0, 0);
-        let files: Vec<_> = [9, 13, 17]
-            .iter()
-            .map(|h| file(day + Duration::hours(*h)))
+    fn keeps_all_of_the_newest_days_with_backups() {
+        let files: Vec<_> = (0..10)
+            .map(|h| file(now() - Duration::hours(h * 4)))
             .collect();
+        assert_eq!(kept(&files, &RetentionPolicy::default()).len(), 10);
+    }
+
+    #[test]
+    fn keeps_newest_per_day_after_keep_all_days() {
+        let mut files: Vec<_> = [9, 13, 17]
+            .iter()
+            .map(|h| file(at(2026, 11, 20, *h, 0)))
+            .collect();
+        files.push(file(at(2026, 11, 24, 9, 0)));
+        files.push(file(now()));
         assert_eq!(
-            kept(&files, now(), &RetentionPolicy::default()),
-            vec![at(2026, 11, 20, 17, 0)]
+            kept(&files, &RetentionPolicy::default()),
+            vec![at(2026, 11, 20, 17, 0), at(2026, 11, 24, 9, 0), now()]
         );
     }
 
     #[test]
-    fn exactly_keep_all_days_old_is_daily_tier() {
-        let a = file(now() - Duration::days(2));
-        let b = file(now() - Duration::days(2) - Duration::hours(1));
-        let newest = file(now());
-        let k = kept(&[a.clone(), b, newest], now(), &RetentionPolicy::default());
-        assert_eq!(k, vec![a.created, now()]);
+    fn keep_all_counts_calendar_days_with_backups() {
+        // Heute und der letzte Tag davor mit Sicherungen behalten alles, auch nach einer Pause.
+        let files = vec![
+            file(at(2026, 11, 2, 9, 0)),
+            file(at(2026, 11, 2, 15, 0)),
+            file(at(2026, 11, 1, 9, 0)),
+            file(at(2026, 11, 1, 15, 0)),
+            file(now()),
+        ];
+        assert_eq!(
+            kept(&files, &RetentionPolicy::default()),
+            vec![
+                at(2026, 11, 1, 15, 0),
+                at(2026, 11, 2, 9, 0),
+                at(2026, 11, 2, 15, 0),
+                now()
+            ]
+        );
     }
 
     #[test]
     fn keeps_newest_per_iso_week_across_sunday_monday() {
-        // So 01.11.2026 23:59 (Woche 44) und Mo 02.11.2026 00:00 (Woche 45): beide bleiben.
-        let sun = file(at(2026, 11, 1, 23, 59));
-        let sat = file(at(2026, 10, 31, 10, 0));
-        let mon = file(at(2026, 11, 2, 0, 0));
-        let tue = file(at(2026, 11, 3, 8, 0));
-        let p = RetentionPolicy {
-            daily_days: 14,
-            ..Default::default()
-        };
-        // Alter 22–25 Tage → Wochenstufe.
-        let k = kept(&[sun.clone(), sat, mon, tue.clone()], now(), &p);
-        assert_eq!(k, vec![sun.created, tue.created]);
+        // So 01.11.2026 23:59 (Woche 44) und Mo 02.11.2026 00:00 (Woche 45): beide Wochen bleiben.
+        let files = vec![
+            file(at(2026, 11, 1, 23, 59)),
+            file(at(2026, 10, 31, 10, 0)),
+            file(at(2026, 11, 2, 0, 0)),
+            file(at(2026, 11, 3, 8, 0)),
+            file(now()),
+        ];
+        assert_eq!(
+            kept(&files, &only_today_all()),
+            vec![at(2026, 11, 1, 23, 59), at(2026, 11, 3, 8, 0), now()]
+        );
     }
 
     #[test]
-    fn keeps_newest_per_month_then_deletes_older() {
-        let p = RetentionPolicy::default();
+    fn keeps_newest_per_month_for_the_newest_months_with_backups() {
+        let p = RetentionPolicy {
+            weekly_weeks: 1,
+            monthly_months: 2,
+            ..only_today_all()
+        };
         let files = vec![
             file(at(2026, 5, 3, 9, 0)),
             file(at(2026, 5, 20, 9, 0)),
-            file(at(2025, 10, 10, 9, 0)), // 13 Monate alt → weg
+            file(at(2025, 10, 10, 9, 0)), // dritter Monat mit Sicherungen → weg
             file(now()),
         ];
-        assert_eq!(kept(&files, now(), &p), vec![at(2026, 5, 20, 9, 0), now()]);
-    }
-
-    #[test]
-    fn newest_always_kept_even_if_very_old() {
-        let only = file(at(2020, 1, 1, 0, 0));
-        assert!(to_delete(&[only], now(), &RetentionPolicy::default()).is_empty());
-    }
-
-    #[test]
-    fn future_backup_is_kept() {
-        let files = vec![file(now() + Duration::days(3)), file(now())];
-        assert!(to_delete(&files, now(), &RetentionPolicy::default()).is_empty());
+        assert_eq!(kept(&files, &p), vec![at(2026, 5, 20, 9, 0), now()]);
     }
 
     #[test]
     fn monthly_zero_deletes_after_weekly_tier() {
         let p = RetentionPolicy {
+            weekly_weeks: 1,
             monthly_months: 0,
-            ..Default::default()
+            ..only_today_all()
         };
         let files = vec![file(at(2026, 8, 1, 9, 0)), file(now())];
-        assert_eq!(kept(&files, now(), &p), vec![now()]);
+        assert_eq!(kept(&files, &p), vec![now()]);
+    }
+
+    #[test]
+    fn clock_jump_forward_keeps_history() {
+        // Ein Jahr lang je eine Sicherung pro Monat, dann springt die Uhr zwei Jahre vor.
+        let mut files: Vec<_> = (1..=11).map(|m| file(at(2026, m, 15, 12, 0))).collect();
+        let jumped = file(at(2028, 11, 25, 12, 0));
+        files.push(jumped.clone());
+        assert!(to_delete(&files, &jumped.path, &RetentionPolicy::default()).is_empty());
+    }
+
+    #[test]
+    fn long_pause_keeps_daily_backups() {
+        // 20 Tage mit Sicherungen, dann drei Monate Pause: die Tagesstufe bleibt erhalten.
+        let mut files: Vec<_> = (1..=14).map(|d| file(at(2026, 8, d, 12, 0))).collect();
+        files.push(file(now()));
+        let k = kept(&files, &RetentionPolicy::default());
+        assert_eq!(k.len(), 15);
+    }
+
+    #[test]
+    fn clock_jump_backward_protects_the_new_backup() {
+        let wrong = file(at(2000, 1, 1, 0, 0));
+        let files = vec![file(now()), file(now() - Duration::hours(1)), wrong.clone()];
+        let k = kept_protecting(&files, &wrong.path, &RetentionPolicy::default());
+        assert!(k.contains(&wrong.created));
+    }
+
+    #[test]
+    fn newest_always_kept_even_if_very_old() {
+        let only = file(at(2020, 1, 1, 0, 0));
+        assert!(to_delete(&[only.clone()], &only.path, &RetentionPolicy::default()).is_empty());
     }
 
     #[test]
@@ -292,10 +371,11 @@ mod tests {
             path: PathBuf::from("d-20261118-090000-2.sqlite"),
             created: t,
         };
+        let newest = file(now());
         let gone = to_delete(
-            &[a.clone(), b, file(now())],
-            now(),
-            &RetentionPolicy::default(),
+            &[a.clone(), b, newest.clone()],
+            &newest.path,
+            &only_today_all(),
         );
         assert_eq!(gone, vec![a.path]);
     }
