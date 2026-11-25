@@ -52,3 +52,21 @@ test('ohne Gruppen erklärt ein Hinweis, wie man eine anlegt', async () => {
   expect(await screen.findByText(/Noch keine Gruppen\. Stellen Sie unter „Adressen“ einen Filter zusammen/)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Wie stelle ich einen Versand zusammen?' })).toBeInTheDocument();
 });
+
+test('wird die Datei beim Umbenennen nur lesend, verschwindet die Eingabe', async () => {
+  const info = {
+    path: '/x',
+    readOnly: false,
+    heldBy: null,
+    backup: { secondaryDir: '/s', lastSecondary: null, reminderDue: false },
+  };
+  sessionInfo.set(info);
+  const user = userEvent.setup();
+  render(Groups);
+  await user.click(await screen.findByRole('button', { name: 'Umbenennen' }));
+  expect(screen.getByLabelText('Neuer Name')).toBeInTheDocument();
+  sessionInfo.set({ ...info, readOnly: true });
+  await Promise.resolve();
+  expect(screen.queryByLabelText('Neuer Name')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Speichern' })).not.toBeInTheDocument();
+});

@@ -67,6 +67,13 @@
       : `Gruppe „${g.group.name}“ löschen?`;
     if (await confirmAction(question, 'Löschen')) await act(() => api.deleteLabelGroup(g.group.id, usage > 0));
   }
+
+  // Wird die Datei nur lesend (Sperre übernommen), offene Bearbeitungen verwerfen.
+  $effect(() => {
+    if (readOnly) {
+      editing = null; editingGroup = null;
+    }
+  });
 </script>
 
 {#if error}<div class="form-error">{error}</div>{/if}

@@ -46,6 +46,13 @@
         : `„${item.value.name}“ löschen?`;
     if (await confirmAction(question, 'Löschen')) await act(() => api.deleteLookup(item.value.id, item.usage > 0));
   }
+
+  // Wird die Datei nur lesend (Sperre übernommen), offene Bearbeitungen verwerfen.
+  $effect(() => {
+    if (readOnly) {
+      editing = null;
+    }
+  });
 </script>
 
 {#if error}<div class="form-error">{error}</div>{/if}

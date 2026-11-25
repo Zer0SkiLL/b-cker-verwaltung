@@ -46,6 +46,13 @@
       error = (err as Error).message;
     }
   }
+
+  // Wird die Datei nur lesend (Sperre übernommen), offene Bearbeitungen verwerfen.
+  $effect(() => {
+    if (readOnly) {
+      editing = null;
+    }
+  });
 </script>
 
 <div class="title-row"><h1>Gruppen</h1><HelpButton /></div>

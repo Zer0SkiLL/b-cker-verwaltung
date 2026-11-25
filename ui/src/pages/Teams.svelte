@@ -86,6 +86,13 @@
     selected && act(() => api.addTeamMember(selected.team.id, m.personId, emptyToNull(role)));
   const removeMember = (m: TeamMemberView) =>
     selected && act(() => api.removeTeamMember(selected.team.id, m.personId));
+
+  // Wird die Datei nur lesend (Sperre übernommen), offene Bearbeitungen verwerfen.
+  $effect(() => {
+    if (readOnly) {
+      edit = null;
+    }
+  });
 </script>
 
 <div class="title-row"><h1>Teams</h1><HelpButton /></div>
