@@ -214,3 +214,34 @@ fn take_over_failing_after_lock_written_keeps_file_open_read_only() {
     assert!(info.read_only, "Sitzung muss nur lesend offen bleiben");
     assert!(ben.read(organisations::list).unwrap().is_empty());
 }
+
+fn category_count(s: &Session) -> usize {
+    s.read(|c| {
+        verwaltung_core::repo::lookups::list(
+            c,
+            verwaltung_core::model::LookupKind::MembershipCategory,
+        )
+    })
+    .unwrap()
+    .len()
+}
+
+#[test]
+fn create_seeds_defaults() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = fresh_session(dir.path());
+    assert_eq!(category_count(&s), 4);
+}
+
+#[test]
+fn open_does_not_seed() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = db_path(dir.path());
+    verwaltung_core::storage::workspace::Workspace::open(&path, &who("anna"))
+        .unwrap()
+        .close(Local::now())
+        .unwrap();
+    let mut s = Session::default();
+    s.open(&path, &who("anna")).unwrap();
+    assert_eq!(category_count(&s), 0);
+}

@@ -27,13 +27,20 @@ fn delete_used_lookup_needs_confirm() {
     })
     .unwrap();
     let listed = list_lookups(&s, LookupKind::MembershipCategory).unwrap();
-    assert_eq!(listed[0].usage, 1);
+    // Neue Dateien bringen Vorgabe-Kategorien mit; nur die eigene betrachten.
+    let own = |list: &[verwaltung_app::commands::catalog::LookupUsage]| {
+        list.iter().any(|l| l.value.id == cat.id)
+    };
+    assert_eq!(
+        listed.iter().find(|l| l.value.id == cat.id).unwrap().usage,
+        1
+    );
     let err = delete_lookup(&mut s, cat.id, false).unwrap_err();
     assert!(err.0.contains("noch 1-mal verwendet"), "{}", err.0);
     delete_lookup(&mut s, cat.id, true).unwrap();
-    assert!(list_lookups(&s, LookupKind::MembershipCategory)
-        .unwrap()
-        .is_empty());
+    assert!(!own(
+        &list_lookups(&s, LookupKind::MembershipCategory).unwrap()
+    ));
 }
 
 #[test]
@@ -55,12 +62,15 @@ fn label_tree_counts_usage() {
     })
     .unwrap();
     let tree = list_label_tree(&s).unwrap();
-    assert_eq!(tree.len(), 1);
-    let usages: Vec<i64> = tree[0].labels.iter().map(|l| l.usage).collect();
+    let mine = tree.iter().find(|g| g.group.id == group.id).unwrap();
+    let usages: Vec<i64> = mine.labels.iter().map(|l| l.usage).collect();
     assert_eq!(usages.iter().sum::<i64>(), 1);
     assert!(delete_label_group(&mut s, group.id, false).is_err());
     delete_label_group(&mut s, group.id, true).unwrap();
-    assert!(list_label_tree(&s).unwrap().is_empty());
+    assert!(!list_label_tree(&s)
+        .unwrap()
+        .iter()
+        .any(|g| g.group.id == group.id));
 }
 
 #[test]

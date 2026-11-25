@@ -46,7 +46,9 @@ impl Session {
         if path.exists() {
             return Err(AppError::new(FILE_EXISTS));
         }
-        self.open_path(path, who)
+        self.open_path(path, who)?;
+        self.write(verwaltung_core::repo::defaults::seed_new_file)?;
+        self.info(Utc::now())
     }
 
     /// Übernimmt die Sperre der geöffneten Datei und öffnet schreibend.
