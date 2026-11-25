@@ -138,3 +138,21 @@ fn opening_and_closing_are_logged() {
     assert!(has("INFO Datei geöffnet (nur lesend)"), "{lines:?}");
     assert!(has("INFO Datei geschlossen"), "{lines:?}");
 }
+
+#[test]
+fn clock_behind_newest_backup_is_logged() {
+    let capture = captured();
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = fresh_session(dir.path());
+    let saved = backup_now(&mut s, Local::now()).unwrap().local;
+    let future = std::path::Path::new(&saved).with_file_name("verband-20991231-120000.sqlite");
+    std::fs::copy(&saved, &future).unwrap();
+    backup_now(&mut s, Local::now()).unwrap();
+    let lines = capture.0.lock().unwrap().clone();
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.starts_with("WARN") && l.contains("Uhrzeit des Computers")),
+        "{lines:?}"
+    );
+}

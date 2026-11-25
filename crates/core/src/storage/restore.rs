@@ -72,12 +72,24 @@ fn validate(backup: &Path) -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::permissions_set_readonly_false)] // nur die eigene Kopie, nicht fremde Dateien
+fn make_writable(path: &Path) -> std::io::Result<()> {
+    let mut perms = fs::metadata(path)?.permissions();
+    if perms.readonly() {
+        perms.set_readonly(false);
+        fs::set_permissions(path, perms)?;
+    }
+    Ok(())
+}
+
 /// Kopiert in eine temporäre Datei (auf Platte geschrieben) und benennt sie dann um.
 fn replace_file(backup: &Path, target: &Path) -> Result<()> {
     let mut tmp = target.as_os_str().to_os_string();
     tmp.push(".restore-tmp");
     let tmp = PathBuf::from(tmp);
     let result = fs::copy(backup, &tmp)
+        // Eine schreibgeschützte Sicherung ergäbe sonst eine schreibgeschützte Datenbank.
+        .and_then(|_| make_writable(&tmp))
         // Mit Schreibzugriff öffnen: unter Windows verlangt das Leeren auf die Platte (FlushFileBuffers) ein schreibbares Handle.
         .and_then(|_| OpenOptions::new().write(true).open(&tmp)?.sync_all())
         .and_then(|_| fs::rename(&tmp, target));

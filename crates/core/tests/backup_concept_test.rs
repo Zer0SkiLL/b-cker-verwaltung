@@ -267,3 +267,48 @@ fn close_writes_secondary_and_releases_lock() {
     assert_eq!(backup::list(&usb, "daten").unwrap().len(), 1);
     assert!(LockGuard::acquire(&db, &who("x")).is_ok());
 }
+
+#[test]
+fn backup_is_written_under_a_temporary_name_and_leftovers_are_removed() {
+    let (dir, db, mut ws) = setup();
+    let backups = local_backup_dir(&db);
+    std::fs::create_dir_all(&backups).unwrap();
+    // Überbleibsel einer abgebrochenen Sicherung (z.B. USB-Stick gezogen).
+    let stale = backups.join("daten-20261101-090000.sqlite.part");
+    std::fs::write(&stale, b"halb").unwrap();
+    let other = backups.join("andere-20261101-090000.sqlite.part");
+    std::fs::write(&other, b"fremd").unwrap();
+    ws.backup_now(Local::now()).unwrap();
+    assert!(!stale.exists(), "Überbleibsel wurde nicht entfernt");
+    assert!(other.exists(), "fremde Datei wurde entfernt");
+    let leftovers = std::fs::read_dir(&backups)
+        .unwrap()
+        .filter(|e| {
+            let name = e
+                .as_ref()
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .into_owned();
+            name.starts_with("daten-") && name.ends_with(".part")
+        })
+        .count();
+    assert_eq!(leftovers, 0);
+    drop(dir);
+}
+
+#[test]
+fn read_only_backup_file_can_be_restored() {
+    let (_dir, _db, mut ws) = setup();
+    let saved = ws.backup_now(Local::now()).unwrap().local;
+    let mut perms = std::fs::metadata(&saved).unwrap().permissions();
+    perms.set_readonly(true);
+    std::fs::set_permissions(&saved, perms).unwrap();
+    ws.restore(&saved, Local::now()).unwrap();
+    ws.conn
+        .execute(
+            "INSERT INTO organisations(name, search_text) VALUES ('Neu', 'neu')",
+            [],
+        )
+        .unwrap();
+}

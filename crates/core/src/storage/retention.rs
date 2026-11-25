@@ -181,7 +181,14 @@ pub fn apply_retention(
     keep: &Path,
     policy: &RetentionPolicy,
 ) -> Result<()> {
-    for path in to_delete(&list(dir, stem)?, keep, policy) {
+    let files = list(dir, stem)?;
+    let keep_time = files.iter().find(|f| f.path == keep).map(|f| f.created);
+    if keep_time.is_some_and(|t| files.iter().any(|f| f.created > t)) {
+        log::warn!(
+            "Uhrzeit des Computers prüfen: Es gibt eine Sicherung mit späterem Zeitpunkt als jetzt"
+        );
+    }
+    for path in to_delete(&files, keep, policy) {
         fs::remove_file(path)?;
     }
     Ok(())

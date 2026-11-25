@@ -25,6 +25,10 @@ pub fn db_stem(db_path: &Path) -> String {
         .unwrap_or_else(|| "daten".into())
 }
 
+/// Endung einer Sicherung, die gerade geschrieben wird. Erst nach der Prüfung wird sie umbenannt,
+/// damit ein Abbruch (Absturz, USB-Stick gezogen) keine halbe Datei als Sicherung hinterlässt.
+const PARTIAL_EXT: &str = ".part";
+
 /// Erstellt eine konsistente, geprüfte Kopie mit `VACUUM INTO`.
 pub fn backup_to_dir(
     conn: &Connection,
@@ -33,16 +37,39 @@ pub fn backup_to_dir(
     now: DateTime<Local>,
 ) -> Result<PathBuf> {
     fs::create_dir_all(dir)?;
+    remove_partials(dir, stem)?;
     let target = free_name(dir, stem, now);
-    let target_str = target.to_string_lossy().into_owned();
-    conn.execute("VACUUM INTO ?1", [&target_str])?;
-    if let Err(problem) = verify(&target) {
-        let _ = fs::remove_file(&target);
-        return Err(CoreError::Validation(format!(
-            "Sicherung fehlerhaft: {problem}"
-        )));
+    let mut partial = target.as_os_str().to_os_string();
+    partial.push(PARTIAL_EXT);
+    let partial = PathBuf::from(partial);
+    let written = conn
+        .execute("VACUUM INTO ?1", [&*partial.to_string_lossy()])
+        .map_err(CoreError::from)
+        .and_then(|_| {
+            verify(&partial).map_err(|problem| {
+                CoreError::Validation(format!("Sicherung fehlerhaft: {problem}"))
+            })
+        })
+        .and_then(|_| Ok(fs::rename(&partial, &target)?));
+    if written.is_err() {
+        let _ = fs::remove_file(&partial);
     }
-    Ok(target)
+    written.map(|_| target)
+}
+
+/// Entfernt Überbleibsel abgebrochener Sicherungen dieser Datei.
+fn remove_partials(dir: &Path, stem: &str) -> Result<()> {
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let own = name
+            .strip_suffix(PARTIAL_EXT)
+            .is_some_and(|base| parse_backup_name(base, stem).is_some());
+        if own {
+            fs::remove_file(entry.path())?;
+        }
+    }
+    Ok(())
 }
 
 /// Löscht die ältesten Sicherungen von `stem` über `keep` hinaus. Nur Dateien im exakten
