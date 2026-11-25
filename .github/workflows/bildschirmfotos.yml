@@ -1,0 +1,64 @@
+name: Bildschirmfotos
+
+# Von Hand starten, wenn sich die Oberfläche sichtbar geändert hat.
+# Danach lokal: node scripts/bildschirmfotos.mjs (holt die Bilder) und committen.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fotos:
+    name: Bildschirmfotos fürs Handbuch
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux-Pakete für Tauri und WebDriver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev webkit2gtk-driver xvfb
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            ui/pnpm-lock.yaml
+            e2e/pnpm-lock.yaml
+
+      - name: Abhängigkeiten
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --dir ui install --frozen-lockfile
+          pnpm --dir e2e install --frozen-lockfile
+
+      - name: tauri-driver
+        run: cargo install tauri-driver --locked
+
+      - name: Beispieldaten
+        run: cargo run -q -p verwaltung_core --example beispieldaten -- "$RUNNER_TEMP/beispiel.sqlite"
+
+      - name: Programm bauen (Debug)
+        run: pnpm tauri build --debug --no-bundle
+
+      - name: Bildschirmfotos aufnehmen
+        env:
+          BEISPIEL_DB: ${{ runner.temp }}/beispiel.sqlite
+        run: |
+          rm -f docs/handbuch/bilder/*.png
+          xvfb-run --server-args="-screen 0 1280x800x24" pnpm --dir e2e bildschirmfotos
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bildschirmfotos
+          path: docs/handbuch/bilder/*.png
+          if-no-files-found: error

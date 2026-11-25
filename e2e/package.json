@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "wdio run wdio.conf.mjs"
+    "test": "wdio run wdio.conf.mjs",
+    "bildschirmfotos": "wdio run wdio.bildschirmfotos.conf.mjs"
   },
   "devDependencies": {
     "@wdio/cli": "^9.33.1",

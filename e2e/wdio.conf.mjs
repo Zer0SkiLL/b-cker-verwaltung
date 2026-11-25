@@ -25,6 +25,8 @@ export const config = {
   hostname: '127.0.0.1',
   port: 4444,
   specs: ['./specs/**/*.e2e.mjs'],
+  // Bildschirmfotos laufen separat (wdio.bildschirmfotos.conf.mjs) mit Beispieldaten.
+  exclude: ['./specs/90-*.e2e.mjs'],
   maxInstances: 1,
   capabilities: [{ maxInstances: 1, 'tauri:options': { application } }],
   logLevel: 'warn',

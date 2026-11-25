@@ -46,6 +46,16 @@ describe('Kernabläufe', () => {
     await (await button('Lehrbetriebe')).waitForDisplayed();
   });
 
+  it('? öffnet die Hilfe zur Seite Adressen, Esc schliesst sie', async () => {
+    await goTo('Adressen');
+    await (await $('button[aria-label="Hilfe"]')).click();
+    const panel = await $('section[aria-label="Hilfe"]');
+    await panel.waitForDisplayed();
+    await (await panel.$('h1=Adressen')).waitForDisplayed();
+    await browser.keys('Escape');
+    await panel.waitForDisplayed({ reverse: true });
+  });
+
   it('zweite Instanz derselben Datei öffnet nur lesend', async () => {
     const secondDriver = startTauriDriver(4446, 4447);
     await new Promise((r) => setTimeout(r, 2000));
