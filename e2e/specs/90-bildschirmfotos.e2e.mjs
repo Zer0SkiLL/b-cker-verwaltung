@@ -161,7 +161,14 @@ describe('Bildschirmfotos', () => {
     await dialogeBeantworten({ 'plugin:dialog|open': liste });
     await settingsTab('Excel-Import');
     await clickButton('1. Excel-Datei wählen…');
-    await (await $('strong*=Zeilen →')).waitForDisplayed();
+    await browser.waitUntil(
+      async () => (await $('strong*=Zeilen →').isDisplayed()) || (await $('.form-error').isDisplayed()),
+      { timeout: 15000, timeoutMsg: 'Weder Vorschau noch Fehlermeldung erschienen' },
+    );
+    const problem = await $('.form-error');
+    if ((await problem.isDisplayed()) && !(await $('strong*=Zeilen →').isDisplayed())) {
+      throw new Error(`Import-Seite meldet: ${await problem.getText()}`);
+    }
     await markieren('button=1. Excel-Datei wählen…', { nummer: 1 });
     await markieren('summary*=Spalten zuordnen', { nummer: 2 });
     await markieren('strong*=Zeilen →', { nummer: 3 });

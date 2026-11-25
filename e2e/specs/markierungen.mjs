@@ -49,12 +49,25 @@ export async function markieren(selector, { nummer = null, rahmen = true } = {})
 
 /** Beantwortet Datei-Dialoge ohne Fenster (z.B. „Excel-Datei wählen…“) mit festen Pfaden. */
 export async function dialogeBeantworten(antworten) {
-  await browser.execute((answers) => {
+  const ok = await browser.execute((answers) => {
     const internals = window.__TAURI_INTERNALS__;
     const original = internals.invoke.bind(internals);
-    internals.invoke = (cmd, args, options) =>
+    const wrapped = (cmd, args, options) =>
       cmd in answers ? Promise.resolve(answers[cmd]) : original(cmd, args, options);
+    try {
+      Object.defineProperty(internals, 'invoke', { value: wrapped, configurable: true, writable: true });
+    } catch {
+      // schreibgeschützt: unten über einen Proxy ersetzen
+    }
+    if (window.__TAURI_INTERNALS__.invoke !== wrapped) {
+      const proxy = new Proxy(internals, {
+        get: (target, prop) => (prop === 'invoke' ? wrapped : Reflect.get(target, prop)),
+      });
+      Object.defineProperty(window, '__TAURI_INTERNALS__', { value: proxy, configurable: true, writable: true });
+    }
+    return window.__TAURI_INTERNALS__.invoke === wrapped;
   }, antworten);
+  if (!ok) throw new Error('Dateidialog liess sich nicht vorbeantworten.');
 }
 
 /** Ruft einen Programmbefehl direkt auf (nur für die Vorbereitung von Bildern). */
