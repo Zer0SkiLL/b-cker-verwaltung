@@ -112,6 +112,36 @@ Die bisherigen Annahmen (`ID1`, `Name/Firma`, `Anzahl`, `Postfach`, `Zusatz`) en
 ### 5.6 Zusammenfassung nach dem Import
 Die heutige Anzeige „Import abgeschlossen“ nennt zusätzlich die Anzahl Einzelmitglieder.
 
+### 5.7 Vorschau und Sicherheiten (vom User verlangt)
+
+Was heute schon gilt, bleibt: Probelauf ohne Speichern, alles oder nichts in einer Transaktion, nur in eine leere Datei. Ergänzt wird:
+
+1. **Vollständige Vorschau** statt „erste Zeilen“, gegliedert wie nachher im Programm:
+   - je **Betrieb** eine Zeile mit Ort, Kategorie, Labels (Fachrichtung, Mandat), Quellzeilen (z.B. „Zeilen 12, 13“), darunter seine Personen mit Funktion und Labels
+   - **Einzelmitglieder** in einem eigenen Abschnitt
+   - **übersprungene Zeilen** in einem eigenen Abschnitt mit Grund
+   - Filter **Nur mit Hinweisen**: zeigt nur Betriebe/Personen/Zeilen, zu denen der Bericht etwas meldet
+   - grosse Listen bleiben bedienbar (scrollbarer Bereich; bei ca. 300 Zeilen genügt das ohne Seitenaufteilung)
+2. **Zusammenfassung** über der Vorschau:
+   - „<n> Zeilen → <b> Betriebe (davon <z> aus mehreren Zeilen zusammengefasst), <p> Personen, <e> Einzelmitglieder, <u> Zeilen übersprungen“
+   - „Neu angelegt werden: …“ mit den Einträgen pro Liste (Kategorien, Kantonalverbände, Funktionen, Labels je Gruppe), die es in der Datei noch nicht gibt (Abgleich ohne Gross-/Kleinschreibung wie in 5.3)
+3. **Abgleich jeder Zeile:** Jede nicht leere Datenzeile ist genau einem Ergebnis zugeordnet: Betrieb (erste Zeile), zusammengefasst in Betrieb, Einzelmitglied oder übersprungen mit Grund. Der Probelauf prüft, dass `Zeilen = Betriebs-Erstzeilen + zusammengefasste + Einzelmitglieder + übersprungene`. Geht die Rechnung nicht auf (Programmfehler), ist **Übernehmen gesperrt**, mit der Meldung „Der Abgleich der Zeilen geht nicht auf – bitte Problem melden“.
+4. **Vorschau als Excel speichern…**: eine Excel-Datei mit einer Zeile pro Quellzeile. Spalten: Zeile, Ergebnis (Betrieb / Zusammengefasst / Einzelmitglied / Übersprungen), Betrieb, Person, Kategorie, Labels, Hinweise. So kann man sie neben der Originalliste prüfen. Die Datei wird nur dort gespeichert, wo die Nutzerin sie hinlegt (Speichern-Dialog).
+5. **Rückfrage vor dem Übernehmen** mit den Zahlen: „<b> Betriebe, <p> Personen und <e> Einzelmitglieder anlegen?“ (Knöpfe **Übernehmen** / **Abbrechen**).
+6. **Rückgängig:**
+   - Unmittelbar vor dem Import legt das Programm eine Sicherung neben der Datei an (wie **Jetzt sichern**, nur lokal).
+   - Nach erfolgreichem Import erscheint **Import rückgängig machen**. Es fragt nach und spielt diese Sicherung zurück, über den bestehenden Weg „Wiederherstellen“, der vorher den aktuellen Stand sichert.
+   - Der Knopf bleibt sichtbar, bis man die Seite verlässt. Danach geht es über **Einstellungen** › **Datensicherung** (Sicherung „vor dem Import“, erkennbar am Zeitpunkt).
+7. **Handbuch, Kapitel 17:** empfohlener Ablauf. Zuerst mit **Neue Datei anlegen…** eine Testdatei (z.B. „Test.sqlite“) anlegen, dort importieren und sich umsehen, dann die Testdatei verwerfen und in die echte Datei importieren.
+
+**Tests dazu:**
+- Abgleich geht auf, für alle Fallarten gemischt.
+- Absichtlich verfälschter Abgleich sperrt das Übernehmen (Unit-Test der Prüffunktion).
+- Liste „Neu angelegt werden“ mit Gross-/Kleinschreibung.
+- Vorschau-Export enthält genau eine Zeile pro Quellzeile.
+- Rückfrage: Abbrechen speichert nichts.
+- Rückgängig stellt eine leere Datei wieder her.
+
 ## 6. Teil B – Sicherung
 
 ### 6.1 Wann gesichert wird
