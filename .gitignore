@@ -7,3 +7,6 @@
 /ui/.vite
 /node_modules
 /e2e/node_modules
+
+# Private Unterlagen des Vereins (Repo ist öffentlich)
+/docs/documentation/
