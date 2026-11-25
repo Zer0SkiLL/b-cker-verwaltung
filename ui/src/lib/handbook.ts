@@ -94,17 +94,21 @@ function plainText(markdown: string): string {
     .trim();
 }
 
-const UMLAUTS: Record<string, string> = { ä: 'a', ö: 'o', ü: 'u', ß: 'ss' };
+const EXPANDED: Record<string, string> = { ä: 'ae', ö: 'oe', ü: 'ue', ß: 'ss' };
+const CONTRACTED: Record<string, string> = { ä: 'a', ö: 'o', ü: 'u', ß: 'ss' };
 
-/** Normalisiert für die Suche und merkt sich pro Zeichen die Position im Original. */
-function normalize(text: string): { value: string; origin: number[] } {
+/**
+ * Normalisiert für die Suche und merkt sich pro Zeichen die Position im Original.
+ * „expanded“: ä → ae (findet jeden Wortteil). „contracted“: ä und ae → a (findet „uberprufen“).
+ */
+function normalize(text: string, mode: 'expanded' | 'contracted' = 'expanded'): { value: string; origin: number[] } {
+  const umlauts = mode === 'expanded' ? EXPANDED : CONTRACTED;
   let value = '';
   const origin: number[] = [];
   for (let i = 0; i < text.length; i += 1) {
     const lower = text[i].toLowerCase();
-    // „ae“, „oe“, „ue“ zählen wie „a“, „o“, „u“ (wie ä, ö, ü).
-    if (lower === 'e' && /[aou]/.test(value[value.length - 1] ?? '') && /[aou]/i.test(text[i - 1])) continue;
-    const mapped = UMLAUTS[lower] ?? lower;
+    if (mode === 'contracted' && lower === 'e' && /[aou]/.test(value[value.length - 1] ?? '') && /[aou]/i.test(text[i - 1])) continue;
+    const mapped = umlauts[lower] ?? lower;
     value += mapped;
     for (let k = 0; k < mapped.length; k += 1) origin.push(i);
   }
@@ -117,16 +121,27 @@ function snippet(text: string, start: number, end: number): string {
   return `${from > 0 ? '…' : ''}${text.slice(from, to).trim()}${to < text.length ? '…' : ''}`;
 }
 
+type Match = { start: number; end: number } | null;
+
+/** Erste Fundstelle im Originaltext; beide Schreibweisen (ä/ae und ä/a) werden versucht. */
+function locate(text: string, query: string): Match {
+  for (const mode of ['expanded', 'contracted'] as const) {
+    const needle = normalize(query, mode).value;
+    const body = normalize(text, mode);
+    const at = body.value.indexOf(needle);
+    if (at >= 0) return { start: body.origin[at], end: body.origin[at + needle.length - 1] + 1 };
+  }
+  return null;
+}
+
 export function searchChapters(query: string, chapters: Chapter[] = CHAPTERS): SearchHit[] {
-  const needle = normalize(query.trim()).value;
-  if (!needle) return [];
+  const trimmed = query.trim();
+  if (!normalize(trimmed).value) return [];
   return chapters.flatMap((chapter) => {
     const text = plainText(chapter.markdown);
-    const body = normalize(text);
-    const at = body.value.indexOf(needle);
-    if (at < 0 && !normalize(chapter.title).value.includes(needle)) return [];
-    const shown =
-      at < 0 ? snippet(text, 0, 0) : snippet(text, body.origin[at], body.origin[at + needle.length - 1] + 1);
+    const found = locate(text, trimmed);
+    if (!found && !locate(chapter.title, trimmed)) return [];
+    const shown = found ? snippet(text, found.start, found.end) : snippet(text, 0, 0);
     return [{ slug: chapter.slug, title: chapter.title, snippet: shown }];
   });
 }

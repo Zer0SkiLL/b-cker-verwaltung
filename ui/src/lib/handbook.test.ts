@@ -77,3 +77,10 @@ test('renderChapter behält Kapitel-Links und zeigt den Titel', () => {
   expect(html).toContain('<h1>Austritt</h1>');
   expect(renderChapter('gibt-es-nicht')).toContain('nicht gefunden');
 });
+
+test('Suche findet Wortteile nach a/o/u + e (z.B. „eintritt“ in „Neueintritt“)', () => {
+  const chapters = [{ slug: 'x', title: 'X', part: 'P', markdown: 'Ein Neueintritt ist aktuell zuerst zu prüfen.' }];
+  for (const q of ['eintritt', 'ell', 'erst']) expect(searchChapters(q, chapters).map((h) => h.slug)).toEqual(['x']);
+  expect(searchChapters('prufen', chapters).map((h) => h.slug)).toEqual(['x']);
+  expect(searchChapters('pruefen', chapters).map((h) => h.slug)).toEqual(['x']);
+});

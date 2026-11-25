@@ -118,3 +118,31 @@ fn report_export_writes_csv() {
     let text = String::from_utf8_lossy(&std::fs::read(&target).unwrap()).to_string();
     assert!(text.contains("Zeile;Spalte;Meldung"), "{text}");
 }
+
+#[test]
+fn import_into_new_file_reuses_default_categories() {
+    use verwaltung_core::model::LookupKind;
+    use verwaltung_core::repo::{labels, lookups};
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = fresh_session(dir.path());
+    let path = dir.path().join("kategorien.xlsx");
+    let rows = vec![
+        row(&[(3, "Beck AG"), (9, "Mitglied mit Geschäft")]),
+        row(&[(3, "Brot GmbH"), (9, "Mitglied ohne SBC")]),
+    ];
+    write_xlsx(&path, &LIST_HEADERS, &rows);
+    let preview = import_preview(&mut s, &path, None).unwrap();
+    import_apply(&mut s, &path, preview.mapping).unwrap();
+    let categories = s
+        .read(|c| lookups::list(c, LookupKind::MembershipCategory))
+        .unwrap();
+    assert_eq!(categories.len(), 4, "{categories:?}");
+    let provisional = s
+        .read(|c| {
+            let groups = labels::list_groups(c)?;
+            let group = groups.iter().find(|g| g.name == "Aufnahme").unwrap();
+            labels::list_labels(c, group.id)
+        })
+        .unwrap();
+    assert_eq!(provisional.len(), 1);
+}
