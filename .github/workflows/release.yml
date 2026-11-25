@@ -36,6 +36,33 @@ jobs:
           test -n "${id}"
           echo "id=${id}" >> "$GITHUB_OUTPUT"
 
+  handbuch:
+    name: Handbuch als PDF
+    needs: notes
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Abhängigkeiten
+        run: pnpm install --frozen-lockfile
+      - name: PDF erzeugen (Chrome ist auf dem Runner vorinstalliert)
+        run: node scripts/handbuch-pdf.mjs --out Handbuch.pdf --version "${GITHUB_REF_NAME#v}"
+      - name: An den Entwurf hängen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ needs.notes.outputs.release_id }}
+        run: |
+          # Upload über die Release-ID: funktioniert auch für Entwürfe (anders als per Tag).
+          gh api -X POST \
+            "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets?name=Handbuch.pdf" \
+            -H "Content-Type: application/pdf" --input Handbuch.pdf --jq .name
+
   build:
     name: Installer (${{ matrix.name }})
     needs: notes
