@@ -31,11 +31,13 @@ mehreren“ (`docs/handbuch/02b-einrichten.md`). Hinweise für KI-Agenten: `CLAU
 
 ## Datensicherung
 
-1. **Automatisch beim Öffnen:** Das Programm sichert die Datei in den Ordner `backups/`
-   daneben. Die letzten 20 Sicherungen bleiben erhalten.
-2. **Zweiter Sicherungsort,** z.B. ein USB-Stick oder ein anderes Laufwerk. Er wird unter
-   Einstellungen › Datensicherung eingerichtet. Gesichert wird dort beim Schliessen und mit
-   „Jetzt sichern“. Ist die letzte Sicherung dort älter als 30 Tage, erscheint ein Hinweis.
+1. **Automatisch:** Das Programm sichert die Datei beim Öffnen und während der Arbeit (standardmässig
+   stündlich, nur bei Änderungen) in den Ordner `backups/` daneben.
+2. **Zweiter Sicherungsort,** z.B. ein USB-Stick oder ein anderes Laufwerk, eingerichtet unter
+   Einstellungen › Datensicherung. Gesichert wird dort während der Arbeit, beim Schliessen und mit
+   „Jetzt sichern“. Ist er nicht erreichbar, erscheint sofort ein Hinweis.
+   Ältere Sicherungen werden an beiden Orten nach Alter ausgedünnt (alle der letzten 2 Tage, dann je
+   eine pro Tag/Woche/Monat bis 14 Tage/8 Wochen/12 Monate; einstellbar unter „Aufbewahrung“).
 3. **Gesamtexport als Excel,** zur Archivierung. Die Datei ist auch ohne dieses Programm lesbar.
 
 **Wiederherstellen** geht unter Einstellungen › Datensicherung. Der aktuelle Stand wird

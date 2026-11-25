@@ -85,7 +85,7 @@
 
 <h2>Datensicherung</h2>
 <p class="muted">
-  Beim Öffnen wird automatisch eine Sicherung neben der Datei angelegt (die letzten 20 bleiben).
+  Beim Öffnen und während der Arbeit wird automatisch eine Sicherung neben der Datei angelegt; ältere werden nach Alter ausgedünnt (siehe „Aufbewahrung“ unten).
   Ein zweiter Ort (z.B. USB-Stick oder anderes Laufwerk) schützt auch vor Defekten des Speicherorts.
 </p>
 {#if error}<div class="form-error">{error}</div>{/if}
