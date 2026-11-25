@@ -34,7 +34,7 @@ Mitgliederverwaltung für eine Schweizer Bäckervereinigung. Ein Desktop-Program
 |---|---|
 | `crates/core` (`verwaltung_core`) | Datenkern: SQLite (rusqlite), Migrationen (`src/db/*.sql`), Repos, Filter/Abfragen, Import/Export, Sperrdatei, Sicherungen. Hängt nicht von Tauri ab. |
 | `crates/core/examples/beispieldaten.rs` | Erzeugt eine Datei mit fiktiven Beispieldaten (für Bildschirmfotos). |
-| `crates/core/examples/musterliste.rs` | Erzeugt eine fiktive Excel-Liste im Aufbau der echten Mitgliederliste, inkl. Sonderfällen (zum Ausprobieren des Imports). |
+| `crates/core/examples/musterliste.rs` | Erzeugt fiktive Excel-Listen im Aufbau der echten Mitgliederliste (Standard, gross, andere Spalten, unsaubere Werte) nach `testdaten/`. Der Bilder-Lauf nutzt die Standardliste. |
 | `crates/app` (`verwaltung_app`) | Tauri-Programm. Die Logik liegt als normale Funktionen auf `Session` (`src/session.rs`, `src/commands/`) und ist ohne Tauri getestet; `src/tauri_commands/` enthält nur dünne Wrapper. |
 | `ui/` | Svelte 5 (Runes) + TypeScript + Vite. Seiten in `src/pages`, Bausteine in `src/components`, Logik in `src/lib` (Router, Session-Stores, Hilfe, Handbuch, Markdown, Updates). |
 | `docs/handbuch/` | Benutzerhandbuch: Markdown-Kapitel, `inhalt.json` (Reihenfolge), `bilder/`. Einzige Quelle für die Hilfe im Programm, das PDF und GitHub. |
@@ -60,7 +60,7 @@ node --test 'scripts/*.test.mjs'               # Skripte + Stimmigkeit des Handb
 
 # Hilfsmittel
 cargo run -p verwaltung_core --example beispieldaten -- /tmp/beispiel.sqlite
-cargo run -p verwaltung_core --example musterliste -- /tmp/Musterliste.xlsx   # fiktive Excel-Liste zum Import-Test
+pnpm testdaten                                 # vier fiktive Excel-Listen in testdaten/ (git-ignoriert) zum Import-Test
 node scripts/handbuch-pdf.mjs --out /tmp/Handbuch.pdf
 ```
 

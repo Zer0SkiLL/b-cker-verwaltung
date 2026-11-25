@@ -10,3 +10,6 @@
 
 # Private Unterlagen des Vereins (Repo ist öffentlich)
 /docs/documentation/
+
+# Fiktive Excel-Listen zum Ausprobieren des Imports (pnpm testdaten)
+testdaten/

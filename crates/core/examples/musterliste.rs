@@ -1,11 +1,13 @@
 //! Erzeugt eine fiktive Mitgliederliste im Aufbau der bisherigen Excel-Liste (zum Ausprobieren
 //! des Imports). Alle Namen, Adressen und Nummern sind erfunden.
-//! Aufruf: cargo run -p verwaltung_core --example musterliste -- <pfad.xlsx>
+//! Aufruf: cargo run -p verwaltung_core --example musterliste -- <ordner | datei.xlsx>
+//! Mit einem Ordner entstehen vier Listen mit unterschiedlichen Fällen (siehe LIESMICH.txt).
 //!
 //! Enthalten sind auch die Fälle, die der Import abfangen soll: mehrere Personen eines Betriebs,
 //! abweichende Angaben, gleicher Firmenname an anderer Adresse, Einzelmitglieder, nur Vorname,
 //! leere Zeilen, Jahr statt Datum, ungültiges Datum, doppelte Mandate.
 
+use std::path::Path;
 use std::process::ExitCode;
 
 use rust_xlsxwriter::{ExcelDateTime, Format, Workbook, XlsxError};
@@ -311,84 +313,359 @@ const MORE: [(&str, &str, &str, f64, &str); 24] = [
     ("Bäckerei Hefezopf", "Suter", "Patrick", 9500.0, "Wil SG"),
 ];
 
-fn write(path: &str) -> Result<usize, XlsxError> {
+/// Zelle mit eigenem Text (für erzeugte Zeilen).
+#[derive(Clone)]
+enum Cell {
+    T(String),
+    N(f64),
+    B(bool),
+    D(u16, u8, u8),
+}
+
+impl From<V<'_>> for Cell {
+    fn from(v: V<'_>) -> Self {
+        match v {
+            T(s) => Cell::T(s.to_string()),
+            N(n) => Cell::N(n),
+            B(b) => Cell::B(b),
+            D(y, m, d) => Cell::D(y, m, d),
+        }
+    }
+}
+
+/// Eine Zeile als (Spaltenname, Wert); `None` ist eine leere Zeile.
+type Line = Option<Vec<(String, Cell)>>;
+
+fn line(cells: &[(&str, V<'_>)]) -> Line {
+    Some(
+        cells
+            .iter()
+            .map(|(h, v)| (h.to_string(), Cell::from(*v)))
+            .collect(),
+    )
+}
+
+fn text(s: &str) -> Cell {
+    Cell::T(s.to_string())
+}
+
+/// Schreibt ein Blatt; Werte zu Spalten, die es nicht gibt, werden weggelassen.
+fn save(path: &Path, headers: &[&str], lines: &[Line]) -> Result<usize, XlsxError> {
     let mut wb = Workbook::new();
     let ws = wb.add_worksheet();
     ws.set_name("Mitglieder")?;
     let bold = Format::new().set_bold();
     let date = Format::new().set_num_format("dd.mm.yyyy");
-    for (c, h) in HEADERS.iter().enumerate() {
+    for (c, h) in headers.iter().enumerate() {
         ws.write_string_with_format(0, c as u16, *h, &bold)?;
     }
-    let col = |h: &str| HEADERS.iter().position(|x| *x == h).expect("Spalte") as u16;
-    let mut r = 1u32;
-    let mut put = |r: u32, cells: &[(&str, V<'_>)]| -> Result<(), XlsxError> {
-        for (h, v) in cells {
-            let c = col(h);
-            match *v {
-                T(s) => ws.write_string(r, c, s).map(|_| ())?,
-                N(n) => ws.write_number(r, c, n).map(|_| ())?,
-                B(b) => ws.write_boolean(r, c, b).map(|_| ())?,
-                D(y, m, d) => ws
-                    .write_datetime_with_format(r, c, ExcelDateTime::from_ymd(y, m, d)?, &date)
+    for (i, l) in lines.iter().enumerate() {
+        let r = i as u32 + 1;
+        for (h, v) in l.iter().flatten() {
+            let Some(c) = headers.iter().position(|x| x == h) else {
+                continue;
+            };
+            let c = c as u16;
+            match v {
+                Cell::T(s) => ws.write_string(r, c, s).map(|_| ())?,
+                Cell::N(n) => ws.write_number(r, c, *n).map(|_| ())?,
+                Cell::B(b) => ws.write_boolean(r, c, *b).map(|_| ())?,
+                Cell::D(y, m, d) => ws
+                    .write_datetime_with_format(r, c, ExcelDateTime::from_ymd(*y, *m, *d)?, &date)
                     .map(|_| ())?,
             }
         }
-        Ok(())
-    };
-    for row in ROWS {
-        put(r, row)?;
-        r += 1;
-    }
-    // Leere Zeile mitten in der Liste (wird ignoriert).
-    r += 1;
-    let cats = [MIT, MIT, MIT, OHNE, KEIN];
-    for (i, (firma, name, vorname, plz, ort)) in MORE.iter().enumerate() {
-        let n = i as f64;
-        let kt = if *plz >= 9000.0 && *plz < 9100.0 || *plz >= 9200.0 {
-            SG
-        } else if *plz < 9000.0 {
-            TG
-        } else {
-            AR
-        };
-        let mail = format!("info{}@betrieb.example", i + 10);
-        let phone = format!("071 000 5{} {:02}", i % 10, i + 10);
-        let street = format!("Hauptstrasse {}", i + 2);
-        put(
-            r,
-            &[
-                ("OBC-ID", N(1100.0 + n)),
-                ("Kt Verband", kt),
-                ("Firma", T(firma)),
-                ("Name", T(name)),
-                ("Vorname", T(vorname)),
-                ("Adresse", T(&street)),
-                ("PLZ", N(*plz)),
-                ("Ort", T(ort)),
-                ("Kategorie", cats[i % cats.len()]),
-                ("Mail", T(&mail)),
-                ("Telefon", T(&phone)),
-                ("Eintritt", D(1990 + (i as u16 % 30), 1 + (i as u8 % 12), 1)),
-            ],
-        )?;
-        put(r, &flags(i % 3 == 0, i % 4 != 3, i % 4 == 3, i % 5 == 0))?;
-        r += 1;
     }
     wb.save(path)?;
-    Ok((r - 2) as usize)
+    Ok(lines.iter().filter(|l| l.is_some()).count())
+}
+
+fn kanton(plz: f64) -> V<'static> {
+    if (9000.0..9100.0).contains(&plz) || plz >= 9200.0 {
+        SG
+    } else if plz < 9000.0 {
+        TG
+    } else {
+        AR
+    }
+}
+
+/// Ein einfacher Betrieb mit einer Person (Nummer `i` macht Mail, Telefon und Adresse eindeutig).
+fn simple_firm(i: usize, firma: &str, name: &str, vorname: &str, plz: f64, ort: &str) -> Line {
+    let cats = [MIT, MIT, MIT, OHNE, KEIN];
+    let mut cells = vec![
+        ("OBC-ID".to_string(), Cell::N(1100.0 + i as f64)),
+        ("Kt Verband".into(), kanton(plz).into()),
+        ("Firma".into(), text(firma)),
+        ("Name".into(), text(name)),
+        ("Vorname".into(), text(vorname)),
+        ("Adresse".into(), Cell::T(format!("Hauptstrasse {}", i + 2))),
+        ("PLZ".into(), Cell::N(plz)),
+        ("Ort".into(), text(ort)),
+        ("Kategorie".into(), cats[i % cats.len()].into()),
+        (
+            "Mail".into(),
+            Cell::T(format!("info{}@betrieb.example", i + 10)),
+        ),
+        (
+            "Telefon".into(),
+            Cell::T(format!("071 000 {:02} {:02}", i / 100, i % 100)),
+        ),
+        (
+            "Eintritt".into(),
+            Cell::D(1980 + (i as u16 % 44), 1 + (i as u8 % 12), 1),
+        ),
+    ];
+    for (h, v) in flags(
+        i.is_multiple_of(3),
+        i % 4 != 3,
+        i % 4 == 3,
+        i.is_multiple_of(5),
+    ) {
+        cells.push((h.to_string(), v.into()));
+    }
+    Some(cells)
+}
+
+/// Standardliste: alle Sonderfälle plus 24 einfache Betriebe (36 Zeilen).
+fn normal() -> Vec<Line> {
+    let mut lines: Vec<Line> = ROWS.iter().map(|r| line(r)).collect();
+    lines.push(None); // leere Zeile mitten in der Liste
+    for (i, (firma, name, vorname, plz, ort)) in MORE.iter().enumerate() {
+        lines.push(simple_firm(i, firma, name, vorname, *plz, ort));
+    }
+    lines
+}
+
+const PREFIXES: [&str; 6] = [
+    "Bäckerei",
+    "Confiserie",
+    "Konditorei",
+    "Backstube",
+    "Café",
+    "Brothaus",
+];
+
+/// Etwa so gross wie die echte Liste: rund 290 Zeilen, mit zusammengefassten Betrieben.
+fn gross() -> Vec<Line> {
+    let mut lines = Vec::new();
+    for i in 0..240 {
+        let (_, name, vorname, plz, ort) = MORE[i % MORE.len()];
+        let firma = format!("{} {} {}", PREFIXES[i % PREFIXES.len()], name, i + 1);
+        let first = simple_firm(i, &firma, name, vorname, plz, ort);
+        let street = format!("Hauptstrasse {}", i + 2);
+        lines.push(first);
+        // Jeder sechste Betrieb hat eine zweite Person.
+        if i.is_multiple_of(6) {
+            let (_, name2, vorname2, _, _) = MORE[(i + 7) % MORE.len()];
+            lines.push(Some(vec![
+                ("Firma".into(), text(&firma)),
+                ("Name".into(), text(name2)),
+                ("Vorname".into(), text(vorname2)),
+                ("Adresse".into(), text(&street)),
+                ("PLZ".into(), Cell::N(plz)),
+                ("Ort".into(), text(ort)),
+                (
+                    "Mandat".into(),
+                    text(if i.is_multiple_of(12) {
+                        "Vorstand"
+                    } else {
+                        "Prüfungsexperte"
+                    }),
+                ),
+            ]));
+        }
+        // Jeder zwanzigste ist ausgetreten.
+        if i % 20 == 19 {
+            if let Some(Some(cells)) = lines.last_mut() {
+                cells.push(("Austritt".into(), Cell::D(2023, 12, 31)));
+            }
+        }
+    }
+    for i in 0..12 {
+        let (_, name, vorname, plz, ort) = MORE[(i * 5) % MORE.len()];
+        lines.push(Some(vec![
+            ("OBC-ID".into(), Cell::N(3000.0 + i as f64)),
+            ("Name".into(), text(name)),
+            ("Vorname".into(), text(vorname)),
+            ("PLZ".into(), Cell::N(plz)),
+            ("Ort".into(), text(ort)),
+            ("Kategorie".into(), OHNE.into()),
+        ]));
+    }
+    lines
+}
+
+/// Andere Spaltennamen, andere Reihenfolge, eine Spalte fehlt, eine ist zusätzlich:
+/// zum Ausprobieren der Spaltenzuordnung.
+fn andere_spalten(path: &Path) -> Result<usize, XlsxError> {
+    let renames = [
+        ("Firma", "Firmenname"),
+        ("Name", "Nachname"),
+        ("Mail", "E-Mail"),
+        ("Home", "Webseite"),
+        ("Adresse", "Strasse"),
+    ];
+    fn renamed<'a>(renames: &[(&'a str, &'a str)], h: &'a str) -> &'a str {
+        renames.iter().find(|(a, _)| *a == h).map_or(h, |(_, b)| *b)
+    }
+    let mut headers: Vec<&str> = HEADERS
+        .iter()
+        .filter(|h| **h != "Kt Verband")
+        .map(|h| renamed(&renames, h))
+        .collect();
+    headers.rotate_left(2); // Firma und Nachname nicht mehr vorne
+    headers.push("Interne Notiz");
+    let lines: Vec<Line> = normal()
+        .into_iter()
+        .enumerate()
+        .map(|(i, l)| {
+            l.map(|cells| {
+                let mut cells: Vec<_> = cells
+                    .into_iter()
+                    .map(|(h, v)| (renamed(&renames, &h).to_string(), v))
+                    .collect();
+                if i.is_multiple_of(4) {
+                    cells.push(("Interne Notiz".into(), text("nur intern, nicht übernehmen")));
+                }
+                cells
+            })
+        })
+        .collect();
+    save(path, &headers, &lines)
+}
+
+/// Unsaubere Werte, wie sie in gewachsenen Listen vorkommen.
+fn fehlerhaft() -> Vec<Line> {
+    let row = |cells: Vec<(&str, Cell)>| -> Line {
+        Some(cells.into_iter().map(|(h, v)| (h.to_string(), v)).collect())
+    };
+    vec![
+        row(vec![
+            ("Firma", text("Bäckerei Sonnenkorn AG")),
+            ("Name", text("Muster")),
+            ("Vorname", text("Anna")),
+            ("Adresse", text("Musterstrasse 1")),
+            ("PLZ", Cell::N(9000.0)),
+            ("Ort", text("St. Gallen")),
+            ("Kategorie", text("Mitglied mit Geschäft")),
+            ("Lehrbetrieb", text("ja")),
+            ("Fr Bäck", text("x")),
+            ("Eintritt", text("31.02.2020")),
+        ]),
+        // Gleicher Betrieb, anders geschrieben (Leerzeichen, Kleinbuchstaben): wird zusammengefasst.
+        row(vec![
+            ("Firma", text("  bäckerei  sonnenkorn ag ")),
+            ("Name", text("Muster")),
+            ("Vorname", text("Ben")),
+            ("Adresse", text("musterstrasse 1")),
+            ("PLZ", text(" 9000 ")),
+            ("Ort", text("St. Gallen")),
+            (
+                "Mail",
+                text("ben@sonnenkorn.example; info@sonnenkorn.example"),
+            ),
+        ]),
+        row(vec![
+            ("Firma", text("Confiserie Zuckerwerk GmbH")),
+            ("Adresse", text("Bahnhofplatz 5")),
+            ("PLZ", text("CH-8500")),
+            ("Ort", text("Frauenfeld")),
+            ("Kategorie", text("MITGLIED MIT GESCHÄFT")),
+            ("Mail", text("info(at)zuckerwerk.example")),
+            ("Lehrbetrieb", text("nein")),
+            ("DH", text("vielleicht")),
+            ("Eintritt", text("2020-05-01")),
+            ("Austritt", text("05/2019")),
+        ]),
+        row(vec![
+            ("Firma", text("Backstube am Bach")),
+            ("Adresse", text("Dorfstrasse 3")),
+            ("PLZ", Cell::N(9100.0)),
+            ("Ort", text("Herisau")),
+            ("Kategorie", text("Gönner")),
+            ("Filialen", text("zwei")),
+            ("Eintritt", Cell::N(1999.0)),
+            ("Austritt", Cell::D(1995, 1, 1)),
+        ]),
+        row(vec![
+            ("Firma", text("Bäckerei Alte Mühle")),
+            ("Name", text("Keller")),
+            ("Adresse", text("Mühleweg 7")),
+            ("PLZ", Cell::N(9500.0)),
+            ("Ort", text("Wil SG")),
+            ("Besonderes", Cell::T("Sehr lange Bemerkung. ".repeat(20))),
+            ("Mandat", text("Vorstand;;Präsident , , Vorstand")),
+        ]),
+        None,
+        None,
+        row(vec![("Name", text("   "))]),
+        row(vec![
+            ("Name", text("Huber")),
+            ("Vorname", text("Thomas")),
+            ("PLZ", Cell::N(8590.0)),
+            ("Ort", text("Romanshorn")),
+            ("Fr Conf", Cell::B(true)),
+            ("Eintritt", text("1.1.10")),
+        ]),
+    ]
+}
+
+const LIESMICH: &str = "Fiktive Mitgliederlisten zum Ausprobieren des Excel-Imports.
+Alle Namen, Adressen und Nummern sind erfunden. Neu erzeugen: pnpm testdaten
+
+1 Standard.xlsx         Aufbau wie die echte Liste, 36 Zeilen mit allen Sonderfällen
+                        (mehrere Personen pro Betrieb, Filiale, Einzelmitglieder, ungültige Daten).
+2 Gross.xlsx            Rund 290 Zeilen, etwa so gross wie die echte Liste.
+3 Andere Spalten.xlsx   Andere Spaltennamen und Reihenfolge, eine fehlt, eine zusätzlich:
+                        zum Ausprobieren der Spaltenzuordnung.
+4 Unsaubere Werte.xlsx  Tippfehler, Text statt Zahlen, unmögliche Daten, doppelte Einträge.
+
+Importieren geht nur in eine leere Datei: zuerst \"Neue Datei anlegen…\".
+";
+
+fn write_all(dir: &Path) -> Result<(), XlsxError> {
+    std::fs::create_dir_all(dir)?;
+    let files: [(&str, Result<usize, XlsxError>); 4] = [
+        (
+            "1 Standard.xlsx",
+            save(&dir.join("1 Standard.xlsx"), &HEADERS, &normal()),
+        ),
+        (
+            "2 Gross.xlsx",
+            save(&dir.join("2 Gross.xlsx"), &HEADERS, &gross()),
+        ),
+        (
+            "3 Andere Spalten.xlsx",
+            andere_spalten(&dir.join("3 Andere Spalten.xlsx")),
+        ),
+        (
+            "4 Unsaubere Werte.xlsx",
+            save(&dir.join("4 Unsaubere Werte.xlsx"), &HEADERS, &fehlerhaft()),
+        ),
+    ];
+    for (name, result) in files {
+        println!("{name}: {} Zeilen", result?);
+    }
+    std::fs::write(dir.join("LIESMICH.txt"), LIESMICH)?;
+    Ok(())
 }
 
 fn main() -> ExitCode {
-    let Some(path) = std::env::args().nth(1) else {
-        eprintln!("Aufruf: cargo run -p verwaltung_core --example musterliste -- <pfad.xlsx>");
+    let Some(target) = std::env::args().nth(1) else {
+        eprintln!(
+            "Aufruf: cargo run -p verwaltung_core --example musterliste -- <ordner | datei.xlsx>"
+        );
         return ExitCode::FAILURE;
     };
-    match write(&path) {
-        Ok(rows) => {
-            println!("{path}: {rows} Zeilen geschrieben");
-            ExitCode::SUCCESS
-        }
+    let target = Path::new(&target);
+    let result = if target.extension().is_some_and(|e| e == "xlsx") {
+        save(target, &HEADERS, &normal()).map(|n| println!("{}: {n} Zeilen", target.display()))
+    } else {
+        write_all(target)
+    };
+    match result {
+        Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("Fehler: {e}");
             ExitCode::FAILURE
