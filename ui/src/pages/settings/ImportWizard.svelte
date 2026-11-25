@@ -3,7 +3,7 @@
   import * as api from '../../lib/api';
   import { confirmAction, pickFile, pickSavePath, todayStamp } from '../../lib/desktop';
   import { fieldLabel, setColumn } from '../../lib/importMapping';
-  import { newEntriesText, plural, summaryText } from '../../lib/importSummary';
+  import { mappingText, newEntriesText, plural, summaryText } from '../../lib/importSummary';
   import { runWrite } from '../../lib/session';
   import type { ImportPreview, ImportSummary } from '../../lib/types';
   import ImportPreviewList from './ImportPreviewList.svelte';
@@ -97,24 +97,20 @@
 </div>
 
 {#if preview}
-  <h3>2. Spalten zuordnen und prüfen</h3>
-  <div class="scroll">
-    <table>
-      <thead><tr><th>Spalte in der Datei</th><th>Wird übernommen als</th></tr></thead>
-      <tbody>
-        {#each preview.headers as header, i (i)}
-          <tr>
-            <td>{header || `(Spalte ${i + 1} ohne Namen)`}</td>
-            <td>
-              <select value={preview.mapping[i]} disabled={busy} aria-label="Zuordnung für {header}" onchange={(e) => remap(i, e.currentTarget.value)}>
-                {#each preview.fields as key (key)}<option value={key}>{fieldLabel(key)}</option>{/each}
-              </select>
-            </td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  </div>
+  <details class="mapping">
+    <summary><h3>2. Spalten zuordnen – {mappingText(preview.mapping)}</h3></summary>
+    <p class="muted">Nur ändern, wenn eine Spalte falsch erkannt wurde. Die Vorschau passt sich sofort an.</p>
+    <div class="mapping-grid">
+      {#each preview.headers as header, i (i)}
+        <label class="map">
+          <span>{header || `(Spalte ${i + 1} ohne Namen)`}</span>
+          <select value={preview.mapping[i]} disabled={busy} aria-label="Zuordnung für {header}" onchange={(e) => remap(i, e.currentTarget.value)}>
+            {#each preview.fields as key (key)}<option value={key}>{fieldLabel(key)}</option>{/each}
+          </select>
+        </label>
+      {/each}
+    </div>
+  </details>
 
   <div class="card summary">
     <strong>{summaryText(preview)}</strong>
@@ -125,27 +121,26 @@
     {#if newLines.length > 0}
       <ul>{#each newLines as line (line)}<li>{line}</li>{/each}</ul>
     {/if}
+    {#if preview.reconcileError}
+      <div class="form-error">{preview.reconcileError}</div>
+    {/if}
+    {#if !preview.databaseEmpty}
+      <div class="form-error">Import nur in eine leere Datei möglich. Bitte neue Datei anlegen.</div>
+    {/if}
+    <div class="toolbar actions">
+      <button
+        class="primary"
+        disabled={busy || readOnly || !preview.databaseEmpty || preview.reconcileError !== null}
+        onclick={apply}
+      >Übernehmen</button>
+      <button disabled={busy} onclick={exportPreview}>Vorschau als Excel speichern…</button>
+    </div>
+    <p class="muted hint">Prüfen Sie vorher die Vorschau unten. Übernehmen fragt nach und lässt sich rückgängig machen.</p>
   </div>
 
   <h3>Vorschau</h3>
   <ImportPreviewList {preview} />
-  <div class="toolbar">
-    <button disabled={busy} onclick={exportPreview}>Vorschau als Excel speichern…</button>
-  </div>
   <ImportReport report={preview.report} />
-
-  <h3>3. Übernehmen</h3>
-  {#if preview.reconcileError}
-    <div class="form-error">{preview.reconcileError}</div>
-  {/if}
-  {#if !preview.databaseEmpty}
-    <div class="form-error">Import nur in eine leere Datei möglich. Bitte neue Datei anlegen.</div>
-  {/if}
-  <button
-    class="primary"
-    disabled={busy || readOnly || !preview.databaseEmpty || preview.reconcileError !== null}
-    onclick={apply}
-  >Übernehmen</button>
 {/if}
 
 {#if info}<p>{info}</p>{/if}
@@ -166,5 +161,15 @@
 <style>
   .summary ul { margin: 0.25rem 0 0; }
   .actions { margin-top: 0.5rem; }
-  .scroll { max-height: 320px; overflow: auto; margin-bottom: 0.75rem; }
+  .mapping { margin: 0.5rem 0 1rem; }
+  .mapping summary { cursor: pointer; }
+  .mapping summary h3 { display: inline; }
+  .mapping-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 0.35rem 2rem;
+  }
+  .map { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+  .map select { width: 13rem; flex: none; }
+  .hint { margin: 0.25rem 0 0; }
 </style>

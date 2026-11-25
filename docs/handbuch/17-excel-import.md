@@ -15,13 +15,13 @@ Sie finden die Seite unter **Einstellungen** › **Excel-Import**. Der Import is
 ## Schritt für Schritt
 
 1. **1. Excel-Datei wählen…**: Das Programm liest das erste Tabellenblatt. Die erste Zeile muss die Spaltennamen enthalten.
-2. **2. Spalten zuordnen und prüfen**: Für jede Spalte steht, als was sie übernommen wird. Die Spalten der Mitgliederliste werden automatisch erkannt; jede Zuordnung lässt sich ändern.
+2. **2. Spalten zuordnen**: Die Spalten der Mitgliederliste werden automatisch erkannt. Die Überschrift nennt, wie viele Spalten es sind und wie viele nicht übernommen werden. Nur wenn eine Spalte falsch erkannt wurde, klappen Sie den Bereich auf und ändern die Zuordnung; die Vorschau passt sich sofort an.
 3. Darunter steht eine **Zusammenfassung**, zum Beispiel „290 Zeilen → 210 Betriebe (davon 15 aus mehreren Zeilen zusammengefasst), 240 Personen, 12 Einzelmitglieder, 0 Zeilen übersprungen“, und was **neu angelegt** würde (Kategorien, Kantonalverbände, Funktionen, Labels).
 4. Die **Vorschau** zeigt jeden Betrieb mit seinen Personen, danach die Einzelmitglieder und übersprungene Zeilen – mit der Zeilennummer aus der Excel-Datei. Mit **Nur mit Hinweisen** sehen Sie nur, was Sie ansehen sollten.
-5. **Vorschau als Excel speichern…** legt eine Liste an, Zeile für Zeile, zum Vergleich mit der Originalliste.
-6. **3. Übernehmen**: Das Programm fragt mit den Zahlen nach („… anlegen?“). Erst jetzt wird gespeichert, und zwar alles oder nichts.
+5. **Vorschau als Excel speichern…** (in der Zusammenfassung) legt eine Liste an, Zeile für Zeile, zum Vergleich mit der Originalliste.
+6. **Übernehmen** (ebenfalls in der Zusammenfassung): Das Programm fragt mit den Zahlen nach („… anlegen?“). Erst jetzt wird gespeichert, und zwar alles oder nichts.
 
-Nach dem Import zeigt ein Bericht die Hinweise; **Bericht als CSV speichern…** speichert ihn zum Nacharbeiten.
+Ganz unten steht der eingeklappte **Import-Bericht** mit allen Hinweisen als Liste; **Bericht als CSV speichern…** speichert ihn zum Nacharbeiten.
 
 ## Rückgängig machen
 

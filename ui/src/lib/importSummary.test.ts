@@ -1,4 +1,4 @@
-import { hasNotes, newEntriesText, plural, summaryText } from './importSummary';
+import { hasNotes, linesText, mappingText, newEntriesText, plural, summaryText } from './importSummary';
 import type { ImportPreview } from './types';
 
 const preview = (over: Partial<ImportPreview> = {}): ImportPreview => ({
@@ -39,4 +39,17 @@ test('hasNotes erkennt Hinweise beim Betrieb oder seinen Personen', () => {
   expect(hasNotes(org)).toBe(false);
   expect(hasNotes({ ...org, persons: [{ ...org.persons[0], notes: ['x'] }] })).toBe(true);
   expect(hasNotes({ ...org, notes: ['y'] })).toBe(true);
+});
+
+test('Quelle fasst aufeinanderfolgende Zeilen zusammen', () => {
+  expect(linesText([4])).toBe('Zeile 4');
+  expect(linesText([3, 4, 5])).toBe('Zeilen 3–5');
+  expect(linesText([3, 4, 9])).toBe('Zeilen 3–4, 9');
+  expect(linesText([2, 7])).toBe('Zeilen 2, 7');
+});
+
+test('Zuordnung: Zahl der Spalten und der nicht übernommenen', () => {
+  expect(mappingText(['company', 'ignore', 'zip'])).toBe('3 Spalten, 1 wird nicht übernommen');
+  expect(mappingText(['company'])).toBe('1 Spalte, alle werden übernommen');
+  expect(mappingText(['ignore', 'ignore'])).toBe('2 Spalten, 2 werden nicht übernommen');
 });

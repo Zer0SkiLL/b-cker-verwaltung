@@ -1,6 +1,6 @@
 <script lang="ts">
   // Vorschau gegliedert wie nachher im Programm: Betriebe mit Personen, Einzelmitglieder, übersprungene Zeilen.
-  import { hasNotes } from '../../lib/importSummary';
+  import { hasNotes, linesText } from '../../lib/importSummary';
   import type { ImportPreview } from '../../lib/types';
 
   let { preview }: { preview: ImportPreview } = $props();
@@ -10,13 +10,15 @@
   const individuals = $derived(
     onlyNotes ? preview.individuals.filter((i) => i.person.notes.length > 0) : preview.individuals,
   );
-  const lines = (l: number[]) => (l.length === 1 ? `Zeile ${l[0]}` : `Zeilen ${l.join(', ')}`);
 </script>
 
 <label class="filter"><input type="checkbox" bind:checked={onlyNotes} /> Nur mit Hinweisen</label>
 
-<div class="scroll">
-  <table>
+<table class="preview">
+    <colgroup>
+      <col style="width: 24%" /><col style="width: 11%" /><col style="width: 14%" />
+      <col style="width: 20%" /><col style="width: 23%" /><col style="width: 8%" />
+    </colgroup>
     <thead><tr><th>Betrieb / Person</th><th>Ort</th><th>Kategorie</th><th>Labels</th><th>Hinweise</th><th>Quelle</th></tr></thead>
     <tbody>
       {#each orgs as o (o.lines[0])}
@@ -26,7 +28,7 @@
           <td>{o.category ?? ''}</td>
           <td>{o.labels.join(', ')}</td>
           <td class="notes">{o.notes.join('; ')}</td>
-          <td class="muted">{lines(o.lines)}</td>
+          <td class="muted">{linesText(o.lines)}</td>
         </tr>
         {#each o.persons as p (p.line)}
           <tr>
@@ -59,10 +61,11 @@
       {/if}
     </tbody>
   </table>
-</div>
 
 <style>
-  .scroll { max-height: 420px; overflow: auto; margin-bottom: 0.75rem; }
+  .preview { table-layout: fixed; width: 100%; margin-bottom: 0.75rem; }
+  .preview td { overflow-wrap: anywhere; vertical-align: top; }
+  .preview td:last-child { white-space: nowrap; }
   .filter { display: inline-flex; gap: 0.4rem; align-items: center; margin: 0.25rem 0 0.5rem; }
   .person { padding-left: 1.5rem; }
   .org td { border-top: 1px solid var(--border); }
