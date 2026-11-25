@@ -1,7 +1,8 @@
 // Holt die Bildschirmfotos des letzten erfolgreichen Laufs von „Bildschirmfotos“ (GitHub Actions)
 // nach docs/handbuch/bilder. Aufruf: node scripts/bildschirmfotos.mjs [--run <id>]
 import { execFileSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,8 +20,15 @@ function latestRun() {
 try {
   const at = process.argv.indexOf('--run');
   const run = at >= 0 ? process.argv[at + 1] : latestRun();
-  gh(['run', 'download', run, '-n', 'bildschirmfotos', '-D', TARGET]);
-  const count = readdirSync(TARGET).filter((f) => f.endsWith('.png')).length;
+  // Erst in einen leeren Ordner laden, dann die alten Bilder ersetzen (auch entfallene entfernen).
+  const temp = mkdtempSync(join(tmpdir(), 'bildschirmfotos-'));
+  gh(['run', 'download', run, '-n', 'bildschirmfotos', '-D', temp]);
+  const fresh = readdirSync(temp).filter((f) => f.endsWith('.png'));
+  if (fresh.length === 0) throw new Error('Der Lauf enthält keine Bilder.');
+  for (const old of readdirSync(TARGET).filter((f) => f.endsWith('.png'))) rmSync(join(TARGET, old));
+  for (const name of fresh) copyFileSync(join(temp, name), join(TARGET, name));
+  rmSync(temp, { recursive: true, force: true });
+  const count = fresh.length;
   console.log(`${count} Bilder aus Lauf ${run} in docs/handbuch/bilder.`);
   console.log('Jetzt prüfen und committen: docs: Bildschirmfotos aktualisieren');
 } catch (err) {

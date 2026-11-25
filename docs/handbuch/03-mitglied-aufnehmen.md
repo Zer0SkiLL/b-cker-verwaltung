@@ -51,4 +51,4 @@ Die Liste zeigt nun alle provisorischen Mitglieder. Mit **Als Gruppe speichern**
 
 Lehnt die GV ab, löschen Sie den Betrieb wie oben beschrieben.
 
-![Ein offizielles Mitglied mit Eintrittsdatum](bilder/betrieb.png)
+![Ein offizielles Mitglied mit Eintrittsdatum](bilder/betrieb-offiziell.png)
