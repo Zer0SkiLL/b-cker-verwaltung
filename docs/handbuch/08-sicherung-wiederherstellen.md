@@ -2,11 +2,40 @@
 
 Dieses Kapitel erklärt, wie Ihre Daten gesichert werden und wie Sie eine Sicherung zurückspielen.
 
-## Was automatisch passiert
+## Wann gesichert wird
 
-- **Bei jedem Öffnen** legt das Programm neben der Datei eine Sicherung an (Ordner mit den Sicherungen, die letzten 20 bleiben).
-- **Beim Schliessen** legt es zusätzlich eine Kopie am **zweiten Ort** ab, wenn einer eingerichtet ist.
-- Ist kein zweiter Ort eingerichtet oder die letzte Kopie dort älter als 30 Tage, erinnert eine gelbe Leiste daran.
+| Ereignis | Neben der Datei (Ordner **backups**) | Zweiter Ort (z.B. USB-Stick) |
+|---|---|---|
+| **Öffnen** der Datei | ✅ | – |
+| **Während der Arbeit**: alle 60 Minuten, aber nur wenn sich etwas geändert hat | ✅ | ✅ |
+| **Schliessen** des Programms | – | ✅ |
+| **Jetzt sichern** | ✅ | ✅ |
+| **Übernehmen** (zum Beispiel nach einem Absturz) | ✅ | ✅ |
+| **Wiederherstellen** (vorher wird der aktuelle Stand gesichert) | ✅ | – |
+
+Wer an einem Tag drei Stunden arbeitet, hat danach etwa 4–5 Sicherungen von diesem Tag. An Tagen ohne Arbeit entsteht keine. Jede Änderung wird übrigens schon beim **Speichern** fest in die Datei geschrieben – die Sicherungen sind zusätzlich da, falls etwas schiefgeht.
+
+## Wie lange Sicherungen aufbewahrt werden
+
+Damit man auch Wochen und Monate zurückkommt, ohne dass sich die Dateien stapeln, werden ältere Sicherungen **ausgedünnt**. Gezählt werden dabei nur die Tage, an denen gesichert wurde, also die Tage, an denen jemand mit der Datei gearbeitet hat:
+
+| Sicherungen | Was bleibt |
+|---|---|
+| vom heutigen und vom letzten Arbeitstag davor | **alle** |
+| der letzten 14 Arbeitstage | die neueste **pro Tag** |
+| der letzten 8 Wochen mit Arbeit | die neueste **pro Woche** |
+| der letzten 12 Monate mit Arbeit | die neueste **pro Monat** |
+| ältere | gelöscht |
+
+**Ein Beispiel:** Ein Fehler vom Montag wird erst am Freitag bemerkt. Dann gibt es noch den Stand von Sonntagabend, dazu den Stand jeder Woche der letzten zwei Monate und jedes Monats im letzten Jahr. Zusammen sind das höchstens etwa 40 Dateien pro Ort. **Die neueste Sicherung bleibt immer erhalten.**
+
+**Ferien und falsche Uhrzeit:** Weil nur Arbeitstage zählen, gehen in einer Pause keine Sicherungen verloren. Nach drei Wochen Ferien sind die Stände vor den Ferien noch alle da. Dasselbe gilt, wenn die Uhr des Computers einmal falsch geht.
+
+Alle vier Zeiten und die 60 Minuten lassen sich unter **Einstellungen** › **Datensicherung** › **Aufbewahrung** ändern (siehe [Datensicherung](16-datensicherung.md)).
+
+## Wenn der zweite Ort nicht erreichbar ist
+
+Ist der zweite Ort bei einer Sicherung nicht erreichbar (zum Beispiel weil der USB-Stick nicht steckt), erscheint sofort eine gelbe Leiste: „Zweiter Sicherungsort nicht erreichbar – letzte Sicherung dort am …“. Stecken Sie den Stick ein und klicken Sie in der Leiste auf **Jetzt sichern**. Gelingt die Sicherung, verschwindet die Leiste.
 
 ## Zweiten Sicherungsort einrichten
 

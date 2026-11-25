@@ -90,3 +90,13 @@ test('Schliessen setzt open auf false', async () => {
   await user.click(screen.getByRole('button', { name: 'Hilfe schliessen' }));
   expect(get(helpState).open).toBe(false);
 });
+
+test('Problem melden in der Hilfe-Leiste öffnet den Dialog', async () => {
+  const { reportOpen } = await import('../lib/diagnostics');
+  reportOpen.set(false);
+  const user = userEvent.setup();
+  openHelp('05-austritt');
+  render(HelpPanel);
+  await user.click(screen.getByRole('button', { name: 'Problem melden' }));
+  expect(get(reportOpen)).toBe(true);
+});

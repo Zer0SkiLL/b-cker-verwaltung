@@ -1,12 +1,19 @@
 // Typisierte Aufrufe der Rust-Befehle. Fehler kommen als deutscher Text (Error.message).
 import { invoke } from '@tauri-apps/api/core';
+import { recordCommand } from './diagnostics';
 import type * as T from './types';
 
+// Jeder Aufruf landet in der Aktionsliste für „Problem melden“ – nur Name, Ergebnis und Dauer.
 async function call<R>(command: string, args?: Record<string, unknown>): Promise<R> {
+  const started = performance.now();
   try {
-    return await invoke<R>(command, args);
+    const value = await invoke<R>(command, args);
+    recordCommand(command, true, performance.now() - started);
+    return value;
   } catch (err) {
-    throw new Error(typeof err === 'string' ? err : String(err));
+    const message = typeof err === 'string' ? err : String(err);
+    recordCommand(command, false, performance.now() - started, message);
+    throw new Error(message);
   }
 }
 
@@ -103,5 +110,15 @@ export const importPreview = (path: string, mapping: string[] | null) =>
   call<T.ImportPreview>('import_preview', { path, mapping });
 export const importApply = (path: string, mapping: string[]) =>
   call<T.ImportSummary>('import_apply', { path, mapping });
+export const backupIfChanged = () => call<T.BackupNowDto | null>('backup_if_changed');
+export const getRetention = () => call<T.RetentionPolicy>('get_retention');
+export const setRetention = (policy: T.RetentionPolicy) => call<void>('set_retention', { policy });
+export const importUndo = (backup: string) => call<void>('import_undo', { backup });
+export const exportImportPreview = (path: string, mapping: string[] | null, out: string) =>
+  call<void>('export_import_preview', { path, mapping, out });
 export const exportReport = (report: T.ReportEntry[], path: string) =>
   call<void>('export_report', { report, path });
+
+// Problem melden
+export const diagnosticsLogTail = () => call<string[]>('diagnostics_log_tail');
+export const diagnosticsSystem = () => call<{ os: string; arch: string; version: string }>('diagnostics_system');

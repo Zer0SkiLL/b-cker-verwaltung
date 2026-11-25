@@ -1,23 +1,28 @@
 <script lang="ts">
   import { readOnly as readOnlyStore } from '../../lib/session';
   import * as api from '../../lib/api';
-  import { pickFile } from '../../lib/desktop';
+  import { confirmAction, pickFile, pickSavePath, todayStamp } from '../../lib/desktop';
   import { fieldLabel, setColumn } from '../../lib/importMapping';
-  import { runWrite, sessionInfo } from '../../lib/session';
+  import { newEntriesText, plural, summaryText } from '../../lib/importSummary';
+  import { runWrite } from '../../lib/session';
   import type { ImportPreview, ImportSummary } from '../../lib/types';
+  import ImportPreviewList from './ImportPreviewList.svelte';
   import ImportReport from './ImportReport.svelte';
 
   let path = $state<string | null>(null);
   let preview = $state<ImportPreview | null>(null);
   let summary = $state<ImportSummary | null>(null);
   let error = $state<string | null>(null);
+  let info = $state<string | null>(null);
   let busy = $state(false);
 
   const readOnly = $derived($readOnlyStore);
+  const newLines = $derived(preview ? newEntriesText(preview.newEntries) : []);
 
   async function run(task: () => Promise<void>) {
     busy = true;
     error = null;
+    info = null;
     try {
       await task();
     } catch (err) {
@@ -42,13 +47,40 @@
       preview = await api.importPreview(path, setColumn(preview.mapping, index, key));
     });
 
+  const exportPreview = () =>
+    run(async () => {
+      if (!path || !preview) return;
+      const out = await pickSavePath(`Import-Vorschau-${todayStamp()}.xlsx`, 'xlsx');
+      if (!out) return;
+      await api.exportImportPreview(path, preview.mapping, out);
+      info = `Gespeichert: ${out}`;
+    });
+
   const apply = () =>
     run(async () => {
       if (!path || !preview) return;
+      const question =
+        `${plural(preview.organisations.length, 'Betrieb', 'Betriebe')}, ${plural(preview.persons, 'Person', 'Personen')} ` +
+        `und ${plural(preview.individuals.length, 'Einzelmitglied', 'Einzelmitglieder')} anlegen?`;
+      if (!(await confirmAction(question, 'Übernehmen'))) return;
       const file = path;
       const mapping = preview.mapping;
       summary = await runWrite(() => api.importApply(file, mapping));
       preview = null;
+    });
+
+  const undo = () =>
+    run(async () => {
+      if (!summary) return;
+      const ok = await confirmAction(
+        'Import rückgängig machen? Die Datei wird auf den Stand unmittelbar vor dem Import zurückgesetzt.',
+        'Rückgängig machen',
+      );
+      if (!ok) return;
+      const backup = summary.undoBackup;
+      await runWrite(() => api.importUndo(backup));
+      summary = null;
+      info = 'Import rückgängig gemacht.';
     });
 </script>
 
@@ -84,37 +116,55 @@
     </table>
   </div>
 
-  <p>
-    <strong>{preview.rows}</strong> Zeilen → {preview.organisations} Betriebe, {preview.persons} Personen.
-  </p>
-  <h3>Vorschau (erste {preview.sample.length} Zeilen)</h3>
-  <div class="scroll">
-    <table>
-      <thead><tr><th>Zeile</th><th>Betrieb</th><th>Person</th><th>Ort</th><th>Kategorie</th></tr></thead>
-      <tbody>
-        {#each preview.sample as r (r.line)}
-          <tr><td>{r.line}</td><td>{r.organisation}</td><td>{r.person ?? ''}</td><td>{r.city ?? ''}</td><td>{r.category ?? ''}</td></tr>
-        {/each}
-      </tbody>
-    </table>
+  <div class="card summary">
+    <strong>{summaryText(preview)}</strong>
+    <div>
+      Neu angelegt werden:
+      {#if newLines.length === 0}<span class="muted">nichts Neues</span>{/if}
+    </div>
+    {#if newLines.length > 0}
+      <ul>{#each newLines as line (line)}<li>{line}</li>{/each}</ul>
+    {/if}
+  </div>
+
+  <h3>Vorschau</h3>
+  <ImportPreviewList {preview} />
+  <div class="toolbar">
+    <button disabled={busy} onclick={exportPreview}>Vorschau als Excel speichern…</button>
   </div>
   <ImportReport report={preview.report} />
 
   <h3>3. Übernehmen</h3>
+  {#if preview.reconcileError}
+    <div class="form-error">{preview.reconcileError}</div>
+  {/if}
   {#if !preview.databaseEmpty}
     <div class="form-error">Import nur in eine leere Datei möglich. Bitte neue Datei anlegen.</div>
   {/if}
-  <button class="primary" disabled={busy || readOnly || !preview.databaseEmpty} onclick={apply}>Übernehmen</button>
+  <button
+    class="primary"
+    disabled={busy || readOnly || !preview.databaseEmpty || preview.reconcileError !== null}
+    onclick={apply}
+  >Übernehmen</button>
 {/if}
+
+{#if info}<p>{info}</p>{/if}
 
 {#if summary}
   <div class="card">
-    <strong>Import abgeschlossen:</strong> {summary.organisations} Betriebe und {summary.persons} Personen übernommen.
+    <strong>Import abgeschlossen:</strong>
+    {plural(summary.organisations, 'Betrieb', 'Betriebe')}, {plural(summary.persons, 'Person', 'Personen')} und
+    {plural(summary.individuals, 'Einzelmitglied', 'Einzelmitglieder')} übernommen.
     Unklare Zeilen bitte anhand des Berichts nachbearbeiten.
+    <div class="toolbar actions">
+      <button disabled={busy || readOnly} onclick={undo}>Import rückgängig machen</button>
+    </div>
   </div>
   <ImportReport report={summary.report} />
 {/if}
 
 <style>
+  .summary ul { margin: 0.25rem 0 0; }
+  .actions { margin-top: 0.5rem; }
   .scroll { max-height: 320px; overflow: auto; margin-bottom: 0.75rem; }
 </style>

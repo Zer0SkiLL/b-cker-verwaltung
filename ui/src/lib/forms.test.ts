@@ -55,6 +55,8 @@ test('Betrieb: Formular aus bestehendem Datensatz und zurück', () => {
     legacy_id: null,
     org_type_id: 4,
     cantonal_association_id: null,
+    commercial_register_no: 'CHE-9',
+    cost_center_no: null,
   };
   const form = organisationFormFrom(org);
   expect(form.branches).toBe('2');
@@ -111,4 +113,12 @@ test('Mitgliedschaft: gültige Daten werden ISO', () => {
     joined_on: '2010-01-01',
     left_on: null,
   });
+});
+
+test('Betrieb: Handelsregister- und Kostenstellen-Nr werden übernommen, leer wird null', () => {
+  const form = { ...emptyOrganisationForm(), name: 'Beck AG', commercial_register_no: ' CHE-1 ', cost_center_no: '' };
+  const r = organisationInputFromForm(form);
+  if (!('input' in r)) throw new Error('erwartet input');
+  expect(r.input.commercial_register_no).toBe('CHE-1');
+  expect(r.input.cost_center_no).toBeNull();
 });

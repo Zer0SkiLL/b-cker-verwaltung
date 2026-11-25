@@ -1,13 +1,13 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Local, Utc};
 use rusqlite::Connection;
 use verwaltung_core::error::Result as CoreResult;
 use verwaltung_core::storage::backup;
 use verwaltung_core::storage::lock::Identity;
-use verwaltung_core::storage::workspace::{AccessMode, Workspace};
+use verwaltung_core::storage::workspace::{AccessMode, SecondaryResult, Workspace};
 
-use crate::dto::{LockDto, SecondaryResultDto, SessionInfo};
+use crate::dto::{BackupStatusDto, LockDto, SecondaryResultDto, SessionInfo};
 use crate::error::{AppError, AppResult};
 
 pub const NO_FILE: &str = "Keine Datei geöffnet.";
@@ -19,6 +19,10 @@ pub const FILE_EXISTS: &str = "Die Datei existiert bereits. Bitte „Öffnen“ 
 pub struct Session {
     ws: Option<Workspace>,
     who: Option<Identity>,
+    /// Letzter Fehler am zweiten Sicherungsort in dieser Sitzung (für die gelbe Leiste).
+    secondary_error: Option<String>,
+    /// Sicherung von unmittelbar vor dem letzten Import (nur sie darf „rückgängig“ machen).
+    import_backup: Option<PathBuf>,
 }
 
 impl Session {
@@ -36,6 +40,8 @@ impl Session {
 
     fn open_path(&mut self, path: &Path, who: &Identity) -> AppResult<SessionInfo> {
         self.close(Local::now())?;
+        self.clear_secondary_error();
+        self.import_backup = None;
         self.ws = Some(Workspace::open(path, who)?);
         self.who = Some(who.clone());
         self.info(Utc::now())
@@ -72,12 +78,45 @@ impl Session {
             }
         }
         self.who = Some(who.clone());
+        // Nach einem Absturz fehlt die Sicherung am zweiten Ort vom Schliessen: jetzt nachholen.
+        // Lokal wurde schon beim Öffnen gesichert.
+        let secondary = self.writable()?.backup_secondary_now(Local::now())?;
+        self.note_secondary(&secondary);
         self.info(Utc::now())
+    }
+
+    /// Merkt sich die Sicherung vor einem Import für „Import rückgängig machen“.
+    pub fn remember_import_backup(&mut self, backup: PathBuf) {
+        self.import_backup = Some(backup);
+    }
+
+    /// Gibt die gemerkte Import-Sicherung heraus, wenn `backup` genau sie ist (nur einmal).
+    pub fn take_import_backup(&mut self, backup: &Path) -> Option<PathBuf> {
+        match &self.import_backup {
+            Some(p) if p == backup => self.import_backup.take(),
+            _ => None,
+        }
+    }
+
+    /// Vergisst einen früheren Fehler am zweiten Ort (andere Datei, Ort geändert oder entfernt).
+    pub fn clear_secondary_error(&mut self) {
+        self.secondary_error = None;
+    }
+
+    /// Merkt sich das Ergebnis am zweiten Ort: Fehler bleibt bis zur nächsten gelungenen Sicherung.
+    pub fn note_secondary(&mut self, result: &SecondaryResult) {
+        match result {
+            SecondaryResult::Unavailable(reason) => self.secondary_error = Some(reason.clone()),
+            SecondaryResult::Done(_) | SecondaryResult::NotConfigured => {
+                self.clear_secondary_error()
+            }
+        }
     }
 
     /// Aktueller Zustand; prüft dabei, ob die eigene Sperre noch besteht.
     pub fn info(&mut self, now: DateTime<Utc>) -> AppResult<SessionInfo> {
         let own = self.who.clone();
+        let secondary_error = self.secondary_error.clone();
         let ws = self.workspace_mut()?;
         let held_by = match ws.check_lock()? {
             AccessMode::ReadWrite => None,
@@ -87,7 +126,10 @@ impl Session {
             path: ws.path().display().to_string(),
             read_only: held_by.is_some(),
             held_by,
-            backup: backup::status(&ws.conn, now)?.into(),
+            backup: BackupStatusDto {
+                secondary_error,
+                ..backup::status(&ws.conn, now)?.into()
+            },
         })
     }
 

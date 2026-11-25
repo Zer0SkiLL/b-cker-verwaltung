@@ -1,6 +1,7 @@
 <script lang="ts">
   import HelpPanel from './components/HelpPanel.svelte';
   import NoticeBar from './components/NoticeBar.svelte';
+  import ReportDialog from './components/ReportDialog.svelte';
   import Sidebar from './components/Sidebar.svelte';
   import Addresses from './pages/Addresses.svelte';
   import Groups from './pages/Groups.svelte';
@@ -9,12 +10,27 @@
   import Settings from './pages/Settings.svelte';
   import Start from './pages/Start.svelte';
   import Teams from './pages/Teams.svelte';
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
+  import { get } from 'svelte/store';
+  import * as api from './lib/api';
+  import { startAutoBackup } from './lib/autosave';
+  import { refreshSession, sessionInfo } from './lib/session';
   import { handleHelpKey, helpState } from './lib/help';
   import { route } from './lib/router';
   import { checkForUpdates } from './lib/updates';
 
   // Im Hintergrund nach Updates suchen; ohne Verbindung bleibt es still.
+  // Sicherung während der Arbeit: nur mit schreibend geöffneter Datei, Intervall aus den Einstellungen.
+  const stopAutoBackup = startAutoBackup({
+    getInterval: async () => {
+      const info = get(sessionInfo);
+      return info && !info.readOnly ? (await api.getRetention()).intervalMinutes : 0;
+    },
+    backup: () => api.backupIfChanged(),
+    refresh: refreshSession,
+  });
+  onDestroy(stopAutoBackup);
+
   onMount(() => {
     checkForUpdates({ silent: true });
   });
@@ -53,6 +69,7 @@
 {/if}
 {#if $helpState.open}<HelpPanel />{/if}
 </div>
+<ReportDialog />
 
 <style>
   .shell { display: grid; grid-template-columns: 1fr; height: 100vh; }

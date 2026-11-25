@@ -8,7 +8,8 @@ use crate::text::{clean, normalize_search};
 const ENTITY: &str = "Betrieb";
 const COLUMNS: &str =
     "id, name, addition, street, po_box, zip, city, phone, email, website, branches, \
-     apprentice_count, notes, legacy_id, org_type_id, cantonal_association_id";
+     apprentice_count, notes, legacy_id, org_type_id, cantonal_association_id, \
+     commercial_register_no, cost_center_no";
 
 /// Eingabedaten für einen Betrieb (juristische Person).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -28,6 +29,8 @@ pub struct OrganisationInput {
     pub legacy_id: Option<String>,
     pub org_type_id: Option<i64>,
     pub cantonal_association_id: Option<i64>,
+    pub commercial_register_no: Option<String>,
+    pub cost_center_no: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -48,18 +51,21 @@ pub struct Organisation {
     pub legacy_id: Option<String>,
     pub org_type_id: Option<i64>,
     pub cantonal_association_id: Option<i64>,
+    pub commercial_register_no: Option<String>,
+    pub cost_center_no: Option<String>,
 }
 
 pub fn create(conn: &Connection, input: &OrganisationInput) -> Result<Organisation> {
     let c = cleaned(input)?;
     conn.execute(
         "INSERT INTO organisations(name, addition, street, po_box, zip, city, phone, email, website, \
-         branches, apprentice_count, notes, legacy_id, org_type_id, cantonal_association_id, search_text) \
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+         branches, apprentice_count, notes, legacy_id, org_type_id, cantonal_association_id, search_text, \
+         commercial_register_no, cost_center_no) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
         params![
             c.name, c.addition, c.street, c.po_box, c.zip, c.city, c.phone, c.email, c.website,
             c.branches, c.apprentice_count, c.notes, c.legacy_id, c.org_type_id,
-            c.cantonal_association_id, search_text(&c)
+            c.cantonal_association_id, search_text(&c), c.commercial_register_no, c.cost_center_no
         ],
     )?;
     get(conn, conn.last_insert_rowid())
@@ -70,11 +76,12 @@ pub fn update(conn: &Connection, id: i64, input: &OrganisationInput) -> Result<O
     let changed = conn.execute(
         "UPDATE organisations SET name = ?1, addition = ?2, street = ?3, po_box = ?4, zip = ?5, city = ?6, \
          phone = ?7, email = ?8, website = ?9, branches = ?10, apprentice_count = ?11, notes = ?12, \
-         legacy_id = ?13, org_type_id = ?14, cantonal_association_id = ?15, search_text = ?16 WHERE id = ?17",
+         legacy_id = ?13, org_type_id = ?14, cantonal_association_id = ?15, search_text = ?16, \
+         commercial_register_no = ?17, cost_center_no = ?18 WHERE id = ?19",
         params![
             c.name, c.addition, c.street, c.po_box, c.zip, c.city, c.phone, c.email, c.website,
             c.branches, c.apprentice_count, c.notes, c.legacy_id, c.org_type_id,
-            c.cantonal_association_id, search_text(&c), id
+            c.cantonal_association_id, search_text(&c), c.commercial_register_no, c.cost_center_no, id
         ],
     )?;
     if changed == 0 {
@@ -118,6 +125,8 @@ fn cleaned(input: &OrganisationInput) -> Result<OrganisationInput> {
         website: clean(&input.website),
         notes: clean(&input.notes),
         legacy_id: clean(&input.legacy_id),
+        commercial_register_no: clean(&input.commercial_register_no),
+        cost_center_no: clean(&input.cost_center_no),
         ..input.clone()
     })
 }
@@ -128,6 +137,7 @@ fn search_text(c: &OrganisationInput) -> String {
         c.addition.as_deref(),
         c.city.as_deref(),
         c.email.as_deref(),
+        c.commercial_register_no.as_deref(),
     ])
 }
 
@@ -149,5 +159,7 @@ fn from_row(row: &Row) -> rusqlite::Result<Organisation> {
         legacy_id: row.get(13)?,
         org_type_id: row.get(14)?,
         cantonal_association_id: row.get(15)?,
+        commercial_register_no: row.get(16)?,
+        cost_center_no: row.get(17)?,
     })
 }

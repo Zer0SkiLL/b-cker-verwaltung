@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use verwaltung_core::storage::retention::RetentionPolicy;
 
 use chrono::{Local, Utc};
 use tauri::State;
@@ -66,6 +67,21 @@ pub fn backup_now(state: State<AppState>) -> AppResult<bk::BackupNowDto> {
 }
 
 #[tauri::command(async)]
+pub fn backup_if_changed(state: State<AppState>) -> AppResult<Option<bk::BackupNowDto>> {
+    state.with(|s| bk::backup_if_changed(s, Local::now()))
+}
+
+#[tauri::command(async)]
+pub fn get_retention(state: State<AppState>) -> AppResult<RetentionPolicy> {
+    state.with(|s| bk::get_retention(s))
+}
+
+#[tauri::command(async)]
+pub fn set_retention(state: State<AppState>, policy: RetentionPolicy) -> AppResult<()> {
+    state.with(|s| bk::set_retention(s, &policy))
+}
+
+#[tauri::command(async)]
 pub fn restore_backup(state: State<AppState>, path: String) -> AppResult<()> {
     state.with(|s| bk::restore_backup(s, &PathBuf::from(path), Local::now()))
 }
@@ -90,7 +106,22 @@ pub fn import_apply(
     path: String,
     mapping: Vec<String>,
 ) -> AppResult<imp::ImportSummaryDto> {
-    state.with(|s| imp::import_apply(s, &PathBuf::from(path), mapping))
+    state.with(|s| imp::import_apply(s, &PathBuf::from(path), mapping, Local::now()))
+}
+
+#[tauri::command(async)]
+pub fn import_undo(state: State<AppState>, backup: String) -> AppResult<()> {
+    state.with(|s| imp::import_undo(s, &PathBuf::from(backup), Local::now()))
+}
+
+#[tauri::command(async)]
+pub fn export_import_preview(
+    state: State<AppState>,
+    path: String,
+    mapping: Option<Vec<String>>,
+    out: String,
+) -> AppResult<()> {
+    state.with(|s| imp::export_preview(s, &PathBuf::from(path), mapping, &PathBuf::from(out)))
 }
 
 #[tauri::command(async)]

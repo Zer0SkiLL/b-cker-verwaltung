@@ -7,7 +7,8 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Local};
 use rusqlite::Connection;
 
-use super::backup::{backup_to_dir, db_stem, local_backup_dir, prune, verify, BACKUP_KEEP};
+use super::backup::{backup_to_dir, db_stem, local_backup_dir, verify};
+use super::retention::{apply_retention, load_policy};
 use super::workspace::Workspace;
 use crate::db::{self, SCHEMA_VERSION};
 use crate::error::{CoreError, Result};
@@ -23,7 +24,7 @@ impl Workspace {
         let path = self.path().to_path_buf();
         let stem = db_stem(&path);
         let dir = local_backup_dir(&path);
-        backup_to_dir(&self.conn, &dir, &stem, now)?;
+        let saved = backup_to_dir(&self.conn, &dir, &stem, now)?;
         // Aufräumen erst nach dem Ersetzen: sonst könnte die gewählte (älteste) Sicherung gelöscht werden.
         // Verbindung schliessen, damit die Datei ersetzt werden kann.
         drop(std::mem::replace(
@@ -35,7 +36,10 @@ impl Workspace {
                 let conn = db::open_unmigrated(&path, false)?;
                 db::migrate(&conn)?;
                 self.conn = conn;
-                prune(&dir, &stem, BACKUP_KEEP)
+                // Der wiederhergestellte Stand liegt schon als Sicherung vor.
+                self.mark_backed_up();
+                log::info!("Sicherung wiederhergestellt");
+                apply_retention(&dir, &stem, &saved, &load_policy(&self.conn))
             }
             Err(err) => {
                 self.conn = db::open_connection(&path, false)?;

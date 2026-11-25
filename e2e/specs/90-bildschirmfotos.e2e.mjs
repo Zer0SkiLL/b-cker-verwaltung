@@ -2,7 +2,7 @@
 // Erzeugte Bilder: adressen, adressen-filter, adressen-gruppe-speichern, neuer-betrieb, betrieb,
 // betrieb-offiziell, betrieb-provisorisch, betrieb-ausgetreten, person, gruppen, teams, einstellungen-labels,
 // einstellungen-kategorien, einstellungen-sicherung, einstellungen-import, einstellungen-export,
-// einstellungen-ueber, hilfe, hilfe-suche.
+// einstellungen-ueber, einstellungen-aufbewahrung, problem-melden, hilfe, hilfe-suche.
 // Die Seiten werden nur angesehen, nicht gespeichert: die Beispieldaten bleiben unverändert.
 import { join, resolve } from 'node:path';
 import { mkdirSync } from 'node:fs';
@@ -103,12 +103,25 @@ describe('Bildschirmfotos', () => {
     await shot('einstellungen-kategorien');
     await settingsTab('Datensicherung');
     await shot('einstellungen-sicherung');
+    await scrollToSection('Aufbewahrung');
+    await (await $('#ret-intervalMinutes')).waitForDisplayed();
+    await shot('einstellungen-aufbewahrung');
     await settingsTab('Excel-Import');
     await shot('einstellungen-import');
     await settingsTab('Gesamtexport');
     await shot('einstellungen-export');
     await settingsTab('Über das Programm');
     await shot('einstellungen-ueber');
+  });
+
+  it('Problem melden', async () => {
+    await goTo('Adressen');
+    await clickButton('Problem melden');
+    const field = await $('#report-description');
+    await field.waitForDisplayed();
+    await field.setValue('Beispiel: Beim Speichern erschien eine Fehlermeldung');
+    await shot('problem-melden');
+    await clickButton('Schliessen');
   });
 
   it('Hilfe-Seitenleiste', async () => {

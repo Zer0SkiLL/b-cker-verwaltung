@@ -48,3 +48,30 @@ fn read_only_connection_rejects_writes() {
         .unwrap_err();
     assert!(matches!(err, CoreError::ReadOnly), "got {err:?}");
 }
+
+#[test]
+fn migration_adds_org_numbers_to_existing_file() {
+    let (_d, path) = tmp_db();
+    {
+        let conn = verwaltung_core::db::open_unmigrated(&path, false).unwrap();
+        conn.execute_batch(include_str!("../src/db/0001_init.sql"))
+            .unwrap();
+        conn.execute_batch(include_str!("../src/db/0002_settings.sql"))
+            .unwrap();
+        conn.execute_batch("PRAGMA user_version = 2").unwrap();
+        conn.execute(
+            "INSERT INTO organisations(name, search_text) VALUES ('Alt AG', 'alt ag')",
+            [],
+        )
+        .unwrap();
+    }
+    let conn = open_connection(&path, false).unwrap();
+    let (hr, cc): (Option<String>, Option<String>) = conn
+        .query_row(
+            "SELECT commercial_register_no, cost_center_no FROM organisations",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!((hr, cc), (None, None));
+}

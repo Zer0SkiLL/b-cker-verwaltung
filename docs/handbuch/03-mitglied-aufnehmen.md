@@ -16,7 +16,7 @@ Die Aufnahme läuft in Stufen: Antrag → Vorstandssitzung (VS) → provisorisch
 3. Unter **Mitgliedschaft** klicken Sie auf **Mitgliedschaft erfassen**.
 4. Wählen Sie die **Kategorie**, zum Beispiel „Mitglied mit Geschäft“. Lassen Sie **Eintritt** leer. Klicken Sie auf **Speichern**.
 5. Unter **Labels** wählen Sie „provisorisch“ und klicken auf **Hinzufügen**.
-6. Unter **Personen** klicken Sie auf **Person verknüpfen**, um die Inhaberin oder den Inhaber mit Funktion zu erfassen.
+6. Unter **Personen** klicken Sie auf **Person verknüpfen**, um die Inhaberin oder den Inhaber mit Funktion zu erfassen. (Beim Excel-Import erhalten Personen zunächst die Funktion „Kontaktperson“; ändern Sie sie bei Bedarf mit **Bearbeiten**.)
 
 ![Ein neuer Betrieb wird erfasst](bilder/neuer-betrieb.png)
 

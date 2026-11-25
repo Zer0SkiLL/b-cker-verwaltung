@@ -7,6 +7,7 @@ use crate::error::{CoreError, Result};
 const MIGRATIONS: &[&str] = &[
     include_str!("0001_init.sql"),
     include_str!("0002_settings.sql"),
+    include_str!("0003_org_numbers.sql"),
 ];
 
 /// Aktuelle Schema-Version (Anzahl Migrationen).

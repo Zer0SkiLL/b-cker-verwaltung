@@ -7,8 +7,6 @@ use rusqlite::Connection;
 use crate::db;
 use crate::error::{CoreError, Result};
 
-/// Anzahl Sicherungen, die pro Ort behalten werden.
-pub const BACKUP_KEEP: usize = 20;
 const BACKUP_EXT: &str = ".sqlite";
 
 /// Ordner für automatische Sicherungen: `<Ordner der Datenbank>/backups`.
@@ -49,6 +47,7 @@ pub fn backup_to_dir(
 
 /// Löscht die ältesten Sicherungen von `stem` über `keep` hinaus. Nur Dateien im exakten
 /// Sicherungsformat `<stem>-JJJJMMTT-HHMMSS[-N].sqlite` werden berücksichtigt.
+/// Behält nur die `keep` neuesten Sicherungen (einfache Regel; im Programm gilt `retention`).
 pub fn prune(dir: &Path, stem: &str, keep: usize) -> Result<()> {
     for old in list(dir, stem)?.into_iter().skip(keep) {
         fs::remove_file(old.path)?;

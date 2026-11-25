@@ -22,7 +22,7 @@ export function bumpData(): void {
   dataVersion.update((v) => v + 1);
 }
 
-export type Notice = { kind: 'readOnly' | 'backup'; text: string };
+export type Notice = { kind: 'readOnly' | 'backup' | 'secondaryError'; text: string };
 
 export function noticesFor(info: SessionInfo): Notice[] {
   const notices: Notice[] = [];
@@ -34,7 +34,11 @@ export function noticesFor(info: SessionInfo): Notice[] {
       : 'Nur lesen';
     notices.push({ kind: 'readOnly', text });
   }
-  if (info.backup.reminderDue) {
+  if (info.backup.secondaryError) {
+    const last = info.backup.lastSecondary;
+    const when = last ? ` am ${formatDateTime(last)}` : ': noch nie';
+    notices.push({ kind: 'secondaryError', text: `Zweiter Sicherungsort nicht erreichbar – letzte Sicherung dort${when}` });
+  } else if (info.backup.reminderDue) {
     const text = info.backup.secondaryDir
       ? 'Letzte Sicherung am zweiten Ort ist älter als 30 Tage'
       : 'Kein zweiter Sicherungsort eingerichtet';

@@ -47,13 +47,14 @@ pub fn write_xlsx(path: &Path, headers: &[&str], rows: &[Vec<&str>]) {
 }
 
 /// Kopfzeile der heutigen Mitgliederliste (Spec §6.4).
-pub const LIST_HEADERS: [&str; 23] = [
-    "ID1",
-    "Anzahl",
+pub const LIST_HEADERS: [&str; 26] = [
+    "OBC-ID",
     "Kt Verband",
-    "Name/Firma",
+    "Firma",
+    "Name",
     "Vorname",
-    "Zusatz",
+    "Zusatz/Inhaber (Handelsregister)",
+    "Adresszusatz",
     "Adresse",
     "PLZ",
     "Ort",
@@ -70,5 +71,7 @@ pub const LIST_HEADERS: [&str; 23] = [
     "Filialen",
     "Telefon",
     "Mobiltelefon",
-    "Postfach",
+    "Kostenstellen-Nr",
+    "Mandat",
+    "Handelsregister-Nr",
 ];

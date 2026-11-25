@@ -2,7 +2,7 @@
 mod common;
 use chrono::{Duration, Local};
 use common::d;
-use verwaltung_core::storage::backup::{self, local_backup_dir, prune, BACKUP_KEEP};
+use verwaltung_core::storage::backup::{self, local_backup_dir, prune};
 use verwaltung_core::storage::lock::Identity;
 use verwaltung_core::storage::workspace::Workspace;
 
@@ -20,19 +20,16 @@ fn prune_ignores_backups_of_similar_named_database() {
     let main = dir.path().join("verband.sqlite");
     let copy = dir.path().join("verband-kopie.sqlite");
     let start = Local::now();
-    let ws_copy = Workspace::open(&copy, &who("reto")).unwrap();
-    for i in 0..BACKUP_KEEP as i64 {
+    let mut ws_copy = Workspace::open(&copy, &who("reto")).unwrap();
+    for i in 0..20 {
         ws_copy.backup_now(start + Duration::seconds(i)).unwrap();
     }
     drop(ws_copy);
-    let ws = Workspace::open(&main, &who("reto")).unwrap();
+    let mut ws = Workspace::open(&main, &who("reto")).unwrap();
     let out = ws.backup_now(start + Duration::seconds(100)).unwrap();
     assert!(out.local.exists(), "eigene Sicherung wurde gelöscht");
     let backups = local_backup_dir(&main);
-    assert_eq!(
-        backup::list(&backups, "verband-kopie").unwrap().len(),
-        BACKUP_KEEP
-    );
+    assert_eq!(backup::list(&backups, "verband-kopie").unwrap().len(), 20);
 }
 
 // C1
@@ -115,7 +112,7 @@ fn backup_now_after_takeover_is_refused() {
     use verwaltung_core::error::CoreError;
     let dir = tempfile::tempdir().unwrap();
     let db = dir.path().join("daten.sqlite");
-    let anna = Workspace::open(&db, &who("anna")).unwrap();
+    let mut anna = Workspace::open(&db, &who("anna")).unwrap();
     let _vertretung = Workspace::open_taking_over(&db, &who("vertretung")).unwrap();
     assert!(matches!(
         anna.backup_now(Local::now()),
@@ -214,9 +211,10 @@ fn two_digit_years_are_invalid_not_year_0019() {
 // I5
 #[test]
 fn mapping_works_by_column_position_with_duplicate_headers() {
-    use verwaltung_core::import::mapping::{plan, Field, Mapping};
+    use verwaltung_core::import::mapping::{Field, Mapping};
+    use verwaltung_core::import::plan::plan;
     use verwaltung_core::import::sheet::{Cell, Sheet, SheetRow};
-    let headers: Vec<String> = ["Name/Firma", "Vorname", "Telefon", "Telefon"]
+    let headers: Vec<String> = ["Firma", "Name", "Telefon", "Telefon"]
         .iter()
         .map(|h| h.to_string())
         .collect();
@@ -228,20 +226,18 @@ fn mapping_works_by_column_position_with_duplicate_headers() {
         rows: vec![SheetRow {
             line: 2,
             cells: vec![
+                t("Bäckerei Muster"),
                 t("Muster"),
-                t("Hans"),
                 t("031 111 11 11"),
                 t("079 222 22 22"),
             ],
         }],
     };
     let p = plan(&sheet, &mapping);
+    let org = &p.organisations[0];
+    assert_eq!(org.input.phone.as_deref(), Some("031 111 11 11"));
     assert_eq!(
-        p.rows[0].organisation.phone.as_deref(),
-        Some("031 111 11 11")
-    );
-    assert_eq!(
-        p.rows[0].person.as_ref().unwrap().mobile.as_deref(),
+        org.persons[0].input.mobile.as_deref(),
         Some("079 222 22 22")
     );
 }
@@ -309,9 +305,10 @@ fn rejoined_member_is_not_exited() {
 // Minor 2 (hochgestuft): Austritt vor Eintritt → Austritt behalten, damit kein Ex-Mitglied aktiv wird
 #[test]
 fn import_keeps_austritt_when_dates_are_swapped() {
-    use verwaltung_core::import::mapping::{plan, Mapping};
+    use verwaltung_core::import::mapping::Mapping;
+    use verwaltung_core::import::plan::plan;
     use verwaltung_core::import::sheet::{Cell, Sheet, SheetRow};
-    let headers: Vec<String> = ["Name/Firma", "Eintritt", "Austritt"]
+    let headers: Vec<String> = ["Firma", "Eintritt", "Austritt"]
         .iter()
         .map(|h| h.to_string())
         .collect();
@@ -324,8 +321,8 @@ fn import_keeps_austritt_when_dates_are_swapped() {
         }],
     };
     let p = plan(&sheet, &Mapping::default_for(&headers));
-    assert_eq!(p.rows[0].left, Some(d(2019, 12, 31)));
-    assert_eq!(p.rows[0].joined, None);
+    assert_eq!(p.organisations[0].left, Some(d(2019, 12, 31)));
+    assert_eq!(p.organisations[0].joined, None);
     assert_eq!(
         p.report[0].message,
         "Eintritt liegt nach Austritt, Eintritt ignoriert"
@@ -344,12 +341,12 @@ fn restoring_oldest_of_full_backup_set_works() {
         )
         .unwrap();
     let start = Local::now() - Duration::days(30);
-    for i in 0..BACKUP_KEEP as i64 {
+    for i in 0..20 {
         ws.backup_now(start + Duration::hours(i)).unwrap();
     }
     let stem = backup::db_stem(&db);
     let files = backup::list(&local_backup_dir(&db), &stem).unwrap();
-    assert_eq!(files.len(), BACKUP_KEEP);
+    assert_eq!(files.len(), 20);
     let oldest = files.last().unwrap().path.clone();
     ws.conn.execute("DELETE FROM organisations", []).unwrap();
     ws.restore(&oldest, Local::now()).unwrap();

@@ -16,6 +16,9 @@ path = "src/main.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+log = "0.4"
+os_info = { version = "3", default-features = false }
+tauri-plugin-log = "2"
 verwaltung_core = { path = "../core" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
@@ -32,3 +35,4 @@ rusqlite = { version = "0.43", features = ["bundled", "chrono"] }
 [dev-dependencies]
 tempfile = "3"
 rust_xlsxwriter = "0.104"
+calamine = "0.38"

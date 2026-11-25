@@ -1,10 +1,10 @@
 use std::path::{Path, PathBuf};
 
-use chrono::{Duration, Local, Utc};
+use chrono::{DateTime, Duration, Local, TimeZone, Utc};
 use verwaltung_core::db::{schema_version, SCHEMA_VERSION};
 use verwaltung_core::error::CoreError;
 use verwaltung_core::repo::settings::{self, LAST_SECONDARY_BACKUP, SECONDARY_BACKUP_DIR};
-use verwaltung_core::storage::backup::{self, local_backup_dir, BACKUP_KEEP};
+use verwaltung_core::storage::backup::{self, local_backup_dir};
 use verwaltung_core::storage::lock::{Identity, LockGuard};
 use verwaltung_core::storage::workspace::{SecondaryResult, Workspace};
 
@@ -38,10 +38,10 @@ fn team_names(ws: &Workspace) -> Vec<String> {
 }
 
 #[test]
-fn schema_version_is_2_and_settings_roundtrip() {
+fn schema_version_is_current_and_settings_roundtrip() {
     let (_d, _db, ws) = setup();
-    assert_eq!(SCHEMA_VERSION, 2);
-    assert_eq!(schema_version(&ws.conn).unwrap(), 2);
+    assert_eq!(SCHEMA_VERSION, 3);
+    assert_eq!(schema_version(&ws.conn).unwrap(), 3);
     assert_eq!(settings::get(&ws.conn, "x").unwrap(), None);
     settings::set(&ws.conn, "x", "1").unwrap();
     settings::set(&ws.conn, "x", "2").unwrap();
@@ -52,7 +52,7 @@ fn schema_version_is_2_and_settings_roundtrip() {
 
 #[test]
 fn backup_now_without_secondary_reports_not_configured() {
-    let (_d, db, ws) = setup();
+    let (_d, db, mut ws) = setup();
     let out = ws.backup_now(Local::now()).unwrap();
     assert_eq!(out.secondary, SecondaryResult::NotConfigured);
     assert!(out.local.starts_with(local_backup_dir(&db)));
@@ -61,7 +61,7 @@ fn backup_now_without_secondary_reports_not_configured() {
 
 #[test]
 fn backup_now_writes_secondary_and_sets_last_time() {
-    let (dir, _db, ws) = setup();
+    let (dir, _db, mut ws) = setup();
     let usb = dir.path().join("usb");
     set_secondary(&ws, &usb);
     let out = ws.backup_now(Local::now()).unwrap();
@@ -76,7 +76,7 @@ fn backup_now_writes_secondary_and_sets_last_time() {
 
 #[test]
 fn unavailable_secondary_does_not_fail() {
-    let (dir, _db, ws) = setup();
+    let (dir, _db, mut ws) = setup();
     let file = dir.path().join("datei.txt");
     std::fs::write(&file, b"x").unwrap();
     set_secondary(&ws, &file.join("unterordner"));
@@ -90,15 +90,31 @@ fn unavailable_secondary_does_not_fail() {
 }
 
 #[test]
-fn secondary_pruned_to_20() {
-    let (dir, _db, ws) = setup();
+fn secondary_thins_out_like_local() {
+    let (dir, _db, mut ws) = setup();
     let usb = dir.path().join("usb");
     set_secondary(&ws, &usb);
-    let start = Local::now();
+    let start = Local.with_ymd_and_hms(2026, 11, 25, 12, 0, 0).unwrap();
+    // Drei Sicherungen an einem älteren Tag, eine am Tag danach.
+    let old = start - Duration::days(20);
+    for h in 0..3 {
+        ws.backup_now(old + Duration::hours(h)).unwrap();
+    }
+    ws.backup_now(old + Duration::days(1)).unwrap();
+    // Viele Sicherungen kurz hintereinander am selben Tag bleiben alle.
     for i in 0..22 {
         ws.backup_now(start + Duration::seconds(i)).unwrap();
     }
-    assert_eq!(backup::list(&usb, "daten").unwrap().len(), BACKUP_KEEP);
+    let files = backup::list(&usb, "daten").unwrap();
+    let on = |d: DateTime<Local>| {
+        files
+            .iter()
+            .filter(|f| f.created.date() == d.date_naive())
+            .count()
+    };
+    assert_eq!(on(start), 22);
+    // Der ältere Tag ist der dritte Tag mit Sicherungen: nur die neueste bleibt.
+    assert_eq!(on(old), 1);
 }
 
 #[test]
@@ -224,7 +240,7 @@ fn restore_rejects_newer_schema() {
 
 #[test]
 fn restore_in_read_only_returns_read_only() {
-    let (_dir, db, ws) = setup();
+    let (_dir, db, mut ws) = setup();
     let copy = ws.backup_now(Local::now()).unwrap().local;
     let mut second = Workspace::open(&db, &who("anna")).unwrap();
     assert!(matches!(
@@ -235,7 +251,7 @@ fn restore_in_read_only_returns_read_only() {
 }
 
 fn ws_backup_read_only(db: &Path) -> Result<(), CoreError> {
-    let ro = Workspace::open(db, &who("anna"))?;
+    let mut ro = Workspace::open(db, &who("anna"))?;
     ro.backup_now(Local::now()).map(|_| ())
 }
 

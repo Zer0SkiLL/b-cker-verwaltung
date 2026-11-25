@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { reportOpen } from '../lib/diagnostics';
   import { helpState, toggleHelp } from '../lib/help';
   import { navigate, route, type Route } from '../lib/router';
 
@@ -18,6 +19,7 @@
   {/each}
   <div class="spacer"></div>
   <button class:active={$helpState.open} onclick={toggleHelp} title="Handbuch: Abläufe und Erklärungen zu allen Seiten">Hilfe</button>
+  <button onclick={() => reportOpen.set(true)} title="Bericht für den Entwickler erstellen, wenn etwas nicht funktioniert">Problem melden</button>
   <button class:active={$route.page === 'settings'} onclick={() => navigate({ page: 'settings' })}>
     Einstellungen
   </button>

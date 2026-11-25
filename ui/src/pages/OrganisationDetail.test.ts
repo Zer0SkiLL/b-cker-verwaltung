@@ -7,6 +7,7 @@ const org = {
   id: 3, name: 'Beck AG', addition: null, street: null, po_box: null, zip: null, city: null,
   phone: null, email: null, website: null, branches: null, apprentice_count: null, notes: null,
   legacy_id: null, org_type_id: null, cantonal_association_id: null,
+  commercial_register_no: null, cost_center_no: null,
 };
 
 vi.mock('../lib/api', () => ({

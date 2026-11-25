@@ -105,3 +105,16 @@ test('Hinweis nach Absturz', () => {
     'Nur lesen – geöffnet von anna (pc1) seit 24.11.2026 08:12 – wahrscheinlich nach einem Absturz, bitte „Übernehmen“',
   );
 });
+
+test('Hinweis: zweiter Sicherungsort nicht erreichbar (ersetzt die 30-Tage-Erinnerung)', () => {
+  const base = { path: '/x', readOnly: false, heldBy: null };
+  const withDate = noticesFor({
+    ...base,
+    backup: { secondaryDir: 'E:\\Sicherung', lastSecondary: new Date(2026, 10, 24, 8, 12).toISOString(), reminderDue: true, secondaryError: 'nicht erreichbar' },
+  });
+  expect(withDate).toEqual([
+    { kind: 'secondaryError', text: 'Zweiter Sicherungsort nicht erreichbar – letzte Sicherung dort am 24.11.2026 08:12' },
+  ]);
+  const never = noticesFor({ ...base, backup: { secondaryDir: 'E:\\', lastSecondary: null, reminderDue: true, secondaryError: 'x' } });
+  expect(never[0].text).toBe('Zweiter Sicherungsort nicht erreichbar – letzte Sicherung dort: noch nie');
+});

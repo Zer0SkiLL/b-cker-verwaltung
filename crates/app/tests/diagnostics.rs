@@ -1,0 +1,140 @@
+//! Programm-Protokoll und Systemangaben für „Problem melden“.
+mod common;
+
+use std::sync::{Mutex, OnceLock};
+
+use chrono::Local;
+use common::{fresh_session, org_input, write_xlsx, LIST_HEADERS};
+use verwaltung_app::commands::backup::backup_now;
+use verwaltung_app::commands::diagnostics::{log_tail, system_info};
+use verwaltung_app::commands::import::{import_apply, import_preview};
+use verwaltung_core::repo::organisations;
+
+/// Sammelt alle Protokollzeilen dieses Testprozesses.
+struct Capture(Mutex<Vec<String>>);
+
+impl log::Log for Capture {
+    fn enabled(&self, _: &log::Metadata) -> bool {
+        true
+    }
+    fn log(&self, record: &log::Record) {
+        self.0
+            .lock()
+            .unwrap()
+            .push(format!("{} {}", record.level(), record.args()));
+    }
+    fn flush(&self) {}
+}
+
+fn captured() -> &'static Capture {
+    static LOGGER: OnceLock<&'static Capture> = OnceLock::new();
+    LOGGER.get_or_init(|| {
+        let logger: &'static Capture = Box::leak(Box::new(Capture(Mutex::new(Vec::new()))));
+        log::set_logger(logger).unwrap();
+        log::set_max_level(log::LevelFilter::Trace);
+        logger
+    })
+}
+
+#[test]
+fn logs_contain_no_business_data() {
+    let capture = captured();
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = fresh_session(dir.path());
+    s.write(|c| organisations::create(c, &org_input("Bäckerei Geheim AG")))
+        .unwrap();
+    // Zweiter Ort mit „geheimem“ Namen, danach nicht erreichbar (Datei statt Ordner).
+    let usb = dir.path().join("usb-Geheimordner");
+    std::fs::create_dir(&usb).unwrap();
+    verwaltung_app::commands::backup::set_secondary_dir(&mut s, Some(&usb)).unwrap();
+    std::fs::remove_dir(&usb).unwrap();
+    std::fs::write(&usb, b"kein Ordner").unwrap();
+    backup_now(&mut s, Local::now()).unwrap();
+    // Import in eine zweite, leere Datei.
+    let dir2 = tempfile::tempdir().unwrap();
+    let mut s2 = fresh_session(dir2.path());
+    let file = dir2.path().join("liste.xlsx");
+    let mut row = vec![""; LIST_HEADERS.len()];
+    row[2] = "Confiserie Geheim";
+    write_xlsx(&file, &LIST_HEADERS, &[row]);
+    let p = import_preview(&mut s2, &file, None).unwrap();
+    import_apply(&mut s2, &file, p.mapping, Local::now()).unwrap();
+    let lines = capture.0.lock().unwrap().clone();
+    assert!(!lines.is_empty(), "es wurde nichts protokolliert");
+    for line in &lines {
+        assert!(
+            !line.contains("Geheim"),
+            "Vereinsdaten im Protokoll: {line}"
+        );
+        assert!(
+            !line.contains(&*dir.path().to_string_lossy()),
+            "Pfad im Protokoll: {line}"
+        );
+    }
+}
+
+fn write_log(dir: &std::path::Path, lines: &[String]) {
+    std::fs::write(dir.join("Mitgliederverwaltung.log"), lines.join("\n")).unwrap();
+}
+
+#[test]
+fn log_tail_prefers_warnings_and_errors() {
+    let dir = tempfile::tempdir().unwrap();
+    let lines: Vec<String> = (0..100)
+        .map(|i| {
+            let level = if i % 5 == 0 { "WARN" } else { "INFO" };
+            format!("[2026-11-25][10:00:{i:02}][verwaltung][{level}] Zeile {i}")
+        })
+        .collect();
+    write_log(dir.path(), &lines);
+    let tail = log_tail(dir.path()).unwrap();
+    let warns = tail.iter().filter(|l| l.contains("[WARN]")).count();
+    assert_eq!(warns, 20);
+    // die letzten 10 Zeilen jeder Stufe sind dabei
+    assert!(tail.iter().any(|l| l.ends_with("Zeile 99")));
+    assert!(tail.iter().any(|l| l.ends_with("Zeile 91")));
+    // keine Doppelten, zeitliche Reihenfolge
+    let mut sorted = tail.clone();
+    sorted.dedup();
+    assert_eq!(sorted.len(), tail.len());
+    assert!(tail.first().unwrap().ends_with("Zeile 0"));
+    assert!(tail.last().unwrap().ends_with("Zeile 99"));
+}
+
+#[test]
+fn log_tail_caps_warnings_at_40() {
+    let dir = tempfile::tempdir().unwrap();
+    let lines: Vec<String> = (0..60).map(|i| format!("[x][ERROR] Fehler {i}")).collect();
+    write_log(dir.path(), &lines);
+    assert_eq!(log_tail(dir.path()).unwrap().len(), 40);
+}
+
+#[test]
+fn log_tail_without_file_is_empty() {
+    let dir = tempfile::tempdir().unwrap();
+    assert!(log_tail(&dir.path().join("fehlt")).unwrap().is_empty());
+}
+
+#[test]
+fn system_info_has_version_and_os() {
+    let info = system_info();
+    assert_eq!(info.version, env!("CARGO_PKG_VERSION"));
+    assert!(!info.os.is_empty());
+    assert!(!info.arch.is_empty());
+}
+
+#[test]
+fn opening_and_closing_are_logged() {
+    let capture = captured();
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = fresh_session(dir.path());
+    let mut ben = verwaltung_app::session::Session::default();
+    ben.open(&common::db_path(dir.path()), &common::who("ben"))
+        .unwrap();
+    s.close(Local::now()).unwrap();
+    let lines = capture.0.lock().unwrap().clone();
+    let has = |text: &str| lines.iter().any(|l| l.contains(text));
+    assert!(has("INFO Datei geöffnet (schreibend)"), "{lines:?}");
+    assert!(has("INFO Datei geöffnet (nur lesend)"), "{lines:?}");
+    assert!(has("INFO Datei geschlossen"), "{lines:?}");
+}

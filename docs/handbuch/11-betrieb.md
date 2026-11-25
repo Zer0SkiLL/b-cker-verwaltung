@@ -6,7 +6,7 @@ Auf der Seite eines Betriebs pflegen Sie Adresse, Personen, Mitgliedschaft und L
 
 ## Felder
 
-**Name / Firma** ist Pflicht. Dazu kommen Zusatz, Adresse, Postfach, PLZ, Ort, Telefon, Mail, Website, Betriebsart, Kantonalverband, Filialen, Anzahl Lernende, Bemerkungen und Alt-ID (alte Liste, aus dem Excel-Import).
+**Name / Firma** ist Pflicht. Dazu kommen Zusatz, Adresse, Postfach, PLZ, Ort, Telefon, Mail, Website, Betriebsart, Kantonalverband, Filialen, Anzahl Lernende, Bemerkungen, Alt-ID (alte Liste, aus dem Excel-Import), **Handelsregister-Nr** und **Kostenstellen-Nr**. Die Handelsregister-Nr findet auch das Suchfeld auf der Seite [Adressen](10-adressen.md).
 
 Ändern Sie Felder, erscheint **Ungespeicherte Änderungen**. Erst **Speichern** übernimmt sie.
 

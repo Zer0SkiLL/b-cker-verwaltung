@@ -1,6 +1,6 @@
 use chrono::{Local, TimeZone};
 use verwaltung_core::error::CoreError;
-use verwaltung_core::storage::backup::{backup_to_dir, local_backup_dir, prune, BACKUP_KEEP};
+use verwaltung_core::storage::backup::{backup_to_dir, local_backup_dir, prune};
 use verwaltung_core::storage::lock::{Identity, LockGuard};
 use verwaltung_core::storage::workspace::{AccessMode, Workspace};
 
@@ -83,7 +83,7 @@ fn prune_keeps_newest_20() {
         .unwrap();
     }
     std::fs::write(dir.path().join("fremd.txt"), b"x").unwrap();
-    prune(dir.path(), "daten", BACKUP_KEEP).unwrap();
+    prune(dir.path(), "daten", 20).unwrap();
     let names = backups(dir.path());
     assert_eq!(names.len(), 21); // 20 Sicherungen + fremde Datei
     assert!(!names.contains(&"daten-20260101-100000.sqlite".to_string()));
