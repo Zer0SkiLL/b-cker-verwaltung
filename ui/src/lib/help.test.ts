@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { closeHelp, handleHelpKey, helpBack, helpState, openHelp, openHelpForRoute, showSearch, showToc } from './help';
+import { closeHelp, handleHelpKey, helpBack, helpState, openHelp, openHelpForRoute, showSearch, showToc, toggleHelp } from './help';
 
 beforeEach(() => {
   closeHelp();
@@ -66,4 +66,38 @@ test('Esc bei offenem Dialog lässt die Hilfe offen', () => {
 
 test('andere Tasten werden nicht behandelt', () => {
   expect(handleHelpKey(key('a'), { page: 'teams' })).toBe(false);
+});
+
+test('? auf der Seite mit offenem Seitenkapitel schliesst die Hilfe', () => {
+  openHelpForRoute({ page: 'teams' });
+  openHelpForRoute({ page: 'teams' });
+  expect(get(helpState).open).toBe(false);
+  openHelpForRoute({ page: 'teams' });
+  expect(get(helpState)).toMatchObject({ open: true, history: [] });
+});
+
+test('? auf einem anderen Kapitel wechselt zum Seitenkapitel statt zu schliessen', () => {
+  openHelpForRoute({ page: 'teams' });
+  openHelp('05-austritt');
+  openHelpForRoute({ page: 'teams' });
+  expect(get(helpState)).toMatchObject({ open: true, view: { kind: 'chapter', slug: '14-teams' } });
+});
+
+test('dasselbe Kapitel erneut öffnen erzeugt keinen Verlaufseintrag', () => {
+  openHelp('05-austritt');
+  openHelp('05-austritt');
+  expect(get(helpState).history).toEqual([]);
+});
+
+test('toggleHelp öffnet das Inhaltsverzeichnis und schliesst wieder', () => {
+  toggleHelp();
+  expect(get(helpState)).toMatchObject({ open: true, view: { kind: 'toc' } });
+  toggleHelp();
+  expect(get(helpState).open).toBe(false);
+});
+
+test('F1 zweimal schliesst die Hilfe wieder', () => {
+  handleHelpKey(key('F1'), { page: 'groups' });
+  handleHelpKey(key('F1'), { page: 'groups' });
+  expect(get(helpState).open).toBe(false);
 });

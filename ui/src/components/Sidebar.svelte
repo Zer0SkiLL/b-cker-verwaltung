@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { helpState, showToc } from '../lib/help';
+  import { helpState, toggleHelp } from '../lib/help';
   import { navigate, route, type Route } from '../lib/router';
 
   const items: { label: string; target: Route; pages: string[] }[] = [
@@ -17,7 +17,7 @@
     </button>
   {/each}
   <div class="spacer"></div>
-  <button class:active={$helpState.open} onclick={showToc} title="Handbuch: Abläufe und Erklärungen zu allen Seiten">Hilfe</button>
+  <button class:active={$helpState.open} onclick={toggleHelp} title="Handbuch: Abläufe und Erklärungen zu allen Seiten">Hilfe</button>
   <button class:active={$route.page === 'settings'} onclick={() => navigate({ page: 'settings' })}>
     Einstellungen
   </button>
