@@ -19,11 +19,13 @@
   }
 </script>
 
-<h3>Import-Bericht ({report.length} Hinweise)</h3>
 {#if report.length === 0}
+  <h3>Import-Bericht</h3>
   <p class="muted">Keine Hinweise.</p>
 {:else}
-  <div class="scroll">
+  <details class="report">
+    <summary><h3>Import-Bericht ({report.length} {report.length === 1 ? 'Hinweis' : 'Hinweise'})</h3></summary>
+    <p class="muted">Alle Hinweise als Liste, zum Nachbearbeiten auch als CSV.</p>
     <table>
       <thead><tr><th>Zeile</th><th>Spalte</th><th>Meldung</th></tr></thead>
       <tbody>
@@ -32,12 +34,15 @@
         {/each}
       </tbody>
     </table>
-  </div>
-  <button onclick={save}>Bericht als CSV speichern…</button>
+    <button onclick={save}>Bericht als CSV speichern…</button>
+  </details>
 {/if}
 {#if info}<p class="muted">{info}</p>{/if}
 {#if error}<div class="form-error">{error}</div>{/if}
 
 <style>
-  .scroll { max-height: 260px; overflow: auto; margin-bottom: 0.5rem; }
+  .report { margin: 0.5rem 0 1rem; }
+  .report summary { cursor: pointer; }
+  .report summary h3 { display: inline; }
+  .report table { margin-bottom: 0.5rem; }
 </style>

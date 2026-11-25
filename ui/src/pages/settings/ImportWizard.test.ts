@@ -98,3 +98,24 @@ test('geht der Zeilenabgleich nicht auf, ist Übernehmen gesperrt', async () => 
   expect(screen.getByText('Der Abgleich der Zeilen geht nicht auf – bitte Problem melden')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Übernehmen' })).toBeDisabled();
 });
+
+test('Spaltenzuordnung ist eingeklappt und nennt die Zahlen', async () => {
+  await open();
+  const toggle = screen.getByText('2. Spalten zuordnen – 2 Spalten, alle werden übernommen');
+  const details = toggle.closest('details');
+  expect(details).not.toBeNull();
+  expect(details?.open).toBe(false);
+});
+
+test('Übernehmen steht vor der langen Vorschau', async () => {
+  await open();
+  const button = screen.getByRole('button', { name: 'Übernehmen' });
+  const table = screen.getByText('Betrieb / Person');
+  expect(button.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+test('Import-Bericht ist eingeklappt', async () => {
+  await open();
+  const details = screen.getByText('Import-Bericht (1 Hinweis)').closest('details');
+  expect(details?.open).toBe(false);
+});

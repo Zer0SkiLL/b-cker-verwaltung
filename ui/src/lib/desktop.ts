@@ -21,7 +21,14 @@ export async function pickFolder(): Promise<string | null> {
   return typeof picked === 'string' ? picked : null;
 }
 
+/** Vorbereitete Antworten statt Dateidialog; setzt nur der automatische Bilder-Lauf (e2e). */
+function preparedOpen(): string | undefined {
+  return (window as Window & { __mvDialogAntworten?: { open?: string } }).__mvDialogAntworten?.open;
+}
+
 export async function pickFile(name: string, extensions: string[]): Promise<string | null> {
+  const prepared = preparedOpen();
+  if (prepared) return prepared;
   const picked = await open({ multiple: false, directory: false, filters: [{ name, extensions }] });
   return typeof picked === 'string' ? picked : null;
 }

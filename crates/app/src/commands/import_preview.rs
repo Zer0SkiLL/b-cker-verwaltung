@@ -126,19 +126,34 @@ fn org_lines_without_person(o: &PlannedOrganisation) -> Vec<usize> {
 pub fn organisations(plan: &ImportPlan) -> Vec<PreviewOrganisation> {
     plan.organisations
         .iter()
-        .map(|o| PreviewOrganisation {
-            lines: o.lines.clone(),
-            name: o.input.name.clone(),
-            city: o.input.city.clone(),
-            category: o.category.clone(),
-            labels: org_labels(o),
-            persons: o
+        .map(|o| {
+            // Hinweise aller Zeilen ohne Person (die erste immer); Zeilen mit Person zeigen ihre
+            // eigenen, ohne die schon beim Betrieb stehenden zu wiederholen.
+            let notes = notes_for(&plan.report, &org_lines_without_person(o));
+            let persons = o
                 .persons
                 .iter()
-                .map(|p| preview_person(p, IMPORT_FUNCTION, &plan.report))
-                .collect(),
-            // Hinweise aller Zeilen ohne Person (die erste immer); Zeilen mit Person zeigen ihre eigenen.
-            notes: notes_for(&plan.report, &org_lines_without_person(o)),
+                .map(|p| {
+                    let person = preview_person(p, IMPORT_FUNCTION, &plan.report);
+                    PreviewPerson {
+                        notes: person
+                            .notes
+                            .into_iter()
+                            .filter(|n| !notes.contains(n))
+                            .collect(),
+                        ..person
+                    }
+                })
+                .collect();
+            PreviewOrganisation {
+                lines: o.lines.clone(),
+                name: o.input.name.clone(),
+                city: o.input.city.clone(),
+                category: o.category.clone(),
+                labels: org_labels(o),
+                persons,
+                notes,
+            }
         })
         .collect()
 }

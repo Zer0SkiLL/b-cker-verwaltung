@@ -6,7 +6,8 @@
   "scripts": {
     "tauri": "tauri",
     "test:scripts": "node --test 'scripts/*.test.mjs'",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "testdaten": "cargo run -q -p verwaltung_core --example musterliste -- testdaten"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.9.0",

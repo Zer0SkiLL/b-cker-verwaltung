@@ -329,3 +329,36 @@ fn preview_shows_notes_of_merged_rows_without_person() {
         "{notes:?}"
     );
 }
+
+#[test]
+fn preview_shows_org_notes_only_once() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = fresh_session(dir.path());
+    let path = dir.path().join("zwei.xlsx");
+    let person = |name: &'static str| {
+        vec![
+            ("Firma", "Beck AG"),
+            ("Name", name),
+            ("Adresse", "Weg 1"),
+            ("PLZ", "9000"),
+        ]
+    };
+    write_xlsx(
+        &path,
+        &LIST_HEADERS,
+        &[row(&person("Keller")), row(&person("Huber"))],
+    );
+    let p = import_preview(&mut s, &path, None).unwrap();
+    let org = &p.organisations[0];
+    assert!(
+        org.notes.iter().any(|n| n.contains("zusammengefasst")),
+        "{:?}",
+        org.notes
+    );
+    let first = &org.persons[0];
+    assert!(
+        first.notes.iter().all(|n| !org.notes.contains(n)),
+        "doppelt: {:?}",
+        first.notes
+    );
+}
