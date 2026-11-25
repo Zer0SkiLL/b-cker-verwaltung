@@ -493,3 +493,36 @@ fn end_to_end_import_then_filter() {
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].display_name, "Confiserie Süss");
 }
+
+#[test]
+fn individual_keeps_business_fields_in_notes() {
+    let p = planned(vec![row(
+        2,
+        &[
+            ("Name", t("Keller")),
+            ("Kt Verband", t("ZH")),
+            ("Zusatz/Inhaber (Handelsregister)", t("pensioniert")),
+            ("Home", t("keller.ch")),
+            ("Handelsregister-Nr", t("CHE-1")),
+        ],
+    )]);
+    let notes = p.individuals[0].person.input.notes.clone().unwrap();
+    for part in [
+        "Kantonalverband: ZH",
+        "Zusatz: pensioniert",
+        "Website: keller.ch",
+        "Handelsregister-Nr: CHE-1",
+    ] {
+        assert!(notes.contains(part), "{part} fehlt in {notes}");
+    }
+}
+
+#[test]
+fn same_company_other_address_is_noted() {
+    let p = planned(vec![
+        firm(2, "Bäckerei Muster", &[]),
+        firm(3, "Bäckerei Muster", &[("Adresse", t("Seeweg 2"))]),
+    ]);
+    assert!(messages(&p)
+        .contains(&"Gleicher Firmenname wie Zeile 2, andere Adresse: eigener Betrieb".to_string()));
+}

@@ -280,3 +280,34 @@ fn musterdatei() {
         summary.organisations, summary.persons, summary.individuals
     );
 }
+
+#[test]
+fn preview_shows_notes_of_merged_rows_without_person() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = fresh_session(dir.path());
+    let path = dir.path().join("abweichung.xlsx");
+    let base = |kat: &'static str| {
+        vec![
+            ("Firma", "Beck AG"),
+            ("Adresse", "Weg 1"),
+            ("PLZ", "9000"),
+            ("Kategorie", kat),
+        ]
+    };
+    write_xlsx(
+        &path,
+        &LIST_HEADERS,
+        &[
+            row(&base("Mitglied mit Geschäft")),
+            row(&base("Kein Mitglied")),
+        ],
+    );
+    let p = import_preview(&mut s, &path, None).unwrap();
+    let notes = &p.organisations[0].notes;
+    assert!(
+        notes
+            .iter()
+            .any(|n| n.contains("Abweichende Angabe für Kategorie")),
+        "{notes:?}"
+    );
+}

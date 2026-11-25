@@ -20,7 +20,13 @@ fn opener_allows_mailto_links() {
         .iter()
         .filter_map(|a| a["url"].as_str())
         .collect();
-    assert_eq!(urls, vec!["mailto:*", "https://github.com/Zer0SkiLL/b-cker-verwaltung*"]);
+    assert_eq!(
+        urls,
+        vec![
+            "mailto:*",
+            "https://github.com/Zer0SkiLL/b-cker-verwaltung*"
+        ]
+    );
 }
 
 #[test]

@@ -114,6 +114,15 @@ fn org_labels(o: &PlannedOrganisation) -> Vec<String> {
         .collect()
 }
 
+fn org_lines_without_person(o: &PlannedOrganisation) -> Vec<usize> {
+    o.lines
+        .iter()
+        .enumerate()
+        .filter(|(i, line)| *i == 0 || !o.persons.iter().any(|p| p.line == **line))
+        .map(|(_, line)| *line)
+        .collect()
+}
+
 pub fn organisations(plan: &ImportPlan) -> Vec<PreviewOrganisation> {
     plan.organisations
         .iter()
@@ -128,8 +137,8 @@ pub fn organisations(plan: &ImportPlan) -> Vec<PreviewOrganisation> {
                 .iter()
                 .map(|p| preview_person(p, IMPORT_FUNCTION, &plan.report))
                 .collect(),
-            // Hinweise der ersten Zeile (Betrieb); Zeilen mit Person zeigen ihre eigenen.
-            notes: notes_for(&plan.report, &o.lines[..1]),
+            // Hinweise aller Zeilen ohne Person (die erste immer); Zeilen mit Person zeigen ihre eigenen.
+            notes: notes_for(&plan.report, &org_lines_without_person(o)),
         })
         .collect()
 }

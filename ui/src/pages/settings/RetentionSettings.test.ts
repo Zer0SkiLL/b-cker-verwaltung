@@ -50,3 +50,14 @@ test('nur lesend: gesperrt', async () => {
   expect(screen.getByRole('button', { name: 'Speichern' })).toBeDisabled();
   expect(screen.getByLabelText('Eine pro Tag für … Tage')).toBeDisabled();
 });
+
+test('leere oder ungültige Eingabe: deutsche Meldung, nichts gesendet', async () => {
+  vi.mocked(api.setRetention).mockClear();
+  const user = userEvent.setup();
+  render(RetentionSettings, { readOnly: false });
+  const days = await screen.findByLabelText('Eine pro Tag für … Tage');
+  await user.clear(days);
+  await user.click(screen.getByRole('button', { name: 'Speichern' }));
+  expect(screen.getByText('Bitte in jedes Feld eine ganze Zahl ab 0 eingeben.')).toBeInTheDocument();
+  expect(api.setRetention).not.toHaveBeenCalled();
+});

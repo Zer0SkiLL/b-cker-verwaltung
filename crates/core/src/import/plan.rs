@@ -106,6 +106,17 @@ pub fn plan(sheet: &Sheet, mapping: &Mapping) -> ImportPlan {
                 match by_key.get(&key) {
                     Some(&i) => merge_into(&mut ctx, &mut result.organisations[i], data, person),
                     None => {
+                        let same_name = result
+                            .organisations
+                            .iter()
+                            .find(|o| norm(&o.input.name) == key.0)
+                            .map(|o| o.lines[0]);
+                        if let Some(first) = same_name {
+                            ctx.note(
+                                Some(Field::Company),
+                                format!("Gleicher Firmenname wie Zeile {first}, andere Adresse: eigener Betrieb"),
+                            );
+                        }
                         by_key.insert(key, result.organisations.len());
                         result.organisations.push(new_organisation(data, person));
                     }
@@ -395,6 +406,21 @@ fn individual(d: RowData, person: PlannedPerson) -> PlannedIndividual {
     let mut notes = d.notes;
     if let Some(id) = d.legacy_id {
         append(&mut notes, format!("OBC-ID: {id}"));
+    }
+    // Angaben, die es nur bei Betrieben gibt, gehen nicht verloren: in die Bemerkungen der Person.
+    let extras = [
+        ("Kantonalverband", d.cantonal),
+        ("Zusatz", d.addition),
+        ("Website", d.website),
+        ("Filialen", d.branches.map(|n| n.to_string())),
+        ("Anzahl Lernende", d.apprentice_count.map(|n| n.to_string())),
+        ("Kostenstellen-Nr", d.cost_center_no),
+        ("Handelsregister-Nr", d.commercial_register_no),
+    ];
+    for (label, value) in extras {
+        if let Some(value) = value {
+            append(&mut notes, format!("{label}: {value}"));
+        }
     }
     PlannedIndividual {
         person: PlannedPerson {

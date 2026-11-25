@@ -186,3 +186,36 @@ mod during_work {
         assert_eq!(set_retention(&mut ben, &p).unwrap_err().0, READ_ONLY);
     }
 }
+
+mod secondary_error_reset {
+    use super::*;
+
+    fn session_with_error(dir: &std::path::Path) -> Session {
+        let usb = dir.join("usb");
+        std::fs::create_dir(&usb).unwrap();
+        let mut s = fresh_session(dir);
+        set_secondary_dir(&mut s, Some(&usb)).unwrap();
+        std::fs::remove_dir(&usb).unwrap();
+        std::fs::write(&usb, b"kein Ordner").unwrap();
+        backup_now(&mut s, Local::now()).unwrap();
+        assert!(s.info(Utc::now()).unwrap().backup.secondary_error.is_some());
+        s
+    }
+
+    #[test]
+    fn removing_secondary_dir_clears_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut s = session_with_error(dir.path());
+        set_secondary_dir(&mut s, None).unwrap();
+        assert_eq!(s.info(Utc::now()).unwrap().backup.secondary_error, None);
+    }
+
+    #[test]
+    fn opening_another_file_clears_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut s = session_with_error(dir.path());
+        let other = tempfile::tempdir().unwrap();
+        s.create(&db_path(other.path()), &who("anna")).unwrap();
+        assert_eq!(s.info(Utc::now()).unwrap().backup.secondary_error, None);
+    }
+}

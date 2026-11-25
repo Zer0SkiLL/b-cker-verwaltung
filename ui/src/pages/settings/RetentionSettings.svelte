@@ -30,13 +30,18 @@
 
   function setField(key: keyof RetentionPolicy, value: string) {
     if (!policy) return;
-    policy = { ...policy, [key]: Number(value) };
+    policy = { ...policy, [key]: value.trim() === '' ? NaN : Number(value) };
     info = null;
   }
 
   async function save() {
     if (!policy) return;
     error = null;
+    // Leere Felder, Kommazahlen oder Negatives gar nicht erst senden.
+    if (!FIELDS.every((f) => Number.isInteger(policy![f.key]) && policy![f.key] >= 0)) {
+      error = 'Bitte in jedes Feld eine ganze Zahl ab 0 eingeben.';
+      return;
+    }
     try {
       await api.setRetention(policy);
       info = 'Gespeichert.';

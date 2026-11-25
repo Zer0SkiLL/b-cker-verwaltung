@@ -25,7 +25,7 @@ Nach dem Import zeigt ein Bericht die Hinweise; **Bericht als CSV speichern…**
 
 ## Rückgängig machen
 
-Unmittelbar vor dem Import legt das Programm eine Sicherung an. Nach dem Import steht **Import rückgängig machen** bereit: Nach einer Rückfrage ist die Datei wieder auf dem Stand davor. Haben Sie die Seite schon verlassen, finden Sie dieselbe Sicherung unter **Einstellungen** › **Datensicherung** (am Zeitpunkt des Imports erkennbar).
+Unmittelbar vor dem Import legt das Programm eine Sicherung an. Nach dem Import steht **Import rückgängig machen** bereit: Nach einer Rückfrage ist die Datei wieder auf dem Stand davor. Haben Sie die Seite schon verlassen, finden Sie dieselbe Sicherung unter **Einstellungen** › **Datensicherung** (am Zeitpunkt des Imports erkennbar). Wegen der Aufbewahrung bleibt sie dort aber nur etwa zwei Tage einzeln erhalten – prüfen Sie den Import darum gleich danach.
 
 ## Wie die Liste gelesen wird
 
@@ -38,7 +38,7 @@ Unmittelbar vor dem Import legt das Programm eine Sicherung an. Nach dem Import 
 | Kt Verband, Adresse, PLZ, Ort, Mail, Home, Telefon, Filialen | Angaben des Betriebs |
 | Mobiltelefon | Mobiltelefon der Person |
 | Kategorie, Eintritt, Austritt | Mitgliedschaft |
-| Lehrbetrieb, Fr Bäck, Fr Conf, DH | Labels in „Ausbildung Fachrichtung“ |
+| Fr Bäck, Fr Conf, DH | Labels in „Ausbildung Fachrichtung“ (bei „Lehrbetrieb“ ohne Fachrichtung erscheint ein Hinweis) |
 | Mandat | Labels in „Mandat“ – bei der Person der Zeile, sonst beim Betrieb; mehrere mit Komma trennen |
 | Besonderes | Bemerkungen |
 | Handelsregister-Nr, Kostenstellen-Nr | gleichnamige Felder des Betriebs |
@@ -50,4 +50,6 @@ Dazu gelten diese Regeln:
 - Weichen in einer weiteren Zeile **Mail, Telefon, Besonderes oder OBC-ID** vom Betrieb ab, gehören sie zur **Person dieser Zeile**. Weicht etwas ab, das nur einmal pro Betrieb gelten kann (zum Beispiel die Kategorie), gilt die erste Zeile, und der Bericht nennt die Abweichung.
 - **Zeilen ohne Firma**, aber mit Name werden **Einzelmitglieder** (Person mit eigener Mitgliedschaft).
 - Zeilen ganz ohne Firma und Name werden übersprungen und im Bericht genannt.
+- Gleicher Firmenname an **anderer** Adresse ergibt einen eigenen Betrieb; der Bericht weist darauf hin.
+- Angaben, die es nur bei Betrieben gibt (zum Beispiel Kantonalverband oder Handelsregister-Nr), landen bei Einzelmitgliedern in den Bemerkungen.
 - Kategorien und Listen werden ohne Rücksicht auf Gross- und Kleinschreibung erkannt: „kein Mitglied“ wird zu „Kein Mitglied“.

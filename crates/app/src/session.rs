@@ -38,6 +38,7 @@ impl Session {
 
     fn open_path(&mut self, path: &Path, who: &Identity) -> AppResult<SessionInfo> {
         self.close(Local::now())?;
+        self.clear_secondary_error();
         self.ws = Some(Workspace::open(path, who)?);
         self.who = Some(who.clone());
         self.info(Utc::now())
@@ -80,12 +81,18 @@ impl Session {
         self.info(Utc::now())
     }
 
+    /// Vergisst einen früheren Fehler am zweiten Ort (andere Datei, Ort geändert oder entfernt).
+    pub fn clear_secondary_error(&mut self) {
+        self.secondary_error = None;
+    }
+
     /// Merkt sich das Ergebnis am zweiten Ort: Fehler bleibt bis zur nächsten gelungenen Sicherung.
     pub fn note_secondary(&mut self, result: &SecondaryResult) {
         match result {
             SecondaryResult::Unavailable(reason) => self.secondary_error = Some(reason.clone()),
-            SecondaryResult::Done(_) => self.secondary_error = None,
-            SecondaryResult::NotConfigured => {}
+            SecondaryResult::Done(_) | SecondaryResult::NotConfigured => {
+                self.clear_secondary_error()
+            }
         }
     }
 

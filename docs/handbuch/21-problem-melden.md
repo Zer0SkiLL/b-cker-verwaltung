@@ -17,7 +17,7 @@ Wenn etwas nicht wie erwartet funktioniert, erstellen Sie mit **Problem melden**
 - Programmversion, Betriebssystem, Datum und Uhrzeit
 - die aktuelle Seite und ob die Datei nur zum Lesen offen ist
 - der Stand der Datensicherung und die Einstellungen zur Aufbewahrung
-- die letzten Aktionen, zum Beispiel „Seite: Adressen“ oder „Betrieb gespeichert – OK“, mit Uhrzeit
+- die letzten Aktionen mit Uhrzeit, zum Beispiel „Seite: Adressen“ oder „update_organisation – OK (35 ms)“ (der technische Name der Aktion, damit der Entwickler sie findet)
 - die letzten Warnungen und Fehler des Programms
 
 **Keine Mitgliederdaten:** Namen, Adressen, Mailadressen oder Ihre Eingaben in Formularen kommen im Bericht nicht vor – nur, *welche* Aktion stattfand. Sie sehen den ganzen Bericht, bevor Sie ihn kopieren.

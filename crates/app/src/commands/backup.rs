@@ -58,14 +58,18 @@ pub fn backup_overview(s: &mut Session, now: DateTime<Utc>) -> AppResult<BackupO
 
 /// Setzt oder entfernt (`None`) den zweiten Sicherungsort.
 pub fn set_secondary_dir(s: &mut Session, dir: Option<&Path>) -> AppResult<()> {
-    match dir {
+    let result = match dir {
         Some(dir) if !dir.is_dir() => Err(AppError::new(DIR_MISSING)),
         Some(dir) => {
             let value = dir.display().to_string();
             s.write(|c| settings::set(c, SECONDARY_BACKUP_DIR, &value))
         }
         None => s.write(|c| settings::remove(c, SECONDARY_BACKUP_DIR)),
+    };
+    if result.is_ok() {
+        s.clear_secondary_error();
     }
+    result
 }
 
 pub fn backup_now(s: &mut Session, now: DateTime<Local>) -> AppResult<BackupNowDto> {
