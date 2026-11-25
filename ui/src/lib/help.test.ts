@@ -101,3 +101,11 @@ test('F1 zweimal schliesst die Hilfe wieder', () => {
   handleHelpKey(key('F1'), { page: 'groups' });
   expect(get(helpState).open).toBe(false);
 });
+
+test('bereits behandeltes Esc schliesst die Hilfe nicht', () => {
+  showToc();
+  const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+  event.preventDefault();
+  expect(handleHelpKey(event, { page: 'teams' })).toBe(false);
+  expect(get(helpState).open).toBe(true);
+});

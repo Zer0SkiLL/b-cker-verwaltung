@@ -19,6 +19,20 @@
   const view = $derived($helpState.view);
   const hits = $derived(view.kind === 'search' ? searchChapters(view.query) : []);
 
+  // Das Suchfeld folgt der Ansicht, auch bei „Zurück“ zu einer Suche.
+  $effect(() => {
+    query = view.kind === 'search' ? view.query : '';
+  });
+
+  // Esc im Suchfeld leert zuerst die Suche; erst ein leeres Feld schliesst die Hilfe.
+  function onSearchKey(event: KeyboardEvent) {
+    if (event.key !== 'Escape' || !query) return;
+    event.preventDefault();
+    event.stopPropagation();
+    query = '';
+    showToc();
+  }
+
   function onSearch(event: Event) {
     query = (event.currentTarget as HTMLInputElement).value;
     if (query.trim()) showSearch(query);
@@ -54,7 +68,7 @@
       <span class="spacer"></span>
       <button class="close" onclick={closeHelp} title="Hilfe schliessen" aria-label="Hilfe schliessen">×</button>
     </div>
-    <input type="search" placeholder="Im Handbuch suchen" value={query} oninput={onSearch} />
+    <input type="search" placeholder="Im Handbuch suchen" value={query} oninput={onSearch} onkeydown={onSearchKey} />
   </header>
 
   <div class="content">

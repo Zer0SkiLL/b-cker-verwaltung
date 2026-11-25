@@ -100,3 +100,35 @@ test('Problem melden in der Hilfe-Leiste öffnet den Dialog', async () => {
   await user.click(screen.getByRole('button', { name: 'Problem melden' }));
   expect(get(reportOpen)).toBe(true);
 });
+
+test('Zurück zur Suche zeigt den Suchbegriff wieder im Suchfeld', async () => {
+  const user = userEvent.setup();
+  render(HelpPanel);
+  const field = screen.getByPlaceholderText('Im Handbuch suchen');
+  await user.type(field, 'Austritt');
+  await user.click(screen.getAllByRole('button', { name: /Austritt/ })[0]);
+  expect(field).toHaveValue('');
+  await user.click(screen.getByRole('button', { name: 'Zurück' }));
+  expect(field).toHaveValue('Austritt');
+});
+
+test('Esc im Suchfeld leert zuerst die Suche, die Hilfe bleibt offen', async () => {
+  const user = userEvent.setup();
+  render(HelpPanel);
+  const field = screen.getByPlaceholderText('Im Handbuch suchen');
+  await user.type(field, 'Austritt');
+  const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+  field.dispatchEvent(escape);
+  await Promise.resolve();
+  expect(field).toHaveValue('');
+  expect(escape.defaultPrevented).toBe(true);
+  expect(get(helpState).view.kind).toBe('toc');
+});
+
+test('Esc im leeren Suchfeld wird nicht abgefangen', () => {
+  render(HelpPanel);
+  const field = screen.getByPlaceholderText('Im Handbuch suchen');
+  const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+  field.dispatchEvent(escape);
+  expect(escape.defaultPrevented).toBe(false);
+});

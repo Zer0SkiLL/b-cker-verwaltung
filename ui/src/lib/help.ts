@@ -61,6 +61,7 @@ export function closeHelp(): void {
 
 /** F1 öffnet die Hilfe zur Seite, Esc schliesst sie. Liefert true, wenn die Taste behandelt wurde. */
 export function handleHelpKey(event: KeyboardEvent, route: Route): boolean {
+  if (event.defaultPrevented) return false;
   if (event.key === 'F1') {
     openHelpForRoute(route);
     return true;
