@@ -151,6 +151,24 @@ fn apply_creates_backup_then_undo_restores_empty_file() {
 }
 
 #[test]
+fn undo_accepts_only_the_backup_of_this_import() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = fresh_session(dir.path());
+    let other = verwaltung_app::commands::backup::backup_now(&mut s, Local::now())
+        .unwrap()
+        .local;
+    let file = sample(dir.path());
+    let preview = import_preview(&mut s, &file, None).unwrap();
+    let summary = import_apply(&mut s, &file, preview.mapping, Local::now()).unwrap();
+    let err = import_undo(&mut s, std::path::Path::new(&other), Local::now()).unwrap_err();
+    assert_eq!(err.0, "Ungültige Sicherung für das Rückgängigmachen.");
+    let undo = std::path::Path::new(&summary.undo_backup);
+    import_undo(&mut s, undo, Local::now()).unwrap();
+    // Nur einmal möglich.
+    assert!(import_undo(&mut s, undo, Local::now()).is_err());
+}
+
+#[test]
 fn undo_refuses_foreign_path() {
     let dir = tempfile::tempdir().unwrap();
     let mut s = fresh_session(dir.path());

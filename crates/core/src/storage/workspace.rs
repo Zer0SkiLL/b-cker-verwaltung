@@ -46,13 +46,19 @@ pub struct Workspace {
 impl Workspace {
     /// Öffnet schreibend. Ist die Datei gesperrt, wird sie nur lesend geöffnet.
     pub fn open(db_path: &Path, who: &Identity) -> Result<Workspace> {
-        match LockGuard::acquire(db_path, who) {
+        let ws = match LockGuard::acquire(db_path, who) {
             Ok(lock) => Self::open_read_write(db_path, lock),
             Err(CoreError::LockHeld(info)) if db_path.exists() => {
                 Self::open_read_only(db_path, info)
             }
             Err(err) => Err(err),
+        }?;
+        if ws.is_read_write() {
+            log::info!("Datei geöffnet (schreibend)");
+        } else {
+            log::info!("Datei geöffnet (nur lesend)");
         }
+        Ok(ws)
     }
 
     /// Übernimmt eine fremde Sperre und öffnet schreibend.
@@ -141,10 +147,13 @@ impl Workspace {
     /// Schliesst die Datenbank: Sicherung am zweiten Ort, danach wird die Sperre freigegeben.
     pub fn close(mut self, now: DateTime<Local>) -> Result<SecondaryResult> {
         self.check_lock()?;
-        if !self.is_read_write() {
-            return Ok(SecondaryResult::NotConfigured);
-        }
-        self.backup_secondary(now)
+        let result = if self.is_read_write() {
+            self.backup_secondary(now)
+        } else {
+            Ok(SecondaryResult::NotConfigured)
+        };
+        log::info!("Datei geschlossen");
+        result
     }
 
     /// Schreibend geöffnet und die eigene Sperre besteht noch.

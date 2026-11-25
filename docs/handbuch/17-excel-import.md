@@ -25,7 +25,7 @@ Nach dem Import zeigt ein Bericht die Hinweise; **Bericht als CSV speichern…**
 
 ## Rückgängig machen
 
-Unmittelbar vor dem Import legt das Programm eine Sicherung an. Nach dem Import steht **Import rückgängig machen** bereit: Nach einer Rückfrage ist die Datei wieder auf dem Stand davor. Haben Sie die Seite schon verlassen, finden Sie dieselbe Sicherung unter **Einstellungen** › **Datensicherung** (am Zeitpunkt des Imports erkennbar). Wegen der Aufbewahrung bleibt sie dort aber nur etwa zwei Tage einzeln erhalten – prüfen Sie den Import darum gleich danach.
+Unmittelbar vor dem Import legt das Programm eine Sicherung an. Nach dem Import steht **Import rückgängig machen** bereit: Nach einer Rückfrage ist die Datei wieder auf dem Stand davor. Haben Sie die Seite schon verlassen, finden Sie dieselbe Sicherung unter **Einstellungen** › **Datensicherung** (am Zeitpunkt des Imports erkennbar). Wegen der Aufbewahrung bleibt sie dort aber nur etwa bis zum übernächsten Arbeitstag einzeln erhalten – prüfen Sie den Import darum gleich danach.
 
 ## Wie die Liste gelesen wird
 

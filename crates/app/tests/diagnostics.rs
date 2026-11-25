@@ -122,3 +122,19 @@ fn system_info_has_version_and_os() {
     assert!(!info.os.is_empty());
     assert!(!info.arch.is_empty());
 }
+
+#[test]
+fn opening_and_closing_are_logged() {
+    let capture = captured();
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = fresh_session(dir.path());
+    let mut ben = verwaltung_app::session::Session::default();
+    ben.open(&common::db_path(dir.path()), &common::who("ben"))
+        .unwrap();
+    s.close(Local::now()).unwrap();
+    let lines = capture.0.lock().unwrap().clone();
+    let has = |text: &str| lines.iter().any(|l| l.contains(text));
+    assert!(has("INFO Datei geöffnet (schreibend)"), "{lines:?}");
+    assert!(has("INFO Datei geöffnet (nur lesend)"), "{lines:?}");
+    assert!(has("INFO Datei geschlossen"), "{lines:?}");
+}

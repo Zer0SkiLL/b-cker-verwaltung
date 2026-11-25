@@ -357,7 +357,12 @@ mod tests {
     #[test]
     fn newest_always_kept_even_if_very_old() {
         let only = file(at(2020, 1, 1, 0, 0));
-        assert!(to_delete(&[only.clone()], &only.path, &RetentionPolicy::default()).is_empty());
+        assert!(to_delete(
+            std::slice::from_ref(&only),
+            &only.path,
+            &RetentionPolicy::default()
+        )
+        .is_empty());
     }
 
     #[test]

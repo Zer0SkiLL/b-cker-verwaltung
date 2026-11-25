@@ -205,6 +205,7 @@ pub fn import_apply(
         now,
     )?;
     let summary = s.write_mut(|c| apply(c, &planned))?;
+    s.remember_import_backup(backup.clone());
     Ok(ImportSummaryDto {
         organisations: summary.organisations,
         persons: summary.persons,
@@ -214,15 +215,18 @@ pub fn import_apply(
     })
 }
 
-/// Spielt die Sicherung von vor dem Import zurück (nur aus dem lokalen Sicherungsordner).
+/// Spielt die Sicherung von unmittelbar vor dem letzten Import zurück (nur diese, nur einmal).
 pub fn import_undo(s: &mut Session, backup: &Path, now: DateTime<Local>) -> AppResult<()> {
-    let ws = s.writable()?;
-    let dir = local_backup_dir(ws.path());
-    let inside = backup.parent().is_some_and(|p| p == dir) && backup.is_file();
-    if !inside {
+    s.writable()?;
+    let Some(backup) = s.take_import_backup(backup) else {
         return Err(AppError::new(UNDO_INVALID));
+    };
+    if let Err(err) = s.writable()?.restore(&backup, now) {
+        // Fehlgeschlagen: erneut versuchen erlauben.
+        s.remember_import_backup(backup);
+        return Err(err.into());
     }
-    Ok(ws.restore(backup, now)?)
+    Ok(())
 }
 
 /// Speichert den Import-Bericht als CSV (für die Nachbearbeitung in Excel).

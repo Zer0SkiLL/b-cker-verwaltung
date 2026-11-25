@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Local, Utc};
 use rusqlite::Connection;
@@ -21,6 +21,8 @@ pub struct Session {
     who: Option<Identity>,
     /// Letzter Fehler am zweiten Sicherungsort in dieser Sitzung (für die gelbe Leiste).
     secondary_error: Option<String>,
+    /// Sicherung von unmittelbar vor dem letzten Import (nur sie darf „rückgängig“ machen).
+    import_backup: Option<PathBuf>,
 }
 
 impl Session {
@@ -39,6 +41,7 @@ impl Session {
     fn open_path(&mut self, path: &Path, who: &Identity) -> AppResult<SessionInfo> {
         self.close(Local::now())?;
         self.clear_secondary_error();
+        self.import_backup = None;
         self.ws = Some(Workspace::open(path, who)?);
         self.who = Some(who.clone());
         self.info(Utc::now())
@@ -80,6 +83,19 @@ impl Session {
         let secondary = self.writable()?.backup_secondary_now(Local::now())?;
         self.note_secondary(&secondary);
         self.info(Utc::now())
+    }
+
+    /// Merkt sich die Sicherung vor einem Import für „Import rückgängig machen“.
+    pub fn remember_import_backup(&mut self, backup: PathBuf) {
+        self.import_backup = Some(backup);
+    }
+
+    /// Gibt die gemerkte Import-Sicherung heraus, wenn `backup` genau sie ist (nur einmal).
+    pub fn take_import_backup(&mut self, backup: &Path) -> Option<PathBuf> {
+        match &self.import_backup {
+            Some(p) if p == backup => self.import_backup.take(),
+            _ => None,
+        }
     }
 
     /// Vergisst einen früheren Fehler am zweiten Ort (andere Datei, Ort geändert oder entfernt).
