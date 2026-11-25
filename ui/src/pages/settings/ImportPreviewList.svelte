@@ -17,7 +17,7 @@
 <table class="preview">
     <colgroup>
       <col style="width: 24%" /><col style="width: 11%" /><col style="width: 14%" />
-      <col style="width: 20%" /><col style="width: 23%" /><col style="width: 8%" />
+      <col style="width: 20%" /><col style="width: 23%" /><col style="width: 6.5rem" />
     </colgroup>
     <thead><tr><th>Betrieb / Person</th><th>Ort</th><th>Kategorie</th><th>Labels</th><th>Hinweise</th><th>Quelle</th></tr></thead>
     <tbody>
@@ -64,8 +64,7 @@
 
 <style>
   .preview { table-layout: fixed; width: 100%; margin-bottom: 0.75rem; }
-  .preview td { overflow-wrap: anywhere; vertical-align: top; }
-  .preview td:last-child { white-space: nowrap; }
+  .preview td { overflow-wrap: break-word; hyphens: auto; vertical-align: top; }
   .filter { display: inline-flex; gap: 0.4rem; align-items: center; margin: 0.25rem 0 0.5rem; }
   .person { padding-left: 1.5rem; }
   .org td { border-top: 1px solid var(--border); }

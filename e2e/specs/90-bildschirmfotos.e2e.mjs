@@ -59,6 +59,7 @@ describe('Bildschirmfotos', () => {
     await markieren('summary*=Labels');
     await markieren('label*=provisorisch');
     await shot('adressen-filter');
+    await (await $('summary*=Labels')).click(); // Auswahl zuklappen, sonst verdeckt sie das Namensfeld
     await clickButton('Als Gruppe speichern');
     await (await $('input[placeholder="Name der Gruppe"]')).setValue('Provisorische Mitglieder');
     await markieren('input[placeholder="Name der Gruppe"]', { nummer: 3 });
@@ -148,7 +149,10 @@ describe('Bildschirmfotos', () => {
     await shot('hilfe');
     await (await $('input[placeholder="Im Handbuch suchen"]')).setValue('Austritt');
     await shot('hilfe-suche');
+    // Esc im Suchfeld leert zuerst die Suche, das zweite schliesst die Hilfe.
     await browser.keys('Escape');
+    await browser.keys('Escape');
+    await (await $('section[aria-label="Hilfe"]')).waitForDisplayed({ reverse: true });
   });
 
   it('Excel-Import mit der Musterliste', async () => {

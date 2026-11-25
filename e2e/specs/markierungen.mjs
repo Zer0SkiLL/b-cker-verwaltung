@@ -13,7 +13,7 @@ async function element(selector) {
 }
 
 /**
- * Markiert ein Element: `nummer` setzt einen Kreis links daneben, `rahmen` (Standard) zieht einen Rahmen.
+ * Markiert ein Element: `nummer` setzt einen Kreis links daneben (sonst darüber), `rahmen` (Standard) zieht einen Rahmen.
  * Beispiel: await markieren('button=Speichern', { nummer: 1 });
  */
 export async function markieren(selector, { nummer = null, rahmen = true } = {}) {
@@ -33,10 +33,17 @@ export async function markieren(selector, { nummer = null, rahmen = true } = {})
       if (opts.nummer !== null) {
         const size = 26;
         const gap = 6;
-        // Links neben dem Element, vertikal mittig; ganz am linken Rand stattdessen auf die Ecke.
-        const left = r.left - pad - size - gap;
-        const x = left >= 2 ? left : r.left - pad - size / 2;
-        const y = left >= 2 ? r.top + r.height / 2 - size / 2 : r.top - pad - size / 2;
+        // Bevorzugt links daneben (vertikal mittig). Liegt dort ein anderes Bedienelement
+        // (z.B. der Nachbarknopf) oder der Fensterrand, steht die Nummer über dem Element.
+        const leftX = r.left - pad - size - gap;
+        const midY = r.top + r.height / 2 - size / 2;
+        const occupied = (x, y) =>
+          document
+            .elementsFromPoint(x, y)
+            .some((e) => e !== target && !layer.contains(e) && e.closest('button,input,select,textarea,a,label,summary') && !e.closest('button,input,select,textarea,a,label,summary').contains(target));
+        const leftFree = leftX >= 2 && !occupied(leftX + size / 2, midY + size / 2) && !occupied(leftX + 2, midY + size / 2);
+        const x = leftFree ? leftX : r.left + 2;
+        const y = leftFree ? midY : Math.max(2, r.top - pad - size - 2);
         const dot = layer.appendChild(document.createElement('div'));
         dot.textContent = String(opts.nummer);
         dot.style.cssText = `position:fixed;left:${x}px;top:${y}px;width:${size}px;height:${size}px;border-radius:50%;background:${opts.farbe};color:#fff;font:700 15px/26px system-ui,sans-serif;text-align:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.35)`;
