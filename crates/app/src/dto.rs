@@ -45,6 +45,8 @@ pub struct BackupStatusDto {
     /// RFC 3339.
     pub last_secondary: Option<String>,
     pub reminder_due: bool,
+    /// Letzter Fehler am zweiten Ort in dieser Sitzung (verschwindet nach gelungener Sicherung).
+    pub secondary_error: Option<String>,
 }
 
 impl From<BackupStatus> for BackupStatusDto {
@@ -53,6 +55,7 @@ impl From<BackupStatus> for BackupStatusDto {
             secondary_dir: status.secondary_dir,
             last_secondary: status.last_secondary.map(|d| d.to_rfc3339()),
             reminder_due: status.reminder_due,
+            secondary_error: None,
         }
     }
 }

@@ -5,9 +5,9 @@ use rusqlite::Connection;
 use verwaltung_core::error::Result as CoreResult;
 use verwaltung_core::storage::backup;
 use verwaltung_core::storage::lock::Identity;
-use verwaltung_core::storage::workspace::{AccessMode, Workspace};
+use verwaltung_core::storage::workspace::{AccessMode, SecondaryResult, Workspace};
 
-use crate::dto::{LockDto, SecondaryResultDto, SessionInfo};
+use crate::dto::{BackupStatusDto, LockDto, SecondaryResultDto, SessionInfo};
 use crate::error::{AppError, AppResult};
 
 pub const NO_FILE: &str = "Keine Datei geöffnet.";
@@ -19,6 +19,8 @@ pub const FILE_EXISTS: &str = "Die Datei existiert bereits. Bitte „Öffnen“ 
 pub struct Session {
     ws: Option<Workspace>,
     who: Option<Identity>,
+    /// Letzter Fehler am zweiten Sicherungsort in dieser Sitzung (für die gelbe Leiste).
+    secondary_error: Option<String>,
 }
 
 impl Session {
@@ -72,12 +74,28 @@ impl Session {
             }
         }
         self.who = Some(who.clone());
+        // Nach einem Absturz fehlt die Sicherung am zweiten Ort vom Schliessen: jetzt nachholen.
+        let outcome = self.writable()?.backup_now(Local::now())?;
+        self.note_secondary(&outcome.secondary);
         self.info(Utc::now())
+    }
+
+    /// Merkt sich das Ergebnis am zweiten Ort: Fehler bleibt bis zur nächsten gelungenen Sicherung.
+    pub fn note_secondary(&mut self, result: &SecondaryResult) {
+        match result {
+            SecondaryResult::Unavailable(reason) => {
+                log::warn!("{reason}");
+                self.secondary_error = Some(reason.clone());
+            }
+            SecondaryResult::Done(_) => self.secondary_error = None,
+            SecondaryResult::NotConfigured => {}
+        }
     }
 
     /// Aktueller Zustand; prüft dabei, ob die eigene Sperre noch besteht.
     pub fn info(&mut self, now: DateTime<Utc>) -> AppResult<SessionInfo> {
         let own = self.who.clone();
+        let secondary_error = self.secondary_error.clone();
         let ws = self.workspace_mut()?;
         let held_by = match ws.check_lock()? {
             AccessMode::ReadWrite => None,
@@ -87,7 +105,10 @@ impl Session {
             path: ws.path().display().to_string(),
             read_only: held_by.is_some(),
             held_by,
-            backup: backup::status(&ws.conn, now)?.into(),
+            backup: BackupStatusDto {
+                secondary_error,
+                ..backup::status(&ws.conn, now)?.into()
+            },
         })
     }
 

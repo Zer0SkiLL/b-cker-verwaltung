@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use verwaltung_core::storage::retention::RetentionPolicy;
 
 use chrono::{Local, Utc};
 use tauri::State;
@@ -63,6 +64,21 @@ pub fn set_secondary_dir(state: State<AppState>, dir: Option<String>) -> AppResu
 #[tauri::command(async)]
 pub fn backup_now(state: State<AppState>) -> AppResult<bk::BackupNowDto> {
     state.with(|s| bk::backup_now(s, Local::now()))
+}
+
+#[tauri::command(async)]
+pub fn backup_if_changed(state: State<AppState>) -> AppResult<Option<bk::BackupNowDto>> {
+    state.with(|s| bk::backup_if_changed(s, Local::now()))
+}
+
+#[tauri::command(async)]
+pub fn get_retention(state: State<AppState>) -> AppResult<RetentionPolicy> {
+    state.with(|s| bk::get_retention(s))
+}
+
+#[tauri::command(async)]
+pub fn set_retention(state: State<AppState>, policy: RetentionPolicy) -> AppResult<()> {
+    state.with(|s| bk::set_retention(s, &policy))
 }
 
 #[tauri::command(async)]

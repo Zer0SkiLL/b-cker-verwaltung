@@ -39,6 +39,8 @@ pub struct Workspace {
     pub mode: AccessMode,
     path: PathBuf,
     lock: Option<LockGuard>,
+    /// Änderungszähler der Verbindung nach der letzten Sicherung (für „sichern, falls geändert“).
+    changes_at_backup: u64,
 }
 
 impl Workspace {
@@ -90,6 +92,20 @@ impl Workspace {
         })
     }
 
+    /// Sichert lokal und am zweiten Ort, aber nur wenn seit der letzten Sicherung etwas geändert
+    /// wurde und schreibend geöffnet ist. Der Zähler wird nach der Sicherung gelesen, weil die
+    /// Sicherung selbst den Zeitpunkt am zweiten Ort speichert.
+    pub fn backup_if_changed(&mut self, now: DateTime<Local>) -> Result<Option<BackupOutcome>> {
+        if self.check_lock()? != &AccessMode::ReadWrite
+            || self.conn.total_changes() == self.changes_at_backup
+        {
+            return Ok(None);
+        }
+        let outcome = self.backup_now(now)?;
+        self.changes_at_backup = self.conn.total_changes();
+        Ok(Some(outcome))
+    }
+
     /// Prüft, ob die eigene Sperre noch besteht. Wurde sie übernommen (z.B. durch die
     /// Ferienvertretung), wird die Datenbank nur noch lesend geöffnet. Vor dem Schreiben aufrufen.
     pub fn check_lock(&mut self) -> Result<&AccessMode> {
@@ -127,11 +143,13 @@ impl Workspace {
     }
 
     fn from_parts(conn: Connection, path: PathBuf, lock: LockGuard) -> Workspace {
+        let changes_at_backup = conn.total_changes();
         Workspace {
             conn,
             mode: AccessMode::ReadWrite,
             path,
             lock: Some(lock),
+            changes_at_backup,
         }
     }
 
@@ -181,6 +199,7 @@ impl Workspace {
             mode: AccessMode::ReadOnly { held_by },
             path: db_path.to_path_buf(),
             lock: None,
+            changes_at_backup: 0,
         })
     }
 }

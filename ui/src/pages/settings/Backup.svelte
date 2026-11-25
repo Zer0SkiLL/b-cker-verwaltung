@@ -1,4 +1,5 @@
 <script lang="ts">
+  import RetentionSettings from './RetentionSettings.svelte';
   import EmptyHint from '../../components/EmptyHint.svelte';
   import { readOnly as readOnlyStore } from '../../lib/session';
   import * as api from '../../lib/api';
@@ -124,6 +125,8 @@
   <p class="muted">Sicherung von einem anderen Ort (z.B. USB-Stick) zurückholen:</p>
   <button disabled={readOnly} onclick={restoreFromFile}>Aus Datei wiederherstellen…</button>
 {/if}
+
+<RetentionSettings {readOnly} />
 
 <style>
   .actions { margin-top: 0.75rem; }

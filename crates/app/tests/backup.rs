@@ -86,3 +86,103 @@ fn export_all_writes_xlsx() {
     export_all(&s, &target).unwrap();
     assert!(target.exists());
 }
+
+mod during_work {
+    use super::*;
+    use verwaltung_app::commands::backup::{backup_if_changed, get_retention, set_retention};
+    use verwaltung_core::storage::retention::RetentionPolicy;
+
+    #[test]
+    fn no_backup_without_change_and_one_after_change() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut s = fresh_session(dir.path());
+        // Die Vorgaben einer neuen Datei zählen als Änderung: einmal sichern, danach ist Ruhe.
+        backup_if_changed(&mut s, Local::now()).unwrap();
+        assert!(backup_if_changed(&mut s, Local::now()).unwrap().is_none());
+        s.write(|c| organisations::create(c, &org_input("Beck AG")))
+            .unwrap();
+        assert!(backup_if_changed(&mut s, Local::now()).unwrap().is_some());
+        assert!(backup_if_changed(&mut s, Local::now()).unwrap().is_none());
+    }
+
+    #[test]
+    fn own_secondary_bookkeeping_does_not_count_as_change() {
+        let dir = tempfile::tempdir().unwrap();
+        let usb = dir.path().join("usb");
+        std::fs::create_dir(&usb).unwrap();
+        let mut s = fresh_session(dir.path());
+        set_secondary_dir(&mut s, Some(&usb)).unwrap();
+        s.write(|c| organisations::create(c, &org_input("Beck AG")))
+            .unwrap();
+        let first = backup_if_changed(&mut s, Local::now()).unwrap().unwrap();
+        assert!(matches!(first.secondary, SecondaryResultDto::Done { .. }));
+        assert!(backup_if_changed(&mut s, Local::now()).unwrap().is_none());
+    }
+
+    #[test]
+    fn read_only_never_backs_up() {
+        let dir = tempfile::tempdir().unwrap();
+        let _anna = fresh_session(dir.path());
+        let mut ben = Session::default();
+        ben.open(&db_path(dir.path()), &who("ben")).unwrap();
+        assert!(backup_if_changed(&mut ben, Local::now()).unwrap().is_none());
+    }
+
+    #[test]
+    fn secondary_error_is_set_and_cleared() {
+        let dir = tempfile::tempdir().unwrap();
+        let usb = dir.path().join("usb");
+        std::fs::create_dir(&usb).unwrap();
+        let mut s = fresh_session(dir.path());
+        set_secondary_dir(&mut s, Some(&usb)).unwrap();
+        std::fs::remove_dir(&usb).unwrap();
+        // Ordner fehlt: wird beim Sichern neu angelegt? Nur wenn das Laufwerk da ist; hier
+        // simulieren wir „nicht erreichbar“ mit einer Datei an seiner Stelle.
+        std::fs::write(&usb, b"kein Ordner").unwrap();
+        backup_now(&mut s, Local::now()).unwrap();
+        let info = s.info(Utc::now()).unwrap();
+        assert!(info.backup.secondary_error.is_some(), "{info:?}");
+        std::fs::remove_file(&usb).unwrap();
+        std::fs::create_dir(&usb).unwrap();
+        backup_now(&mut s, Local::now()).unwrap();
+        assert_eq!(s.info(Utc::now()).unwrap().backup.secondary_error, None);
+    }
+
+    #[test]
+    fn take_over_backs_up_at_secondary() {
+        let dir = tempfile::tempdir().unwrap();
+        let usb = dir.path().join("usb");
+        std::fs::create_dir(&usb).unwrap();
+        let mut anna = fresh_session(dir.path());
+        set_secondary_dir(&mut anna, Some(&usb)).unwrap();
+        let mut ben = Session::default();
+        ben.open(&db_path(dir.path()), &who("ben")).unwrap();
+        ben.take_over(&who("ben")).unwrap();
+        assert_eq!(std::fs::read_dir(&usb).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn retention_roundtrip_validation_and_read_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut s = fresh_session(dir.path());
+        assert_eq!(get_retention(&s).unwrap(), RetentionPolicy::default());
+        let p = RetentionPolicy {
+            interval_minutes: 30,
+            ..Default::default()
+        };
+        set_retention(&mut s, &p).unwrap();
+        assert_eq!(get_retention(&s).unwrap(), p);
+        let err = set_retention(
+            &mut s,
+            &RetentionPolicy {
+                interval_minutes: 5,
+                ..p
+            },
+        )
+        .unwrap_err();
+        assert!(err.0.contains("Während der Arbeit sichern"), "{}", err.0);
+        let mut ben = Session::default();
+        ben.open(&db_path(dir.path()), &who("ben")).unwrap();
+        assert_eq!(set_retention(&mut ben, &p).unwrap_err().0, READ_ONLY);
+    }
+}

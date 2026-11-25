@@ -62,6 +62,16 @@ export interface BackupStatusDto {
   secondaryDir: string | null;
   lastSecondary: string | null;
   reminderDue: boolean;
+  /** Letzter Fehler am zweiten Ort in dieser Sitzung. */
+  secondaryError?: string | null;
+}
+
+export interface RetentionPolicy {
+  keepAllDays: number;
+  dailyDays: number;
+  weeklyWeeks: number;
+  monthlyMonths: number;
+  intervalMinutes: number;
 }
 
 export interface SessionInfo {

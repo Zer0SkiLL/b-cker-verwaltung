@@ -103,6 +103,9 @@ export const importPreview = (path: string, mapping: string[] | null) =>
   call<T.ImportPreview>('import_preview', { path, mapping });
 export const importApply = (path: string, mapping: string[]) =>
   call<T.ImportSummary>('import_apply', { path, mapping });
+export const backupIfChanged = () => call<T.BackupNowDto | null>('backup_if_changed');
+export const getRetention = () => call<T.RetentionPolicy>('get_retention');
+export const setRetention = (policy: T.RetentionPolicy) => call<void>('set_retention', { policy });
 export const importUndo = (backup: string) => call<void>('import_undo', { backup });
 export const exportImportPreview = (path: string, mapping: string[] | null, out: string) =>
   call<void>('export_import_preview', { path, mapping, out });

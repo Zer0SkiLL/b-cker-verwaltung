@@ -7,6 +7,8 @@ use serde::Serialize;
 use verwaltung_core::export_full::full_export;
 use verwaltung_core::repo::settings::{self, SECONDARY_BACKUP_DIR};
 use verwaltung_core::storage::backup::{self, db_stem, local_backup_dir};
+use verwaltung_core::storage::retention::{load_policy, save_policy, RetentionPolicy};
+use verwaltung_core::storage::workspace::BackupOutcome;
 
 use crate::dto::{BackupStatusDto, SecondaryResultDto};
 use crate::error::{AppError, AppResult};
@@ -68,10 +70,29 @@ pub fn set_secondary_dir(s: &mut Session, dir: Option<&Path>) -> AppResult<()> {
 
 pub fn backup_now(s: &mut Session, now: DateTime<Local>) -> AppResult<BackupNowDto> {
     let outcome = s.writable()?.backup_now(now)?;
-    Ok(BackupNowDto {
+    Ok(outcome_dto(s, outcome))
+}
+
+/// Sicherung während der Arbeit: nur wenn seit der letzten Sicherung etwas geändert wurde.
+pub fn backup_if_changed(s: &mut Session, now: DateTime<Local>) -> AppResult<Option<BackupNowDto>> {
+    let outcome = s.workspace_mut()?.backup_if_changed(now)?;
+    Ok(outcome.map(|o| outcome_dto(s, o)))
+}
+
+fn outcome_dto(s: &mut Session, outcome: BackupOutcome) -> BackupNowDto {
+    s.note_secondary(&outcome.secondary);
+    BackupNowDto {
         local: outcome.local.display().to_string(),
         secondary: outcome.secondary.into(),
-    })
+    }
+}
+
+pub fn get_retention(s: &Session) -> AppResult<RetentionPolicy> {
+    s.read(|c| Ok(load_policy(c)))
+}
+
+pub fn set_retention(s: &mut Session, policy: &RetentionPolicy) -> AppResult<()> {
+    s.write(|c| save_policy(c, policy))
 }
 
 /// Stellt eine Sicherung wieder her; der aktuelle Stand wird vorher gesichert (Core).

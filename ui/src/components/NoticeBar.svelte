@@ -30,6 +30,16 @@
     if (ok) await installUpdate();
   }
 
+  // Zweiter Ort war nicht erreichbar: erneut versuchen (z.B. nach Einstecken des USB-Sticks).
+  async function backupAgain() {
+    try {
+      await api.backupNow();
+    } catch (err) {
+      error = (err as Error).message;
+    }
+    await refreshSession();
+  }
+
   async function takeOver() {
     const ok = await confirmAction(
       'Wer die Datei noch offen hat, kann danach nicht mehr speichern. Übernehmen?',
@@ -82,6 +92,8 @@
     {#if notice.kind === 'readOnly'}
       <button onclick={takeOver} title="Die Datei hier schreibend öffnen; die andere Person kann danach nicht mehr speichern">Übernehmen</button>
       <button class="link" onclick={() => openHelp('02-start-und-datei')}>Was heisst das?</button>
+    {:else if notice.kind === 'secondaryError'}
+      <button onclick={backupAgain}>Jetzt sichern</button>
     {:else}
       <button class="link" onclick={() => navigate({ page: 'settings', tab: 'backup' })}>
         Datensicherung einrichten
