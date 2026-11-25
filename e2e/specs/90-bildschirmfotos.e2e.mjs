@@ -9,7 +9,7 @@
 import { join, resolve } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { clickButton, goTo } from './helpers.mjs';
-import { befehl, dialogeBeantworten, entfernen, markieren } from './markierungen.mjs';
+import { befehl, dateiVorbereiten, entfernen, markieren } from './markierungen.mjs';
 
 const OUT = resolve(import.meta.dirname, '..', '..', 'docs', 'handbuch', 'bilder');
 mkdirSync(OUT, { recursive: true });
@@ -158,7 +158,7 @@ describe('Bildschirmfotos', () => {
     // Import geht nur in eine leere Datei: neue Datei anlegen, Dateiauswahl vorbeantworten.
     const result = await befehl('create_file', { path: leer });
     if (result?.fehler) throw new Error(result.fehler);
-    await dialogeBeantworten({ 'plugin:dialog|open': liste });
+    await dateiVorbereiten(liste);
     await settingsTab('Excel-Import');
     await clickButton('1. Excel-Datei wählen…');
     await browser.waitUntil(
