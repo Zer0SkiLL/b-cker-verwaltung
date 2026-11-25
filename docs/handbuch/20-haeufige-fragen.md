@@ -35,6 +35,10 @@ Legen Sie den Eintrag unter **Einstellungen** › **Listen und Labels** an. Sieh
 
 Entweder hat niemand in der Liste eine Mailadresse, oder es sind zu viele Adressen für das Mailprogramm. Nehmen Sie dann **Mails kopieren** und fügen Sie die Adressen in Outlook unter **Bcc** ein.
 
+## Etwas funktioniert nicht, und hier steht nichts dazu
+
+Erstellen Sie mit **Problem melden** einen Bericht und schicken Sie ihn dem Entwickler (siehe [Problem melden](21-problem-melden.md)).
+
 ## Die Hilfe finden
 
 Klicken Sie auf das **?** neben dem Seitentitel oder drücken Sie **F1**. Oben in der Hilfe können Sie das ganze Handbuch durchsuchen.

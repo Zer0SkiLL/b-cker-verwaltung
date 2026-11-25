@@ -47,8 +47,8 @@ Die Daten werden in drei Stufen gesichert. Jede Stufe schützt vor etwas anderem
 
 | Stufe | Wann | Schützt vor |
 |---|---|---|
-| **1. Automatische Sicherung neben der Datei** (Ordner **backups**, die letzten 20) | Bei jedem Öffnen und mit **Jetzt sichern** | Versehentlichem Löschen oder falschen Änderungen |
-| **2. Zweiter Sicherungsort** | Beim Schliessen des Programms und mit **Jetzt sichern** | Ausfall des Laufwerks, auf dem die Datei liegt |
+| **1. Automatische Sicherung neben der Datei** (Ordner **backups**, ausgedünnt nach Alter) | Beim Öffnen, während der Arbeit und mit **Jetzt sichern** | Versehentlichem Löschen oder falschen Änderungen |
+| **2. Zweiter Sicherungsort** | Während der Arbeit, beim Schliessen und mit **Jetzt sichern** | Ausfall des Laufwerks, auf dem die Datei liegt |
 | **3. Gesamtexport als Excel** | Von Hand, zum Beispiel einmal pro Jahr nach der GV | Totalverlust; lesbar auch ohne dieses Programm |
 
 Stufe 1 läuft immer von selbst. Stufe 2 richten Sie einmal ein, Stufe 3 machen Sie von Hand.
@@ -56,15 +56,15 @@ Stufe 1 läuft immer von selbst. Stufe 2 richten Sie einmal ein, Stufe 3 machen 
 ### Allein arbeiten
 
 1. **Einstellungen** › **Datensicherung** › **Zweiten Ort wählen…**: ein anderes Laufwerk als das der Datei, zum Beispiel eine externe Festplatte, ein USB-Stick oder ein NAS.
-2. Steckt der USB-Stick nicht immer, schliessen Sie ihn regelmässig an und klicken auf **Jetzt sichern**. Ist die letzte Sicherung dort älter als 30 Tage, erinnert eine gelbe Leiste daran.
+2. Steckt der USB-Stick nicht immer, schliessen Sie ihn regelmässig an und klicken auf **Jetzt sichern**. Ist er bei einer Sicherung nicht erreichbar, zeigt eine gelbe Leiste das sofort an.
 3. Einmal im Jahr: **Einstellungen** › **Gesamtexport** und die Excel-Datei an einem dritten Ort aufbewahren.
 
 ### Zu mehreren arbeiten
 
-Der zweite Sicherungsort ist **in der Datei gespeichert** und gilt darum für alle, die sie öffnen. Wählen Sie deshalb einen Ort, den **alle PCs unter demselben Pfad erreichen**:
+Der zweite Sicherungsort und die Einstellungen zur Aufbewahrung sind **in der Datei gespeichert** und gelten darum für alle, die sie öffnen. Wählen Sie deshalb einen Ort, den **alle PCs unter demselben Pfad erreichen**:
 
 1. Gut geeignet ist eine **zweite Freigabe auf einem anderen Gerät**, zum Beispiel ein zweites NAS oder ein Ordner auf einem anderen Server.
-2. Ein USB-Stick passt nur, wenn er immer am selben PC steckt und meist dort gearbeitet wird. An den anderen PCs ist er nicht erreichbar. Die Sicherung dort wird dann übersprungen, und nach 30 Tagen erscheint die Erinnerung.
+2. Ein USB-Stick passt nur, wenn er immer am selben PC steckt und meist dort gearbeitet wird. An den anderen PCs ist er nicht erreichbar; die gelbe Leiste meldet das dort bei jeder Sicherung.
 3. Fragen Sie, ob das Netzlaufwerk selbst gesichert wird (zum Beispiel Schnappschüsse auf dem NAS). Das ist ein guter zusätzlicher Schutz.
 4. Den jährlichen Gesamtexport macht eine verantwortliche Person, zum Beispiel das Sekretariat nach der GV.
 
