@@ -4,6 +4,9 @@ name: Bildschirmfotos
 # Danach lokal: node scripts/bildschirmfotos.mjs (holt die Bilder) und committen.
 on:
   workflow_dispatch:
+  # VORÜBERGEHEND: workflow_dispatch geht erst, wenn die Datei auf main liegt. Vor dem Merge entfernen.
+  push:
+    branches: [feat/handbuch]
 
 permissions:
   contents: read
