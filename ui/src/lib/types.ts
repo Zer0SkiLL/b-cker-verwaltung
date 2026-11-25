@@ -272,12 +272,35 @@ export interface ReportEntry {
   message: string;
 }
 
-export interface PreviewRow {
+export interface PreviewPerson {
   line: number;
-  organisation: string;
-  person: string | null;
+  name: string;
+  function: string;
+  labels: string[];
+  notes: string[];
+}
+
+export interface PreviewOrganisation {
+  lines: number[];
+  name: string;
   city: string | null;
   category: string | null;
+  labels: string[];
+  persons: PreviewPerson[];
+  notes: string[];
+}
+
+export interface PreviewIndividual {
+  person: PreviewPerson;
+  city: string | null;
+  category: string | null;
+}
+
+export interface NewEntries {
+  categories: string[];
+  cantonal: string[];
+  functions: string[];
+  labels: string[];
 }
 
 export interface ImportPreview {
@@ -285,9 +308,13 @@ export interface ImportPreview {
   mapping: string[];
   fields: string[];
   rows: number;
-  organisations: number;
+  organisations: PreviewOrganisation[];
+  merged: number;
   persons: number;
-  sample: PreviewRow[];
+  individuals: PreviewIndividual[];
+  skipped: { line: number; reason: string }[];
+  newEntries: NewEntries;
+  reconcileError: string | null;
   report: ReportEntry[];
   databaseEmpty: boolean;
 }
@@ -295,7 +322,9 @@ export interface ImportPreview {
 export interface ImportSummary {
   organisations: number;
   persons: number;
+  individuals: number;
   report: ReportEntry[];
+  undoBackup: string;
 }
 
 export type ExportFormat = 'csv' | 'xlsx';

@@ -238,3 +238,45 @@ fn report_export_writes_csv() {
     let text = String::from_utf8_lossy(&std::fs::read(&target).unwrap()).to_string();
     assert!(text.contains("Zeile;Spalte;Meldung"), "{text}");
 }
+
+/// Prüft eine echte (private) Liste lokal: `MV_MUSTERDATEI=<pfad> cargo test -p verwaltung_app
+/// --test import musterdatei -- --ignored --nocapture`. Gibt nur Zahlen und Arten von Hinweisen aus.
+#[test]
+#[ignore]
+fn musterdatei() {
+    let Ok(file) = std::env::var("MV_MUSTERDATEI") else {
+        return;
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = fresh_session(dir.path());
+    let file = std::path::PathBuf::from(file);
+    let p = import_preview(&mut s, &file, None).unwrap();
+    let mut kinds: Vec<String> = p
+        .report
+        .iter()
+        .map(|r| r.message.split(':').next().unwrap_or("").to_string())
+        .collect();
+    kinds.sort();
+    kinds.dedup();
+    println!(
+        "Zeilen {}, Betriebe {}, zusammengefasst {}, Personen {}, Einzelmitglieder {}, übersprungen {}, Abgleich {:?}",
+        p.rows, p.organisations.len(), p.merged, p.persons, p.individuals.len(), p.skipped.len(), p.reconcile_error
+    );
+    println!(
+        "Nicht zugeordnete Spalten: {}",
+        p.mapping.iter().filter(|m| *m == "ignore").count()
+    );
+    println!("Arten von Hinweisen: {kinds:?}");
+    println!(
+        "Neu: Kategorien {}, Kantonalverbände {}, Funktionen {}, Labels {}",
+        p.new_entries.categories.len(),
+        p.new_entries.cantonal.len(),
+        p.new_entries.functions.len(),
+        p.new_entries.labels.len()
+    );
+    let summary = import_apply(&mut s, &file, p.mapping, Local::now()).unwrap();
+    println!(
+        "Übernommen: {} Betriebe, {} Personen, {} Einzelmitglieder",
+        summary.organisations, summary.persons, summary.individuals
+    );
+}

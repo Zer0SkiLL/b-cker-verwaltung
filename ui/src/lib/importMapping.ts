@@ -1,18 +1,20 @@
 // Deutsche Namen der Import-Felder und unveränderliche Bearbeitung der Zuordnung.
 
 export const FIELD_LABELS: Record<string, string> = {
-  legacy_id: 'Alt-ID (ID1)',
-  apprentice_count: 'Anzahl Lernende',
-  cantonal_association: 'Kantonalverband',
-  name: 'Name/Firma',
+  company: 'Firma (Betrieb)',
+  last_name: 'Nachname',
   first_name: 'Vorname',
   addition: 'Zusatz',
+  legacy_id: 'Alt-ID (OBC-ID)',
+  cantonal_association: 'Kantonalverband',
   street: 'Adresse',
   zip: 'PLZ',
   city: 'Ort',
   category: 'Mitgliederkategorie',
   email: 'Mail',
   website: 'Website (Home)',
+  phone: 'Telefon',
+  mobile: 'Mobiltelefon',
   apprenticeship: 'Lehrbetrieb (Label)',
   fr_baeck: 'Fr Bäck (Label)',
   fr_conf: 'Fr Conf (Label)',
@@ -21,9 +23,10 @@ export const FIELD_LABELS: Record<string, string> = {
   joined: 'Eintritt',
   left: 'Austritt',
   branches: 'Filialen',
-  phone: 'Telefon',
-  mobile: 'Mobiltelefon',
-  po_box: 'Postfach',
+  apprentice_count: 'Anzahl Lernende',
+  cost_center_no: 'Kostenstellen-Nr',
+  commercial_register_no: 'Handelsregister-Nr',
+  mandate: 'Mandat (Labels)',
   ignore: '– nicht übernehmen –',
 };
 
