@@ -83,10 +83,7 @@ impl Session {
     /// Merkt sich das Ergebnis am zweiten Ort: Fehler bleibt bis zur nächsten gelungenen Sicherung.
     pub fn note_secondary(&mut self, result: &SecondaryResult) {
         match result {
-            SecondaryResult::Unavailable(reason) => {
-                log::warn!("{reason}");
-                self.secondary_error = Some(reason.clone());
-            }
+            SecondaryResult::Unavailable(reason) => self.secondary_error = Some(reason.clone()),
             SecondaryResult::Done(_) => self.secondary_error = None,
             SecondaryResult::NotConfigured => {}
         }

@@ -17,6 +17,8 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 log = "0.4"
+os_info = { version = "3", default-features = false }
+tauri-plugin-log = "2"
 verwaltung_core = { path = "../core" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"

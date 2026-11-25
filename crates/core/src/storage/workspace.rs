@@ -58,6 +58,7 @@ impl Workspace {
     /// Übernimmt eine fremde Sperre und öffnet schreibend.
     pub fn open_taking_over(db_path: &Path, who: &Identity) -> Result<Workspace> {
         let lock = LockGuard::take_over(db_path, who)?;
+        log::info!("Sperre übernommen");
         Self::open_read_write(db_path, lock)
     }
 
@@ -85,6 +86,7 @@ impl Workspace {
         let dir = local_backup_dir(&self.path);
         let stem = db_stem(&self.path);
         let local = backup_to_dir(&self.conn, &dir, &stem, now)?;
+        log::info!("Sicherung neben der Datei erstellt");
         apply_retention(&dir, &stem, now.naive_local(), &load_policy(&self.conn))?;
         Ok(BackupOutcome {
             local,
@@ -111,6 +113,7 @@ impl Workspace {
     pub fn check_lock(&mut self) -> Result<&AccessMode> {
         let lost = self.lock.as_ref().is_some_and(|lock| !lock.still_held());
         if lost {
+            log::warn!("Sperre verloren: Datei ist jetzt nur lesend geöffnet");
             let held_by = current_holder(&self.path).unwrap_or_else(|| LockInfo {
                 user: "unbekannt".into(),
                 host: "unbekannt".into(),
@@ -169,11 +172,15 @@ impl Workspace {
                     LAST_SECONDARY_BACKUP,
                     &now.with_timezone(&Utc).to_rfc3339(),
                 )?;
+                log::info!("Sicherung am zweiten Ort erstellt");
                 Ok(SecondaryResult::Done(path))
             }
-            Err(e) => Ok(SecondaryResult::Unavailable(format!(
-                "Zweiter Sicherungsort nicht erreichbar: {e}"
-            ))),
+            Err(e) => {
+                log::warn!("Zweiter Sicherungsort nicht erreichbar: {e}");
+                Ok(SecondaryResult::Unavailable(format!(
+                    "Zweiter Sicherungsort nicht erreichbar: {e}"
+                )))
+            }
         }
     }
 

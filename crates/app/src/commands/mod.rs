@@ -3,6 +3,7 @@
 pub mod addresses;
 pub mod backup;
 pub mod catalog;
+pub mod diagnostics;
 pub mod entities;
 pub mod import;
 pub mod import_preview;

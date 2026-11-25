@@ -6,12 +6,26 @@ use verwaltung_app::tauri_commands::{catalog, close_session, data, entities, ses
 
 fn main() {
     let app = tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
+                        file_name: None,
+                    }),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                ])
+                .level(log::LevelFilter::Info)
+                .max_file_size(1_000_000)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepOne)
+                .build(),
+        )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
+            log::info!("Programmstart, Version {}", env!("CARGO_PKG_VERSION"));
             let config_dir = app.path().app_config_dir()?;
             app.manage(AppState::new(config_dir));
             #[cfg(debug_assertions)]
@@ -30,6 +44,8 @@ fn main() {
             session::take_over,
             session::session_info,
             session::close_file,
+            session::diagnostics_log_tail,
+            session::diagnostics_system,
             data::search_addresses,
             data::export_addresses,
             data::list_groups,

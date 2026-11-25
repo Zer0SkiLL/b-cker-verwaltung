@@ -36,6 +36,7 @@ impl Workspace {
                 let conn = db::open_unmigrated(&path, false)?;
                 db::migrate(&conn)?;
                 self.conn = conn;
+                log::info!("Sicherung wiederhergestellt");
                 apply_retention(&dir, &stem, now.naive_local(), &load_policy(&self.conn))
             }
             Err(err) => {

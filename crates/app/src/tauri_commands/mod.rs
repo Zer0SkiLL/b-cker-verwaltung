@@ -30,7 +30,11 @@ impl AppState {
         let mut session = self.session.lock().map_err(|_| {
             AppError::new("Interner Fehler: Sitzung blockiert. Bitte Programm neu starten.")
         })?;
-        f(&mut session)
+        let result = f(&mut session);
+        if let Err(err) = &result {
+            log::warn!("Fehler an die Oberfläche: {}", err.0);
+        }
+        result
     }
 }
 
@@ -42,6 +46,6 @@ pub(crate) fn today() -> chrono::NaiveDate {
 /// Wird beim Fenster-Schliessen und beim Programmende aufgerufen; mehrfach unschädlich.
 pub fn close_session(state: &AppState) {
     if let Err(err) = state.with(|s| s.close(chrono::Local::now())) {
-        eprintln!("Fehler beim Schliessen: {err}");
+        log::error!("Fehler beim Schliessen: {}", err.0);
     }
 }
