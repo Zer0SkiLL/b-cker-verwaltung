@@ -2,6 +2,20 @@
 
 Hier steht, was in jeder Version neu ist. Die neueste Version steht oben.
 
+## [0.2.0] – 25.11.2026
+
+### Neu
+
+- Neue Dateien enthalten die Mitgliederkategorien und das Label „provisorisch“
+- Handbuch-Kapitel werden ins Programm eingebunden
+- Hilfe-Seitenleiste mit Inhaltsverzeichnis, Suche und „?“ auf jeder Seite
+- Hinweise bei leeren Listen und Tooltips erklären den nächsten Schritt
+- Handbuch als PDF bei jedem Release
+
+### Behoben
+
+- Suche im Handbuch findet auch Wortteile wie „eintritt“ in „Neueintritt“
+
 ## [0.1.1] – 24.11.2026
 
 ### Neu
