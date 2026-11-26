@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { get } from 'svelte/store';
 import { vi } from 'vitest';
@@ -12,15 +12,69 @@ vi.mock('../lib/handbook', async (importOriginal) => {
     renderChapter: (slug: string) =>
       slug === '03-mitglied-aufnehmen'
         ? '<h1>Mitglied aufnehmen</h1><p>Siehe <a href="05-austritt.md">Austritt</a> und <a>extern</a>.</p>'
-        : actual.renderChapter(slug),
+        : slug === 'mit-bild'
+          ? '<h1>Mit Bild</h1><p><img src="data:image/png;base64,AA" alt="Die Seite Adressen"></p>'
+          : actual.renderChapter(slug),
   };
 });
 
 import * as desktop from '../lib/desktop';
 import { helpState, openHelp } from '../lib/help';
+import { HELP_WIDTH, helpWidth } from '../lib/helpWidth';
 import HelpPanel from './HelpPanel.svelte';
 
-beforeEach(() => helpState.set({ open: false, view: { kind: 'toc' }, history: [] }));
+beforeEach(() => {
+  helpState.set({ open: false, view: { kind: 'toc' }, history: [] });
+  helpWidth.set(HELP_WIDTH.normal);
+});
+
+test('Klick auf ein Bild zeigt es gross; Schliessen, Klick oder Esc schliesst nur das Bild', async () => {
+  const user = userEvent.setup();
+  openHelp('mit-bild');
+  render(HelpPanel);
+  await user.click(screen.getByRole('button', { name: 'Bild vergrössern: Die Seite Adressen' }));
+  const dialog = screen.getByRole('dialog', { name: 'Die Seite Adressen' });
+  expect(dialog).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Bild schliessen' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: 'Bild vergrössern: Die Seite Adressen' }));
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(get(helpState).open).toBe(true);
+
+  await user.click(screen.getByRole('button', { name: 'Bild vergrössern: Die Seite Adressen' }));
+  await user.click(screen.getByRole('img', { name: 'Die Seite Adressen' , hidden: false }).closest('.lightbox')!);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+test('Breiter/Schmaler ändert die Breite der Hilfe', async () => {
+  const user = userEvent.setup();
+  openHelp('05-austritt');
+  render(HelpPanel);
+  await user.click(screen.getByRole('button', { name: 'Breiter' }));
+  expect(get(helpWidth)).toBeGreaterThan(HELP_WIDTH.normal);
+  await user.click(screen.getByRole('button', { name: 'Schmaler' }));
+  expect(get(helpWidth)).toBe(HELP_WIDTH.normal);
+});
+
+// jsdom kennt kein PointerEvent; MouseEvent liefert clientX genauso.
+if (!('PointerEvent' in window)) Object.assign(window, { PointerEvent: MouseEvent });
+
+test('Ziehen am Rand ändert die Breite, Doppelklick setzt sie zurück', async () => {
+  openHelp('05-austritt');
+  render(HelpPanel);
+  const handle = screen.getByRole('separator', { name: 'Breite der Hilfe ändern' });
+  const width = window.innerWidth;
+  await fireEvent.pointerDown(handle, { clientX: width - HELP_WIDTH.normal, pointerId: 1 });
+  await fireEvent.pointerMove(window, { clientX: width - 500, pointerId: 1 });
+  await fireEvent.pointerUp(window, { pointerId: 1 });
+  expect(get(helpWidth)).toBe(Math.min(500, Math.max(HELP_WIDTH.min, width - HELP_WIDTH.keepForApp)));
+  await fireEvent.pointerMove(window, { clientX: width - 700, pointerId: 1 });
+  expect(get(helpWidth)).toBe(Math.min(500, Math.max(HELP_WIDTH.min, width - HELP_WIDTH.keepForApp)));
+  await fireEvent.dblClick(handle);
+  expect(get(helpWidth)).toBe(HELP_WIDTH.normal);
+});
 
 test('zeigt das geöffnete Kapitel', () => {
   openHelp('05-austritt');

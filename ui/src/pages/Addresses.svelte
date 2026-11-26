@@ -9,6 +9,7 @@
   import { activeFilterCount, emptyFilter, setKinds, setMembership, toggleId, withText } from '../lib/filters';
   import { navigate, replace } from '../lib/router';
   import { dataVersion, readOnly, runWrite } from '../lib/session';
+  import { addressSort, nextSort, sortRows, type SortKey } from '../lib/sorting';
   import type { EntryKind, ExportFormat, Filter, FilterIdKey, FilterOptions, MembershipStatus, SearchResult } from '../lib/types';
 
   let { filter: initial }: { filter?: Filter } = $props();
@@ -25,6 +26,21 @@
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const actions = $derived(result ? contactActions(result) : null);
+  const rows = $derived(result ? sortRows(result.rows, $addressSort) : []);
+
+  const COLUMNS: { key: SortKey; label: string }[] = [
+    { key: 'kind', label: 'Typ' },
+    { key: 'name', label: 'Name' },
+    { key: 'organisation', label: 'Betrieb' },
+    { key: 'place', label: 'Ort' },
+    { key: 'email', label: 'Mail' },
+    { key: 'phone', label: 'Telefon' },
+  ];
+
+  function ariaSort(key: SortKey): 'ascending' | 'descending' | undefined {
+    if ($addressSort?.key !== key) return undefined;
+    return $addressSort.dir === 'asc' ? 'ascending' : 'descending';
+  }
   const kindValue = $derived(filter.kinds.length === 1 ? filter.kinds[0] : 'all');
 
   async function load(current: Filter) {
@@ -154,10 +170,18 @@
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>Typ</th><th>Name</th><th>Betrieb</th><th>Ort</th><th>Mail</th><th>Telefon</th></tr>
+        <tr>
+          {#each COLUMNS as column (column.key)}
+            <th aria-sort={ariaSort(column.key)}>
+              <button class="sort" onclick={() => addressSort.update((s) => nextSort(s, column.key))} title="Nach „{column.label}“ sortieren">
+                {column.label}<span class="arrow" aria-hidden="true">{ariaSort(column.key) === 'ascending' ? '▲' : ariaSort(column.key) === 'descending' ? '▼' : ''}</span>
+              </button>
+            </th>
+          {/each}
+        </tr>
       </thead>
       <tbody>
-        {#each result.rows as row (row.kind + row.id)}
+        {#each rows as row (row.kind + row.id)}
           <tr class="clickable" onclick={() => navigate({ page: row.kind === 'Person' ? 'person' : 'organisation', id: row.id })}>
             <td>{row.kind === 'Person' ? 'Person' : 'Betrieb'}</td>
             <td>{row.display_name}</td>
@@ -217,4 +241,9 @@
   .table-wrap { max-height: calc(100vh - 290px); overflow: auto; }
   .footer { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border); margin-top: 0.5rem; }
   ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
+  th { padding: 0; }
+  .sort { all: unset; box-sizing: border-box; display: flex; gap: 0.3rem; width: 100%; padding: 0.4rem 0.5rem; cursor: pointer; font-weight: inherit; }
+  .sort:hover { color: var(--accent); }
+  .sort:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .arrow { font-size: 0.7em; align-self: center; }
 </style>

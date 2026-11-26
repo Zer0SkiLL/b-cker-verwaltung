@@ -16,6 +16,7 @@
   import { startAutoBackup } from './lib/autosave';
   import { refreshSession, sessionInfo } from './lib/session';
   import { handleHelpKey, helpState } from './lib/help';
+  import { clampWidth, helpWidth } from './lib/helpWidth';
   import { route } from './lib/router';
   import { checkForUpdates } from './lib/updates';
 
@@ -35,15 +36,19 @@
     checkForUpdates({ silent: true });
   });
 
+  // Die Hilfe nimmt nie so viel Platz, dass die Seite daneben unbrauchbar wird (auch bei kleinem Fenster).
+  let viewport = $state(window.innerWidth);
+  const columns = $derived($helpState.open ? `minmax(0, 1fr) ${clampWidth($helpWidth, viewport)}px` : undefined);
+
   // F1 öffnet die Hilfe zur aktuellen Seite (auch aus Eingabefeldern), Esc schliesst sie.
   function onKey(event: KeyboardEvent) {
     if (handleHelpKey(event, $route)) event.preventDefault();
   }
 </script>
 
-<svelte:window onkeydown={onKey} />
+<svelte:window onkeydown={onKey} bind:innerWidth={viewport} />
 
-<div class="shell" class:with-help={$helpState.open}>
+<div class="shell" style:grid-template-columns={columns}>
 {#if $route.page === 'start'}
   <main class="start-page"><Start /></main>
 {:else}
@@ -73,7 +78,6 @@
 
 <style>
   .shell { display: grid; grid-template-columns: 1fr; height: 100vh; }
-  .shell.with-help { grid-template-columns: 1fr 380px; }
   .start-page { overflow: auto; min-width: 0; }
   .layout { display: grid; grid-template-columns: 210px 1fr; height: 100vh; min-width: 0; }
   aside { border-right: 1px solid var(--border); }

@@ -9,7 +9,9 @@ vi.mock('../lib/api', () => ({
 }));
 vi.mock('../lib/desktop', () => ({}));
 
+import * as api from '../lib/api';
 import { replace, route } from '../lib/router';
+import { addressSort } from '../lib/sorting';
 import Addresses from './Addresses.svelte';
 import { emptyFilter } from '../lib/filters';
 
@@ -37,4 +39,28 @@ test('aktiver Filter ohne Treffer: eigener Hinweis', async () => {
   render(Addresses, { filter: { ...emptyFilter(), text: 'xyz' } });
   expect(await screen.findByText('Keine Treffer für diesen Filter.')).toBeInTheDocument();
   expect(screen.queryByText(/Noch keine Adressen/)).not.toBeInTheDocument();
+});
+
+test('Klick auf einen Spaltenkopf sortiert, zweiter Klick dreht die Richtung', async () => {
+  const contact = (id: number, display_name: string, city: string) => ({
+    kind: 'Organisation' as const, id, display_name, organisation: null, street: null, zip: null,
+    city, po_box: null, email: null, phone: null, mobile: null,
+  });
+  vi.mocked(api.searchAddresses).mockResolvedValueOnce({
+    rows: [contact(1, 'Aebi', 'Zürich'), contact(2, 'Brot AG', 'Bern'), contact(3, 'Christen', 'Aarau')],
+    emailCount: 0, missingEmail: [], joinedEmails: '', mailto: null,
+  });
+  addressSort.set(null);
+  render(Addresses, {});
+  await screen.findByText('Aebi');
+  const firstNames = () => screen.getAllByRole('row').slice(1).map((r) => r.querySelectorAll('td')[1].textContent);
+
+  await fireEvent.click(screen.getByRole('button', { name: /^Ort/ }));
+  expect(firstNames()).toEqual(['Christen', 'Brot AG', 'Aebi']);
+  expect(screen.getByRole('columnheader', { name: /Ort/ })).toHaveAttribute('aria-sort', 'ascending');
+
+  await fireEvent.click(screen.getByRole('button', { name: /^Ort/ }));
+  expect(firstNames()).toEqual(['Aebi', 'Brot AG', 'Christen']);
+  expect(screen.getByRole('columnheader', { name: /Ort/ })).toHaveAttribute('aria-sort', 'descending');
+  addressSort.set(null);
 });

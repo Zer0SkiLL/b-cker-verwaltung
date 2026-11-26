@@ -15,6 +15,10 @@ Die Datei wurde verschoben oder umbenannt, oder das Netzlaufwerk ist nicht verbu
 
 Das Programm legt bewusst keine neue, leere Datei an, damit nicht aus Versehen zwei Dateien entstehen.
 
+## Windows warnt bei der Installation: „Der Computer wurde durch Windows geschützt“
+
+Das ist bei diesem Programm normal. Windows zeigt die Meldung bei Programmen ohne kostenpflichtige Herausgeber-Signatur. Klicken Sie auf **Weitere Informationen** und dann auf **Trotzdem ausführen**. Die Meldung erscheint nur bei der ersten Installation; Updates laufen danach ohne sie (siehe [Einrichten: allein oder zu mehreren](02b-einrichten.md)).
+
 ## Das Update schlägt fehl
 
 Meist fehlt kurz die Internetverbindung. Klicken Sie auf **Erneut versuchen**, oder mit **Datei wieder öffnen** arbeiten Sie mit der bisherigen Version weiter. Siehe [Neue Version installieren](09-neue-version.md).
@@ -41,6 +45,6 @@ Erstellen Sie mit **Problem melden** einen Bericht und schicken Sie ihn dem Entw
 
 ## Die Hilfe finden
 
-Klicken Sie auf das **?** neben dem Seitentitel oder drücken Sie **F1**. Oben in der Hilfe können Sie das ganze Handbuch durchsuchen.
+Klicken Sie auf das **?** neben dem Seitentitel oder drücken Sie **F1**. Oben in der Hilfe können Sie das ganze Handbuch durchsuchen. Ist ein Bild zu klein, klicken Sie darauf: Es erscheint dann gross. Mit **Breiter** wird die ganze Hilfe breiter.
 
 ![Die Suche in der Hilfe](bilder/hilfe-suche.png)
