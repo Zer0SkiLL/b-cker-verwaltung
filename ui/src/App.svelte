@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BreadRain from './components/BreadRain.svelte';
   import HelpPanel from './components/HelpPanel.svelte';
   import NoticeBar from './components/NoticeBar.svelte';
   import ReportDialog from './components/ReportDialog.svelte';
@@ -75,6 +76,7 @@
 {#if $helpState.open}<HelpPanel />{/if}
 </div>
 <ReportDialog />
+<BreadRain />
 
 <style>
   .shell { display: grid; grid-template-columns: 1fr; height: 100vh; }
