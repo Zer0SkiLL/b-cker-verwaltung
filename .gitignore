@@ -13,3 +13,6 @@
 
 # Fiktive Excel-Listen zum Ausprobieren des Imports (pnpm testdaten)
 testdaten/
+
+# macOS
+.DS_Store
