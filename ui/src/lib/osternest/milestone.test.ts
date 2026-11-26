@@ -1,7 +1,7 @@
 import { get } from 'svelte/store';
 import { vi } from 'vitest';
 
-vi.mock('../api', () => ({ searchAddresses: vi.fn() }));
+vi.mock('../api', () => ({ countActiveMembers: vi.fn() }));
 
 import * as api from '../api';
 import { checkMilestone, countActiveMembers, nextMilestone, rain, RAIN_MS } from './milestone';
@@ -55,8 +55,7 @@ test('gesperrter Speicher: keine Ausnahme, kein Regen', async () => {
   expect(get(rain)).toBeNull();
 });
 
-test('countActiveMembers zählt die aktiven Mitglieder über die Adresssuche', async () => {
-  vi.mocked(api.searchAddresses).mockResolvedValueOnce({ rows: [{}, {}, {}] } as never);
-  expect(await countActiveMembers()).toBe(3);
-  expect(api.searchAddresses).toHaveBeenCalledWith(expect.objectContaining({ membership: 'Active', text: null }));
+test('countActiveMembers fragt den Datenkern (Mitglieder, nicht Kontaktpersonen)', async () => {
+  vi.mocked(api.countActiveMembers).mockResolvedValueOnce(60);
+  expect(await countActiveMembers()).toBe(60);
 });

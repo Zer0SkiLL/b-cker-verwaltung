@@ -16,6 +16,11 @@ pub fn search_addresses(state: State<AppState>, filter: Filter) -> AppResult<adr
 }
 
 #[tauri::command(async)]
+pub fn count_active_members(state: State<AppState>) -> AppResult<i64> {
+    state.with(|s| adr::count_active_members(s, today()))
+}
+
+#[tauri::command(async)]
 pub fn export_addresses(
     state: State<AppState>,
     filter: Filter,

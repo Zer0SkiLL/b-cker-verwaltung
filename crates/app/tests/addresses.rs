@@ -136,3 +136,26 @@ fn rename_group_command() {
     verwaltung_app::commands::addresses::rename_group(&mut s, id, "Neu").unwrap();
     assert_eq!(list_groups(&s).unwrap()[0].name, "Neu");
 }
+
+#[test]
+fn count_active_members_reads_only_and_counts_members() {
+    use verwaltung_app::commands::addresses::count_active_members;
+    use verwaltung_core::model::MemberRef;
+    use verwaltung_core::repo::memberships::{self, MembershipInput};
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = fresh_session(dir.path());
+    let org = s.write(|c| organisations::create(c, &org_input("Beck AG"))).unwrap();
+    s.write(|c| {
+        memberships::create(
+            c,
+            &MembershipInput {
+                member: MemberRef::Organisation(org.id),
+                category_id: None,
+                joined_on: None,
+                left_on: None,
+            },
+        )
+    })
+    .unwrap();
+    assert_eq!(count_active_members(&s, today()).unwrap(), 1);
+}

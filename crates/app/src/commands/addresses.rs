@@ -8,7 +8,7 @@ use verwaltung_core::model::{Label, LabelGroup, LookupKind, LookupValue};
 use verwaltung_core::query::filter::{search, ContactRow, Filter};
 use verwaltung_core::query::saved_groups;
 use verwaltung_core::repo::teams::Team;
-use verwaltung_core::repo::{labels, lookups, teams};
+use verwaltung_core::repo::{labels, lookups, memberships, teams};
 
 use crate::error::AppResult;
 use crate::session::Session;
@@ -56,6 +56,11 @@ pub struct FilterOptions {
 }
 
 /// Treffer plus alles, was zum Kontaktieren der Liste nötig ist.
+/// Anzahl aktiver Mitglieder (nur lesend), für den Meilenstein in der Oberfläche.
+pub fn count_active_members(s: &Session, today: NaiveDate) -> AppResult<i64> {
+    s.read(|c| memberships::count_active_members(c, today))
+}
+
 pub fn search_addresses(s: &Session, filter: &Filter, today: NaiveDate) -> AppResult<SearchResult> {
     let rows = s.read(|c| search(c, filter, today))?;
     let emails = email_list(&rows);

@@ -2,8 +2,7 @@
 // Meilenstein: Nach einer Neuaufnahme, die eine neue volle Hundertermarke erreicht, fällt kurz Brot vom Himmel.
 // Gemerkt wird nur die höchste erreichte Marke, pro PC; die Vereinsdatei bleibt unberührt.
 import { writable } from 'svelte/store';
-import { searchAddresses } from '../api';
-import { emptyFilter } from '../filters';
+import * as api from '../api';
 
 const KEY = 'osternest-meilenstein';
 export const RAIN_MS = 3000;
@@ -37,7 +36,5 @@ export async function checkMilestone(countActive: () => Promise<number>): Promis
   }
 }
 
-export async function countActiveMembers(): Promise<number> {
-  const result = await searchAddresses({ ...emptyFilter(), membership: 'Active' });
-  return result.rows.length;
-}
+/** Zählt im Datenkern die Mitglieder selbst; Kontaktpersonen von Mitgliedbetrieben zählen nicht. */
+export const countActiveMembers = (): Promise<number> => api.countActiveMembers();

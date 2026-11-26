@@ -26,6 +26,7 @@ export const sessionInfo = () => call<T.SessionInfo>('session_info');
 export const closeFile = () => call<T.SecondaryResultDto | null>('close_file');
 
 // Adressen und Gruppen
+export const countActiveMembers = () => call<number>('count_active_members');
 export const searchAddresses = (filter: T.Filter) =>
   call<T.SearchResult>('search_addresses', { filter });
 export const exportAddresses = (filter: T.Filter, path: string, format: T.ExportFormat) =>

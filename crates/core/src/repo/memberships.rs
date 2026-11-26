@@ -33,6 +33,18 @@ impl Membership {
     }
 }
 
+/// Anzahl Mitglieder (Betriebe und Einzelpersonen) mit aktiver Mitgliedschaft; nur lesend.
+/// Kontaktpersonen eines Mitgliedbetriebs zählen nicht, Wiedereingetretene einmal.
+pub fn count_active_members(conn: &Connection, today: NaiveDate) -> Result<i64> {
+    let count = conn.query_row(
+        "SELECT COUNT(*) FROM (SELECT DISTINCT organisation_id, person_id FROM memberships \
+         WHERE left_on IS NULL OR left_on > ?1)",
+        params![today],
+        |row| row.get(0),
+    )?;
+    Ok(count)
+}
+
 pub fn create(conn: &Connection, input: &MembershipInput) -> Result<Membership> {
     validate(input)?;
     let (org, person) = input.member.columns();
