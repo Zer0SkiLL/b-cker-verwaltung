@@ -2,6 +2,9 @@
   import { reportOpen } from '../lib/diagnostics';
   import { helpState, toggleHelp } from '../lib/help';
   import { navigate, route, type Route } from '../lib/router';
+  import { badge, bakerMode, now } from '../lib/osternest/state';
+
+  const sign = $derived(badge($now, $bakerMode));
 
   const items: { label: string; target: Route; pages: string[] }[] = [
     { label: 'Adressen', target: { page: 'addresses' }, pages: ['addresses', 'organisation', 'person'] },
@@ -11,7 +14,7 @@
 </script>
 
 <nav>
-  <div class="brand">Bäckervereinigung</div>
+  <div class="brand">Bäckervereinigung{#if sign} <span class="osternest" title={sign.text}>{sign.icon}</span>{/if}</div>
   {#each items as item (item.label)}
     <button class:active={item.pages.includes($route.page)} onclick={() => navigate(item.target)}>
       {item.label}
@@ -31,4 +34,5 @@
   button { text-align: left; border: none; background: none; padding: 0.45rem 0.6rem; }
   button.active { background: var(--bg); font-weight: 600; }
   .spacer { flex: 1; }
+  .osternest { font-weight: 400; cursor: default; }
 </style>

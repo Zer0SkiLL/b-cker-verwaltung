@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { checkMilestone, countActiveMembers } from '../lib/osternest/milestone';
   import * as api from '../lib/api';
   import { formatDate } from '../lib/dates';
   import { membershipInputFromForm, type Errors } from '../lib/forms';
@@ -41,6 +42,8 @@
       await runWrite(() =>
         existing ? api.updateMembership(existing.id, parsed.input) : api.createMembership(parsed.input),
       );
+      // Osternest: nur Neuaufnahmen zählen für den Meilenstein; läuft im Hintergrund.
+      if (!existing) void checkMilestone(countActiveMembers);
       onDone();
     } catch (err) {
       failure = (err as Error).message;

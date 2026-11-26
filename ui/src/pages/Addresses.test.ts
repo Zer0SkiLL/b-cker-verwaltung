@@ -64,3 +64,39 @@ test('Klick auf einen Spaltenkopf sortiert, zweiter Klick dreht die Richtung', a
   expect(screen.getByRole('columnheader', { name: /Ort/ })).toHaveAttribute('aria-sort', 'descending');
   addressSort.set(null);
 });
+
+describe('Osternest in Adressen', () => {
+  afterEach(() => vi.useRealTimers());
+  const at = (date: Date) => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(date);
+  };
+
+  test('spät abends steht unter „Keine Treffer“ ein Zusatz', async () => {
+    at(new Date(2027, 2, 10, 23));
+    render(Addresses, { filter: { ...emptyFilter(), text: 'xyz' } });
+    expect(await screen.findByText('Keine Treffer für diesen Filter.')).toBeInTheDocument();
+    expect(screen.getByText('Um diese Zeit backen nur noch die Bäcker.')).toBeInTheDocument();
+  });
+
+  test('tagsüber nur der normale Hinweis', async () => {
+    at(new Date(2027, 2, 10, 10));
+    render(Addresses, { filter: { ...emptyFilter(), text: 'xyz' } });
+    expect(await screen.findByText('Keine Treffer für diesen Filter.')).toBeInTheDocument();
+    expect(screen.queryByText(/backen nur noch/)).not.toBeInTheDocument();
+  });
+
+  test('an Dreikönig liegt eine Krone unten auf der Seite', async () => {
+    at(new Date(2027, 0, 6, 10));
+    render(Addresses, {});
+    await fireEvent.click(await screen.findByRole('button', { name: 'Krone' }));
+    expect(screen.getByText('Sie sind heute König.')).toBeInTheDocument();
+  });
+
+  test('nach Dreikönig keine Krone', async () => {
+    at(new Date(2027, 0, 10, 10));
+    render(Addresses, {});
+    await screen.findByText(/Einträge/);
+    expect(screen.queryByRole('button', { name: 'Krone' })).not.toBeInTheDocument();
+  });
+});

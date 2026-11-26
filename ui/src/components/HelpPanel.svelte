@@ -5,6 +5,7 @@
   import { PARTS, pdfUrl, renderChapter, searchChapters, slugFromHref } from '../lib/handbook';
   import { closeHelp, helpBack, helpState, openHelp, showSearch, showToc } from '../lib/help';
   import { HELP_WIDTH, helpWidth, isWide, setHelpWidth, toggleWide } from '../lib/helpWidth';
+  import { helpJoke } from '../lib/osternest/sayings';
 
   let version = $state('');
   let query = $state('');
@@ -21,6 +22,7 @@
 
   const view = $derived($helpState.view);
   const hits = $derived(view.kind === 'search' ? searchChapters(view.query) : []);
+  const joke = $derived(view.kind === 'search' ? helpJoke(view.query) : null);
 
   // Das Suchfeld folgt der Ansicht, auch bei „Zurück“ zu einer Suche.
   $effect(() => {
@@ -162,9 +164,10 @@
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions (Links und Bilder darin sind per Tastatur bedienbar) -->
       <article onclick={onContentClick} onkeydown={onContentKey} use:markImages={html}>{@html html}</article>
     {:else if view.kind === 'search'}
-      {#if hits.length === 0}
+      {#if joke}<p class="osternest muted">{joke}</p>{/if}
+      {#if hits.length === 0 && !joke}
         <p class="muted">Keine Treffer. Versuchen Sie ein anderes Wort oder öffnen Sie das Inhaltsverzeichnis.</p>
-      {:else}
+      {:else if hits.length > 0}
         <ul class="hits">
           {#each hits as hit (hit.slug)}
             <li>

@@ -102,3 +102,47 @@ fn left_before_joined_rejected() {
     );
     assert!(res.is_err());
 }
+
+fn member(conn: &rusqlite::Connection, who: MemberRef, left_on: Option<chrono::NaiveDate>) {
+    memberships::create(
+        conn,
+        &MembershipInput {
+            member: who,
+            category_id: None,
+            joined_on: Some(d(2000, 1, 1)),
+            left_on,
+        },
+    )
+    .unwrap();
+}
+
+#[test]
+fn count_active_members_counts_members_not_their_contacts() {
+    let conn = test_conn();
+    let today = d(2026, 11, 26);
+    let beck = raw_org(&conn, "Beck AG");
+    let brot = raw_org(&conn, "Brot GmbH");
+    let alt = raw_org(&conn, "Alt AG");
+    let einzel = raw_person(&conn, "Einzelmitglied");
+    let kontakt = raw_person(&conn, "Kontakt");
+    member(&conn, MemberRef::Organisation(beck), None);
+    // Austritt erst in Zukunft: noch aktiv.
+    member(&conn, MemberRef::Organisation(brot), Some(d(2027, 1, 1)));
+    member(&conn, MemberRef::Organisation(alt), Some(d(2020, 1, 1)));
+    member(&conn, MemberRef::Person(einzel), None);
+    // Wieder eingetreten: alte und neue Mitgliedschaft, zählt einmal.
+    member(&conn, MemberRef::Organisation(alt), None);
+    let function = common::function(&conn, "Inhaber");
+    verwaltung_core::repo::affiliations::create(
+        &conn,
+        &verwaltung_core::repo::affiliations::AffiliationInput {
+            person_id: kontakt,
+            organisation_id: beck,
+            function_id: function,
+            valid_from: None,
+            valid_to: None,
+        },
+    )
+    .unwrap();
+    assert_eq!(memberships::count_active_members(&conn, today).unwrap(), 4);
+}

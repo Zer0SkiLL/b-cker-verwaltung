@@ -47,6 +47,7 @@ fn main() {
             session::diagnostics_log_tail,
             session::diagnostics_system,
             data::search_addresses,
+            data::count_active_members,
             data::export_addresses,
             data::list_groups,
             data::save_group,
