@@ -2,6 +2,12 @@
 
 Hier steht, was in jeder Version neu ist. Die neueste Version steht oben.
 
+## [0.3.2] – 26.11.2026
+
+### Behoben
+
+- Import-Seite übersichtlicher: Spaltenzuordnung und Bericht eingeklappt, Übernehmen oben, kein Scrollen in Teilbereichen, Hinweise nicht doppelt
+
 ## [0.3.1] – 25.11.2026
 
 ### Behoben
