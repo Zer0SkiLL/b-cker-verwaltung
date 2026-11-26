@@ -10,6 +10,9 @@
   import { navigate, replace } from '../lib/router';
   import { dataVersion, readOnly, runWrite } from '../lib/session';
   import { addressSort, nextSort, sortRows, type SortKey } from '../lib/sorting';
+  import { specialDay } from '../lib/osternest/calendar';
+  import { hourHint } from '../lib/osternest/sayings';
+  import { now } from '../lib/osternest/state';
   import type { EntryKind, ExportFormat, Filter, FilterIdKey, FilterOptions, MembershipStatus, SearchResult } from '../lib/types';
 
   let { filter: initial }: { filter?: Filter } = $props();
@@ -26,6 +29,10 @@
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const actions = $derived(result ? contactActions(result) : null);
+  // Osternest: Zusatz spät/früh und die Dreikönigskrone (bewusst nicht im Handbuch).
+  const lateHint = $derived(hourHint($now));
+  const crown = $derived(specialDay($now)?.id === 'dreikoenig');
+  let king = $state(false);
   const rows = $derived(result ? sortRows(result.rows, $addressSort) : []);
 
   const COLUMNS: { key: SortKey; label: string }[] = [
@@ -194,6 +201,7 @@
           <tr><td colspan="6">
             {#if activeFilterCount(filter) > 0}
               <p class="muted">Keine Treffer für diesen Filter.</p>
+              {#if lateHint}<p class="muted osternest">{lateHint}</p>{/if}
             {:else}
               <EmptyHint
                 text="Noch keine Adressen. Legen Sie mit „Neuer Betrieb“ oder „Neue Person“ den ersten Eintrag an."
@@ -209,6 +217,10 @@
   <div class="footer">
     <div>
       {result.rows.length} Einträge · {result.missingEmail.length} ohne Mail
+      {#if crown}
+        <button class="crown" aria-label="Krone" onclick={() => (king = true)}>👑</button>
+        {#if king}<span class="muted">Sie sind heute König.</span>{/if}
+      {/if}
       {#if result.missingEmail.length > 0}
         <details>
           <summary class="muted">Ohne Mail anzeigen</summary>
@@ -246,4 +258,5 @@
   .sort:hover { color: var(--accent); }
   .sort:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .arrow { font-size: 0.7em; align-self: center; }
+  .crown { all: unset; cursor: default; font-size: 0.75em; opacity: 0.5; margin-left: 0.3rem; }
 </style>

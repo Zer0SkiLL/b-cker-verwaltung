@@ -186,3 +186,21 @@ test('Esc im leeren Suchfeld wird nicht abgefangen', () => {
   field.dispatchEvent(escape);
   expect(escape.defaultPrevented).toBe(false);
 });
+
+test('Suche „Kaffee“ zeigt eine Antwort statt „Keine Treffer“', async () => {
+  const user = userEvent.setup();
+  openHelp('01-willkommen');
+  render(HelpPanel);
+  await user.type(screen.getByPlaceholderText('Im Handbuch suchen'), 'Kaffee');
+  expect(screen.getByText(/Kaffee finden Sie leider nicht im Handbuch/)).toHaveClass('osternest');
+  expect(screen.queryByText(/^Keine Treffer/)).not.toBeInTheDocument();
+});
+
+test('Suche „Ferien“ zeigt die Antwort und trotzdem die echten Treffer', async () => {
+  const user = userEvent.setup();
+  openHelp('01-willkommen');
+  render(HelpPanel);
+  await user.type(screen.getByPlaceholderText('Im Handbuch suchen'), 'Ferien');
+  expect(screen.getByText(/^Ferien: Vorher das Programm schliessen/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Einrichten/ })).toBeInTheDocument();
+});
