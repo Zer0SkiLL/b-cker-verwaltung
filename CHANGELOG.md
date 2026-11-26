@@ -2,6 +2,13 @@
 
 Hier steht, was in jeder Version neu ist. Die neueste Version steht oben.
 
+## [0.4.0] – 26.11.2026
+
+### Neu
+
+- Adressliste per Klick auf die Spaltenköpfe sortieren
+- Bilder in der Hilfe per Klick vergrössern, Hilfe breiter oder schmaler stellen
+
 ## [0.3.2] – 26.11.2026
 
 ### Behoben
