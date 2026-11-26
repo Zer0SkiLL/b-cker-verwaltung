@@ -19,6 +19,10 @@ Auf jeder Seite steht neben dem Titel ein **?**. Ein Klick darauf öffnet rechts
 
 ![Die Hilfe öffnet sich rechts neben der Arbeit](bilder/hilfe.png)
 
+**Bilder gross ansehen:** Klicken Sie in der Hilfe auf ein Bild. Es erscheint dann über dem ganzen Fenster. Ein weiterer Klick oder die Taste **Esc** schliesst es wieder.
+
+**Hilfe breiter machen:** Oben in der Hilfe macht **Breiter** die Leiste breiter, **Schmaler** stellt sie zurück. Sie können auch am linken Rand der Hilfe ziehen. Ein Doppelklick auf den Rand stellt die normale Breite wieder her. Das Programm merkt sich die Breite.
+
 **Bilder im Handbuch:** Blaue Nummern im Bild gehören zu den gleich nummerierten Schritten im Text. Ein blauer Rahmen zeigt, wo Sie klicken.
 
 Die Hilfe bleibt offen, während Sie arbeiten. So können Sie einen Ablauf Schritt für Schritt nachlesen und gleichzeitig ausführen. Schliessen Sie sie mit **×**, der Taste **Esc** oder einem erneuten Klick auf **?** bzw. **Hilfe**.
