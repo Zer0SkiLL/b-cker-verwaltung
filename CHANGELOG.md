@@ -2,6 +2,12 @@
 
 Hier steht, was in jeder Version neu ist. Die neueste Version steht oben.
 
+## [0.5.0] – 26.11.2026
+
+### Neu
+
+- Der Ofen ist jetzt richtig vorgeheizt
+
 ## [0.4.0] – 26.11.2026
 
 ### Neu
