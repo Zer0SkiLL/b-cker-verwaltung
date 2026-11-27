@@ -10,5 +10,6 @@ pub mod import_preview;
 pub mod location;
 pub mod logfile;
 pub mod resources;
+pub mod selftest;
 pub mod session;
 pub mod teams;

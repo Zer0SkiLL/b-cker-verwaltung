@@ -1,18 +1,30 @@
 // Typisierte Aufrufe der Rust-Befehle. Fehler kommen als deutscher Text (Error.message).
 import { invoke } from '@tauri-apps/api/core';
 import { recordCommand } from './diagnostics';
+import { logToFile } from './logFile';
 import type * as T from './types';
+
+/** Länger dauernde Aktionen landen als Warnung im Protokoll (Frühwarnung, z.B. langsames Netzlaufwerk). */
+export const SLOW_MS = 2000;
+
+function noteDuration(command: string, ms: number): void {
+  if (ms > SLOW_MS) logToFile('warn', `Langsam: ${command} ${Math.round(ms)} ms`);
+}
 
 // Jeder Aufruf landet in der Aktionsliste für „Problem melden“ – nur Name, Ergebnis und Dauer.
 async function call<R>(command: string, args?: Record<string, unknown>): Promise<R> {
   const started = performance.now();
   try {
     const value = await invoke<R>(command, args);
-    recordCommand(command, true, performance.now() - started);
+    const ms = performance.now() - started;
+    recordCommand(command, true, ms);
+    noteDuration(command, ms);
     return value;
   } catch (err) {
     const message = typeof err === 'string' ? err : String(err);
-    recordCommand(command, false, performance.now() - started, message);
+    const ms = performance.now() - started;
+    recordCommand(command, false, ms, message);
+    noteDuration(command, ms);
     throw new Error(message);
   }
 }
@@ -122,4 +134,5 @@ export const exportReport = (report: T.ReportEntry[], path: string) =>
 
 // Problem melden
 export const diagnosticsSnapshot = () => call<T.SnapshotDto>('diagnostics_snapshot');
+export const selfTest = () => call<T.SelfTestDto>('self_test');
 export const saveReport = (path: string, text: string) => call<void>('save_report', { path, text });

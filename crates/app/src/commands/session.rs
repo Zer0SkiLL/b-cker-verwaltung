@@ -29,11 +29,13 @@ pub fn open_and_remember(
     who: &Identity,
     create: bool,
 ) -> AppResult<OpenResult> {
+    let started = std::time::Instant::now();
     let info = if create {
         s.create(path, who)?
     } else {
         s.open(path, who)?
     };
+    s.set_open_ms(started.elapsed().as_millis());
     let warning = save_last_path(config_dir, path)
         .err()
         .map(|_| REMEMBER_FAILED.to_string());

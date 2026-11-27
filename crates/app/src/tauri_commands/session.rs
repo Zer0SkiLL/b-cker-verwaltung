@@ -68,3 +68,8 @@ pub fn diagnostics_log(level: String, message: String) {
 pub fn save_report(path: String, text: String) -> AppResult<()> {
     crate::commands::diagnostics::save_report(&PathBuf::from(path), &text)
 }
+
+#[tauri::command(async)]
+pub fn self_test(state: State<AppState>) -> AppResult<crate::commands::selftest::SelfTestDto> {
+    state.with(|s| crate::commands::selftest::self_test(s, Local::now()))
+}

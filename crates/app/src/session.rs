@@ -23,6 +23,8 @@ pub struct Session {
     secondary_error: Option<String>,
     /// Sicherung von unmittelbar vor dem letzten Import (nur sie darf „rückgängig“ machen).
     import_backup: Option<PathBuf>,
+    /// Dauer des letzten Öffnens (für den Selbsttest).
+    open_ms: Option<u128>,
 }
 
 impl Session {
@@ -86,6 +88,14 @@ impl Session {
     }
 
     /// Merkt sich die Sicherung vor einem Import für „Import rückgängig machen“.
+    pub fn set_open_ms(&mut self, ms: u128) {
+        self.open_ms = Some(ms);
+    }
+
+    pub fn open_ms(&self) -> Option<u128> {
+        self.open_ms
+    }
+
     pub fn remember_import_backup(&mut self, backup: PathBuf) {
         self.import_backup = Some(backup);
     }

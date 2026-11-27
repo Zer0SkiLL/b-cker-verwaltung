@@ -8,6 +8,8 @@
   import { renderMarkdown } from '../lib/markdown';
   import { installUpdate, reopenLastFile, updateState } from '../lib/updates';
   import { replace } from '../lib/router';
+  import { reportOpen } from '../lib/diagnostics';
+  import { dismissNotice, earlyNotices } from '../lib/earlyWarning';
 
   let error = $state<string | null>(null);
   const notices = $derived($sessionInfo ? noticesFor($sessionInfo) : []);
@@ -85,6 +87,14 @@
     </div>
   </div>
 {/if}
+
+{#each $earlyNotices as notice (notice.kind)}
+  <div class="notice" role="status">
+    <span class="grow">{notice.text}</span>
+    {#if notice.kind !== 'lowSpace'}<button onclick={() => reportOpen.set(true)}>Problem melden</button>{/if}
+    <button class="link" onclick={() => dismissNotice(notice.kind)}>Ausblenden</button>
+  </div>
+{/each}
 
 {#each notices as notice (notice.kind)}
   <div class="notice" role="status">

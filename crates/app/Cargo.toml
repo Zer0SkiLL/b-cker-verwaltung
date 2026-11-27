@@ -32,6 +32,7 @@ serde_json = "1"
 chrono = { version = "0.4", features = ["serde"] }
 rusqlite = { version = "0.43", features = ["bundled", "chrono"] }
 sysinfo = { version = "0.40", default-features = false, features = ["system"] }
+fs4 = "0.13"
 
 [dev-dependencies]
 tempfile = "3"

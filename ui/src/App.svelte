@@ -20,6 +20,7 @@
   import { clampWidth, helpWidth } from './lib/helpWidth';
   import { route } from './lib/router';
   import { checkForUpdates } from './lib/updates';
+  import { checkCrash, runSelfTest } from './lib/earlyWarning';
 
   // Im Hintergrund nach Updates suchen; ohne Verbindung bleibt es still.
   // Sicherung während der Arbeit: nur mit schreibend geöffneter Datei, Intervall aus den Einstellungen.
@@ -35,6 +36,15 @@
 
   onMount(() => {
     checkForUpdates({ silent: true });
+    void checkCrash();
+  });
+
+  // Selbsttest einmal pro geöffneter Datei, im Hintergrund.
+  let testedPath: string | null = null;
+  $effect(() => {
+    const path = $sessionInfo?.path ?? null;
+    if (path && path !== testedPath) void runSelfTest();
+    testedPath = path;
   });
 
   // Die Hilfe nimmt nie so viel Platz, dass die Seite daneben unbrauchbar wird (auch bei kleinem Fenster).

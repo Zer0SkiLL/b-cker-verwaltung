@@ -380,3 +380,10 @@ export interface SnapshotDto {
   problemsToday: number;
   log: string[];
 }
+
+export interface SelfTestDto {
+  integrityProblem: boolean;
+  lowSpace: boolean;
+  backupStale: boolean;
+  slowOpen: boolean;
+}

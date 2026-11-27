@@ -41,3 +41,18 @@ test('nur lesend: „Was heisst das?“ öffnet das passende Kapitel', async () 
   await user.click(screen.getByRole('button', { name: 'Was heisst das?' }));
   expect(get(helpState)).toMatchObject({ open: true, view: { kind: 'chapter', slug: '02-start-und-datei' } });
 });
+
+test('Hinweis nach Absturz: Problem melden und Ausblenden', async () => {
+  const { earlyNotices } = await import('../lib/earlyWarning');
+  const { reportOpen } = await import('../lib/diagnostics');
+  const { get } = await import('svelte/store');
+  sessionInfo.set({ ...readOnlyInfo, readOnly: false, heldBy: null });
+  earlyNotices.set([{ kind: 'crash', text: 'Das Programm wurde letztes Mal unerwartet beendet.' }]);
+  const user = userEvent.setup();
+  render(NoticeBar);
+  expect(screen.getByText('Das Programm wurde letztes Mal unerwartet beendet.')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Problem melden' }));
+  expect(get(reportOpen)).toBe(true);
+  await user.click(screen.getByRole('button', { name: 'Ausblenden' }));
+  expect(screen.queryByText('Das Programm wurde letztes Mal unerwartet beendet.')).toBeNull();
+});

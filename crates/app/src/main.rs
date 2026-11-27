@@ -49,6 +49,7 @@ fn main() {
             session::diagnostics_snapshot,
             session::diagnostics_log,
             session::save_report,
+            session::self_test,
             data::search_addresses,
             data::count_active_members,
             data::export_addresses,
