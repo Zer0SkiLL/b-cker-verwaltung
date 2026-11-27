@@ -244,7 +244,9 @@ pub fn export_report(report: &[ReportEntryDto], path: &Path) -> AppResult<()> {
             })
             .collect(),
     };
-    Ok(write_csv(&table, path)?)
+    write_csv(&table, path)?;
+    log::info!("Import-Bericht gespeichert: {} Zeilen", table.rows.len());
+    Ok(())
 }
 
 fn build_mapping(sheet: &Sheet, keys: &[String]) -> AppResult<Mapping> {

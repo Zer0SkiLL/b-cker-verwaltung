@@ -123,4 +123,5 @@ export const exportReport = (report: T.ReportEntry[], path: string) =>
 // Problem melden
 export const diagnosticsLogTail = () => call<string[]>('diagnostics_log_tail');
 export const diagnosticsSnapshot = () => call<T.SnapshotDto>('diagnostics_snapshot');
+export const saveReport = (path: string, text: string) => call<void>('save_report', { path, text });
 export const diagnosticsSystem = () => call<{ os: string; arch: string; version: string }>('diagnostics_system');

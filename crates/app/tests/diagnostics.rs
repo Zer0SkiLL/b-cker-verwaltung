@@ -5,9 +5,13 @@ use std::sync::{Mutex, OnceLock};
 
 use chrono::Local;
 use common::{fresh_session, org_input, write_xlsx, LIST_HEADERS};
-use verwaltung_app::commands::backup::backup_now;
-use verwaltung_app::commands::diagnostics::{log_tail, system_info};
+use verwaltung_app::commands::addresses::{export_addresses, ExportFormat};
+use verwaltung_app::commands::backup::{backup_now, export_all};
+use verwaltung_app::commands::diagnostics::{
+    install_panic_hook, log_from_ui, log_tail, save_report, system_info,
+};
 use verwaltung_app::commands::import::{import_apply, import_preview};
+use verwaltung_core::query::filter::Filter;
 use verwaltung_core::repo::organisations;
 
 /// Sammelt alle Protokollzeilen dieses Testprozesses.
@@ -59,7 +63,28 @@ fn logs_contain_no_business_data() {
     write_xlsx(&file, &LIST_HEADERS, &[row]);
     let p = import_preview(&mut s2, &file, None).unwrap();
     import_apply(&mut s2, &file, p.mapping, Local::now()).unwrap();
+    // Exporte
+    let today = Local::now().date_naive();
+    export_addresses(
+        &s,
+        &Filter::default(),
+        today,
+        &dir.path().join("Geheim-liste.csv"),
+        ExportFormat::Csv,
+    )
+    .unwrap();
+    export_all(&s, &dir.path().join("Geheim-alles.xlsx")).unwrap();
     let lines = capture.0.lock().unwrap().clone();
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.starts_with("INFO Export Adressen: 1 Zeilen")),
+        "{lines:?}"
+    );
+    assert!(
+        lines.iter().any(|l| l.starts_with("INFO Gesamtexport:")),
+        "{lines:?}"
+    );
     assert!(!lines.is_empty(), "es wurde nichts protokolliert");
     for line in &lines {
         assert!(
@@ -155,4 +180,46 @@ fn clock_behind_newest_backup_is_logged() {
             .any(|l| l.starts_with("WARN") && l.contains("Uhrzeit des Computers")),
         "{lines:?}"
     );
+}
+
+#[test]
+fn panics_are_logged_as_crash() {
+    let capture = captured();
+    install_panic_hook();
+    let _ = std::panic::catch_unwind(|| panic!("boom"));
+    let lines = capture.0.lock().unwrap().clone();
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.starts_with("ERROR Absturz: boom (") && l.contains("diagnostics.rs:")),
+        "{lines:?}"
+    );
+}
+
+#[test]
+fn messages_from_the_ui_are_logged_short_and_masked() {
+    let capture = captured();
+    log_from_ui(
+        "warn",
+        &format!(r"Oberfläche C:\Users\Hans\x {}", "y".repeat(600)),
+    );
+    log_from_ui("error", "kaputt");
+    log_from_ui("sonstwas", "nur Info");
+    let lines = capture.0.lock().unwrap().clone();
+    let warn = lines
+        .iter()
+        .find(|l| l.starts_with("WARN Oberfläche"))
+        .unwrap();
+    assert!(warn.contains(r"C:\Users\…\x"), "{warn}");
+    assert!(warn.chars().count() <= 505, "{}", warn.chars().count());
+    assert!(lines.iter().any(|l| l == "ERROR kaputt"));
+    assert!(lines.iter().any(|l| l == "INFO nur Info"));
+}
+
+#[test]
+fn save_report_writes_utf8() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("Problembericht.txt");
+    save_report(&path, "Grüsse ╔═╗").unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "Grüsse ╔═╗");
 }

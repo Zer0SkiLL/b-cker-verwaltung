@@ -25,6 +25,7 @@ fn main() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
+            verwaltung_app::commands::diagnostics::install_panic_hook();
             log::info!("Programmstart, Version {}", env!("CARGO_PKG_VERSION"));
             verwaltung_app::commands::resources::start_peak_sampler();
             let config_dir = app.path().app_config_dir()?;
@@ -48,6 +49,8 @@ fn main() {
             session::diagnostics_log_tail,
             session::diagnostics_system,
             session::diagnostics_snapshot,
+            session::diagnostics_log,
+            session::save_report,
             data::search_addresses,
             data::count_active_members,
             data::export_addresses,
@@ -113,6 +116,7 @@ fn main() {
     app.run(|handle, event| {
         if let RunEvent::Exit = event {
             close_session(&handle.state::<AppState>());
+            log::info!("Programmende");
         }
     });
 }

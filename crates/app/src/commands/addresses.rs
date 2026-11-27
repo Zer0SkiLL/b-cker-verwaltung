@@ -86,12 +86,18 @@ pub fn export_addresses(
     path: &Path,
     format: ExportFormat,
 ) -> AppResult<()> {
+    let started = std::time::Instant::now();
     let rows = s.read(|c| search(c, filter, today))?;
     let table = contact_table(&rows);
     match format {
         ExportFormat::Csv => write_csv(&table, path)?,
         ExportFormat::Xlsx => write_xlsx(&table, path, SHEET_NAME)?,
     }
+    log::info!(
+        "Export Adressen: {} Zeilen, {} ms",
+        table.rows.len(),
+        started.elapsed().as_millis()
+    );
     Ok(())
 }
 

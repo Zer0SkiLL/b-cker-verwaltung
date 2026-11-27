@@ -106,5 +106,8 @@ pub fn restore_backup(s: &mut Session, backup: &Path, now: DateTime<Local>) -> A
 
 /// Alle Daten als Excel-Datei (Exit-Strategie, auch ohne Programm lesbar).
 pub fn export_all(s: &Session, path: &Path) -> AppResult<()> {
-    s.read(|c| full_export(c, path))
+    let started = std::time::Instant::now();
+    s.read(|c| full_export(c, path))?;
+    log::info!("Gesamtexport: {} ms", started.elapsed().as_millis());
+    Ok(())
 }

@@ -126,3 +126,13 @@ test('Datei wieder öffnen: Fehler führt zur Startseite statt ins Leere', async
 test('Datei wieder öffnen: Erfolg führt zu den Adressen', async () => {
   expect(await reopenLastFile(deps())).toBe('addresses');
 });
+
+test('Update-Prüfung landet im Protokoll', async () => {
+  const log = vi.fn();
+  await checkForUpdates({ silent: true }, deps({ log }));
+  expect(log).toHaveBeenCalledWith('info', 'Update-Prüfung: Version 0.3.0 verfügbar');
+  await checkForUpdates({ silent: true }, deps({ log, check: vi.fn(async () => null) }));
+  expect(log).toHaveBeenCalledWith('info', 'Update-Prüfung: keine neue Version');
+  await checkForUpdates({ silent: true }, deps({ log, check: vi.fn(async () => { throw new Error('offline'); }) }));
+  expect(log).toHaveBeenCalledWith('warn', 'Update-Prüfung fehlgeschlagen');
+});

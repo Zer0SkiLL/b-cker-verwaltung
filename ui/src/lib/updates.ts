@@ -1,6 +1,7 @@
 // Updates über GitHub Releases: prüfen, Datei sauber schliessen, installieren, neu starten.
 import { writable } from 'svelte/store';
 import * as api from './api';
+import { logToFile, type LogLevel } from './logFile';
 import { sessionInfo } from './session';
 import type { OpenResult, SecondaryResultDto } from './types';
 
@@ -29,6 +30,7 @@ export interface UpdateDeps {
   relaunch: () => Promise<void>;
   lastPath: () => Promise<string | null>;
   openFile: (path: string) => Promise<OpenResult>;
+  log?: (level: LogLevel, message: string) => void;
 }
 
 export const updateState = writable<UpdateState>({ kind: 'idle' });
@@ -43,16 +45,19 @@ const defaultDeps: UpdateDeps = {
 };
 
 export async function checkForUpdates({ silent }: { silent: boolean }, deps = defaultDeps): Promise<void> {
+  const log = deps.log ?? logToFile;
   if (!silent) updateState.set({ kind: 'checking' });
   try {
     pending = await deps.check();
   } catch {
     pending = null;
+    log('warn', 'Update-Prüfung fehlgeschlagen');
     updateState.set(
       silent ? { kind: 'idle' } : { kind: 'failed', message: 'Update-Prüfung nicht möglich (keine Verbindung?).', fileClosed: false },
     );
     return;
   }
+  log('info', pending ? `Update-Prüfung: Version ${pending.version} verfügbar` : 'Update-Prüfung: keine neue Version');
   if (pending) {
     updateState.set({ kind: 'available', version: pending.version, notes: pending.body ?? '' });
   } else {

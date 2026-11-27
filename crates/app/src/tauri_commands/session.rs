@@ -72,3 +72,14 @@ pub fn diagnostics_snapshot(
     let file = state.with(|s| Ok(file_facts(s, Local::now().date_naive())))?;
     Ok(snapshot_with(file, &dir, &identity_from_env().host))
 }
+
+/// Protokollzeile aus der Oberfläche (`info`, `warn`, `error`).
+#[tauri::command(async)]
+pub fn diagnostics_log(level: String, message: String) {
+    crate::commands::diagnostics::log_from_ui(&level, &message);
+}
+
+#[tauri::command(async)]
+pub fn save_report(path: String, text: String) -> AppResult<()> {
+    crate::commands::diagnostics::save_report(&PathBuf::from(path), &text)
+}

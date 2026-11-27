@@ -2,6 +2,7 @@
 // Befehlen, Ergebnis, Dauer und Fehlermeldungen aufgezeichnet – nie Argumente oder Rückgabewerte.
 import { writable } from 'svelte/store';
 import { formatDateTime } from './dates';
+import { logToFile } from './logFile';
 import type { Route } from './router';
 import type { RetentionPolicy, SessionInfo } from './types';
 
@@ -82,6 +83,7 @@ export function recordError(reason: unknown): void {
         ? reason
         : `unbekannter Fehler (${Object.prototype.toString.call(reason)})`;
   push({ kind: 'error', name: 'Programmfehler', message });
+  logToFile('error', `Oberfläche: ${message}`);
 }
 
 export function recentActions(limit = REPORT_ACTIONS): ActionEntry[] {
