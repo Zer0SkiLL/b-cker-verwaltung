@@ -11,6 +11,16 @@ function noteDuration(command: string, ms: number): void {
   if (ms > SLOW_MS) logToFile('warn', `Langsam: ${command} ${Math.round(ms)} ms`);
 }
 
+/** Für die Diagnose selbst: ohne Aktionsliste und ohne Langsam-Warnung, sonst würde ein langsames
+ * Netzlaufwerk über die Frühwarnung immer neue Berichte auslösen. */
+async function quiet<R>(command: string, args?: Record<string, unknown>): Promise<R> {
+  try {
+    return await invoke<R>(command, args);
+  } catch (err) {
+    throw new Error(typeof err === 'string' ? err : String(err));
+  }
+}
+
 // Jeder Aufruf landet in der Aktionsliste für „Problem melden“ – nur Name, Ergebnis und Dauer.
 async function call<R>(command: string, args?: Record<string, unknown>): Promise<R> {
   const started = performance.now();
@@ -133,12 +143,13 @@ export const exportReport = (report: T.ReportEntry[], path: string) =>
   call<void>('export_report', { report, path });
 
 // Problem melden
-export const diagnosticsSnapshot = () => call<T.SnapshotDto>('diagnostics_snapshot');
-export const selfTest = () => call<T.SelfTestDto>('self_test');
+export const diagnosticsSnapshot = () => quiet<T.SnapshotDto>('diagnostics_snapshot');
+export const selfTest = () => quiet<T.SelfTestDto>('self_test');
+export const getRetentionQuiet = () => quiet<T.RetentionPolicy>('get_retention');
 export const diagnosticsPublish = (kind: string, statusBlock: string, report: string) =>
-  call<void>('diagnostics_publish', { kind, statusBlock, report });
-export const diagnosticsWriteFolder = (report: string) => call<void>('diagnostics_write_folder', { report });
-export const diagnoseSettings = () => call<T.DiagnoseInfoDto>('diagnose_settings');
+  quiet<void>('diagnostics_publish', { kind, statusBlock, report });
+export const diagnosticsWriteFolder = (report: string) => quiet<void>('diagnostics_write_folder', { report });
+export const diagnoseSettings = () => quiet<T.DiagnoseInfoDto>('diagnose_settings');
 export const setDiagnoseEnabled = (enabled: boolean) => call<void>('set_diagnose_enabled', { enabled });
-export const diagnoseHeartbeatDue = () => call<boolean>('diagnose_heartbeat_due');
+export const diagnoseHeartbeatDue = () => quiet<boolean>('diagnose_heartbeat_due');
 export const saveReport = (path: string, text: string) => call<void>('save_report', { path, text });

@@ -4,7 +4,10 @@
 use std::fs;
 use std::path::Path;
 
+use std::sync::LazyLock;
+
 use chrono::{Local, NaiveDate, NaiveDateTime, TimeZone};
+use regex::Regex;
 use serde::Serialize;
 
 use crate::error::AppResult;
@@ -84,38 +87,24 @@ pub fn read_log_lines(log_dir: &Path) -> AppResult<Vec<String>> {
     Ok(lines)
 }
 
-/// Ersetzt den Ordnernamen nach `\Users\`, `/Users/` und `/home/` durch „…“ (gross/klein egal).
-pub fn mask_user_dirs(line: &str) -> String {
-    const MARKERS: [&str; 3] = ["\\users\\", "/users/", "/home/"];
-    let lower = line.to_lowercase();
-    // Kleinschreibung kann die Länge ändern; dann lieber nichts maskieren als falsch schneiden.
-    if lower.len() != line.len() {
-        return line.to_string();
-    }
-    let mut out = String::with_capacity(line.len());
-    let mut i = 0;
-    while i < line.len() {
-        let hit = MARKERS.iter().find(|m| lower[i..].starts_with(*m));
-        match hit {
-            Some(marker) => {
-                let start = i + marker.len();
-                out.push_str(&line[i..start]);
-                let end = line[start..]
-                    .find(|c: char| c == '\\' || c == '/' || c.is_whitespace())
-                    .map_or(line.len(), |n| start + n);
-                if end > start {
-                    out.push_str(GAP);
-                }
-                i = end;
-            }
-            None => {
-                let ch = line[i..].chars().next().unwrap_or(' ');
-                out.push(ch);
-                i += ch.len_utf8();
-            }
-        }
-    }
-    out
+/// Absolute Pfade (Laufwerk, Netzpfad, `/…/…`) bis zum nächsten Trenner. Leerzeichen gehören
+/// dazu (Ordnernamen mit Leerzeichen); Schluss bei Anführungszeichen, Klammern, „: “, „, “, „; “.
+static PATH: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(^|[^A-Za-z0-9])((?:[A-Za-z]:[\\/]|\\\\|/[\w.~-]+/)(?:[^"'“”‘’«»<>|():,;\n]|[:,;][^ \n])*)"#)
+        .expect("gültiges Muster")
+});
+/// Inhaber der Sperre in „…bereits von <Name> auf <PC>…“.
+static LOCK_HOLDER: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(bereits von ).+?( auf )").expect("gültiges Muster"));
+
+/// Entfernt Pfade und den Namen des Sperr-Inhabers aus Texten, die das Programm verlassen
+/// (Protokoll-Auszug, Bericht, Analysedaten).
+pub fn sanitize(text: &str) -> String {
+    let without_paths = PATH.replace_all(text, "${1}‹Pfad›");
+    LOCK_HOLDER
+        .replace_all(&without_paths, "${1}‹Person›${2}")
+        .trim_end()
+        .to_string()
 }
 
 fn level_label(level: &str) -> &'static str {
@@ -137,7 +126,7 @@ pub fn pretty_line(line: &str) -> String {
         ),
         None => line.to_string(),
     };
-    mask_user_dirs(&text)
+    sanitize(&text)
 }
 
 fn is_problem(line: &str) -> bool {

@@ -201,7 +201,7 @@ fn messages_from_the_ui_are_logged_short_and_masked() {
     let capture = captured();
     log_from_ui(
         "warn",
-        &format!(r"Oberfläche C:\Users\Hans\x {}", "y".repeat(600)),
+        &format!(r"Oberfläche C:\Users\Hans\x, {}", "y".repeat(600)),
     );
     log_from_ui("error", "kaputt");
     log_from_ui("sonstwas", "nur Info");
@@ -210,7 +210,8 @@ fn messages_from_the_ui_are_logged_short_and_masked() {
         .iter()
         .find(|l| l.starts_with("WARN Oberfläche"))
         .unwrap();
-    assert!(warn.contains(r"C:\Users\…\x"), "{warn}");
+    assert!(warn.starts_with("WARN Oberfläche ‹Pfad›, yyy"), "{warn}");
+    assert!(!warn.contains("Hans"), "{warn}");
     assert!(warn.chars().count() <= 505, "{}", warn.chars().count());
     assert!(lines.iter().any(|l| l == "ERROR kaputt"));
     assert!(lines.iter().any(|l| l == "INFO nur Info"));
@@ -222,4 +223,28 @@ fn save_report_writes_utf8() {
     let path = dir.path().join("Problembericht.txt");
     save_report(&path, "Grüsse ╔═╗").unwrap();
     assert_eq!(std::fs::read_to_string(&path).unwrap(), "Grüsse ╔═╗");
+}
+
+#[test]
+fn errors_shown_to_the_user_are_logged_without_path() {
+    let capture = captured();
+    let config = tempfile::tempdir().unwrap();
+    let state = verwaltung_app::tauri_commands::AppState::new(config.path().to_path_buf());
+    let missing = std::path::Path::new("/Geheimordner-Test/verband.sqlite");
+    let err = state
+        .with(|s| s.open(missing, &common::who("hans")).map(|_| ()))
+        .unwrap_err();
+    // Die Oberfläche bekommt die volle Meldung, das Protokoll nicht.
+    assert!(err.0.contains("Geheimordner-Test"), "{}", err.0);
+    let lines = capture.0.lock().unwrap().clone();
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.starts_with("WARN Fehler an die Oberfläche")),
+        "{lines:?}"
+    );
+    assert!(
+        !lines.iter().any(|l| l.contains("Geheimordner-Test")),
+        "{lines:?}"
+    );
 }

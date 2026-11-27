@@ -188,6 +188,31 @@ fn event_kind_from_log_records() {
     assert_eq!(event_kind(Warn, "reqwest::connect", "x"), None);
     assert_eq!(event_kind(Warn, "hyper_util::client", "x"), None);
     assert_eq!(event_kind(Warn, "rustls::conn", "x"), None);
+    // langsame Diagnose-Aufrufe selbst sind kein Anlass für einen neuen Bericht
+    assert_eq!(
+        event_kind(
+            Warn,
+            "verwaltung_app::commands::diagnostics",
+            "Langsam: diagnostics_publish 3000 ms"
+        ),
+        None
+    );
+    assert_eq!(
+        event_kind(
+            Warn,
+            "verwaltung_app::commands::diagnostics",
+            "Langsam: self_test 3000 ms"
+        ),
+        None
+    );
+    assert_eq!(
+        event_kind(
+            Warn,
+            "verwaltung_app::commands::diagnostics",
+            "Langsam: search_addresses 3000 ms"
+        ),
+        Some(Kind::Warnung)
+    );
 }
 
 #[test]
@@ -470,4 +495,28 @@ fn live_discord() {
         at: Local::now(),
     };
     discord::send(&url, &msg).expect("Senden fehlgeschlagen");
+}
+
+#[test]
+fn sending_never_turns_the_switch_back_on() {
+    use verwaltung_app::commands::diagnose::settings::{merge_counters, update};
+    let dir = tempfile::tempdir().unwrap();
+    // Senden lädt die Einstellungen (Schalter noch ein) …
+    let mut stale = load(dir.path());
+    // … währenddessen schaltet der Nutzer aus …
+    update(dir.path(), |s| s.enabled = Some(false)).unwrap();
+    // … und das Senden schreibt danach nur seine Zähler zurück.
+    stale.sent_count = 3;
+    stale.last_sent = Some("2026-11-27T10:00:00+01:00".into());
+    merge_counters(dir.path(), &stale).unwrap();
+    let now = load(dir.path());
+    assert_eq!(now.enabled, Some(false));
+    assert_eq!(now.sent_count, 3);
+    assert!(now.last_sent.is_some());
+    // atomar geschrieben: keine Hilfsdatei bleibt liegen
+    let names: Vec<_> = std::fs::read_dir(dir.path())
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
+    assert_eq!(names, vec![std::ffi::OsString::from("diagnose.json")]);
 }

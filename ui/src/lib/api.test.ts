@@ -28,3 +28,18 @@ test('schnelle Aktion nicht', async () => {
   await api.sessionInfo();
   expect(logged).toEqual([]);
 });
+
+test('Diagnose-Aufrufe lösen keine Langsam-Warnung aus und stehen nicht in der Aktionsliste', async () => {
+  const { recentActions } = await import('./diagnostics');
+  duration = 9000;
+  const before = recentActions().length;
+  await api.diagnosticsSnapshot();
+  await api.diagnosticsPublish('warnung', '', '');
+  await api.diagnosticsWriteFolder('');
+  await api.selfTest();
+  await api.diagnoseSettings();
+  await api.diagnoseHeartbeatDue();
+  await api.getRetentionQuiet();
+  expect(logged).toEqual([]);
+  expect(recentActions().length).toBe(before);
+});

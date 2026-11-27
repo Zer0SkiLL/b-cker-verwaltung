@@ -11,6 +11,14 @@ fn main() {
     let handle_cell = std::sync::Arc::new(std::sync::OnceLock::new());
     let handle_for_setup = handle_cell.clone();
     let app = tauri::Builder::default()
+        // Ein zweiter Start (Doppelklick) holt das offene Fenster nach vorn, statt ein zweites
+        // Programm zu starten (zwei Programme würden sich Sperre und Protokoll teilen).
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(
             tauri_plugin_log::Builder::new()
                 .targets([

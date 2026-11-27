@@ -1,7 +1,7 @@
 //! Lesbares Protokoll, Masken für Benutzerordner und erkannte Programmstarts.
 use chrono::NaiveDate;
 use verwaltung_app::commands::logfile::{
-    log_excerpt, mask_user_dirs, pretty_line, problems_today, read_log_lines, start_history,
+    log_excerpt, pretty_line, problems_today, read_log_lines, sanitize, start_history,
 };
 
 fn line(date: &str, time: &str, level: &str, text: &str) -> String {
@@ -37,18 +37,51 @@ fn pretty_line_keeps_unreadable_lines() {
 }
 
 #[test]
-fn user_folders_are_masked() {
-    assert_eq!(
-        mask_user_dirs(r"Dateifehler C:\Users\Hans\Desktop\a.sqlite"),
-        r"Dateifehler C:\Users\…\Desktop\a.sqlite"
+fn paths_and_lock_holders_are_removed() {
+    let cases = [
+        (
+            r"Dateifehler C:\Users\Hans Muster\Desktop\a.sqlite",
+            "Dateifehler ‹Pfad›",
+        ),
+        (
+            r"Datei nicht gefunden: S:\Verein\Geheimordner\x.sqlite",
+            "Datei nicht gefunden: ‹Pfad›",
+        ),
+        (
+            r"Öffnen von \\server\freigabe\a.sqlite: Zugriff verweigert",
+            "Öffnen von ‹Pfad›: Zugriff verweigert",
+        ),
+        (
+            "Fehler bei /Users/hans/Desktop/a.sqlite, bitte prüfen",
+            "Fehler bei ‹Pfad›, bitte prüfen",
+        ),
+        ("a /home/anna/x b", "a ‹Pfad›"),
+        ("(Datei: /Volumes/USB/x.sqlite)", "(Datei: ‹Pfad›)"),
+        (
+            "Die Datei wird bereits von Hans Muster auf PC-1 verwendet.",
+            "Die Datei wird bereits von ‹Person› auf PC-1 verwendet.",
+        ),
+        ("Datei geöffnet", "Datei geöffnet"),
+        (
+            "Aufbewahrung 2/14/8/12, 9.1 / 16.0 GB",
+            "Aufbewahrung 2/14/8/12, 9.1 / 16.0 GB",
+        ),
+        (
+            "Absturz: boom (crates/app/src/x.rs:3)",
+            "Absturz: boom (crates/app/src/x.rs:3)",
+        ),
+        ("Ärger in C:\\Ä\\ö.sqlite", "Ärger in ‹Pfad›"),
+    ];
+    for (input, expected) in cases {
+        assert_eq!(sanitize(input), expected, "{input}");
+    }
+    let raw = line(
+        "2026-11-26",
+        "10:00:00",
+        "WARN",
+        r"Fehler an die Oberfläche: Datei nicht gefunden: S:\Geheim\a.sqlite",
     );
-    assert_eq!(mask_user_dirs("/Users/hans/x"), "/Users/…/x");
-    assert_eq!(mask_user_dirs("a /home/anna/x b"), "a /home/…/x b");
-    assert_eq!(mask_user_dirs(r"c:\users\hans"), r"c:\users\…");
-    assert_eq!(mask_user_dirs("Datei geöffnet"), "Datei geöffnet");
-    // auch in aufbereiteten Zeilen
-    let raw = line("2026-11-26", "10:00:00", "WARN", r"Fehler: C:\Users\Hans\a");
-    assert!(pretty_line(&raw).ends_with(r"Fehler: C:\Users\…\a"));
+    assert!(pretty_line(&raw).ends_with("Datei nicht gefunden: ‹Pfad›"));
 }
 
 #[test]

@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 vi.mock('./api', () => ({
   diagnosticsSnapshot: vi.fn(),
   selfTest: vi.fn(),
-  getRetention: vi.fn(async () => ({ keepAllDays: 2, dailyDays: 14, weeklyWeeks: 8, monthlyMonths: 12, intervalMinutes: 60 })),
+  getRetentionQuiet: vi.fn(async () => ({ keepAllDays: 2, dailyDays: 14, weeklyWeeks: 8, monthlyMonths: 12, intervalMinutes: 60 })),
   diagnosticsPublish: vi.fn(async () => undefined),
   diagnosticsWriteFolder: vi.fn(async () => undefined),
   diagnoseHeartbeatDue: vi.fn(async () => false),

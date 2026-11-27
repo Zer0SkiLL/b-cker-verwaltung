@@ -83,7 +83,7 @@ export function recordError(reason: unknown): void {
         ? reason
         : `unbekannter Fehler (${Object.prototype.toString.call(reason)})`;
   push({ kind: 'error', name: 'Programmfehler', message });
-  logToFile('error', `Oberfläche: ${message}`);
+  logToFile('error', `Oberfläche: ${sanitize(message)}`);
 }
 
 export function recentActions(limit = REPORT_ACTIONS): ActionEntry[] {
@@ -105,10 +105,19 @@ function time(iso: string): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+// Wie `sanitize` in Rust (crates/app/src/commands/logfile.rs): absolute Pfade und den Namen des
+// Sperr-Inhabers entfernen, bevor Texte den PC verlassen.
+const PATH = /(^|[^A-Za-z0-9])((?:[A-Za-z]:[\\/]|\\\\|\/[\w.~-]+\/)(?:[^"'“”‘’«»<>|():,;\n]|[:,;][^ \n])*)/g;
+const LOCK_HOLDER = /(bereits von ).+?( auf )/g;
+
+export function sanitize(text: string): string {
+  return text.replace(PATH, '$1‹Pfad›').replace(LOCK_HOLDER, '$1‹Person›$2').trimEnd();
+}
+
 function actionLine(a: ActionEntry): string {
   if (a.kind === 'page') return `${time(a.at)} Seite: ${a.name}`;
-  if (a.kind === 'error') return `${time(a.at)} Fehler: ${a.message ?? ''}`;
-  const result = a.ok ? `OK (${a.ms ?? 0} ms)` : `Fehler: ${a.message ?? ''}`;
+  if (a.kind === 'error') return `${time(a.at)} Fehler: ${sanitize(a.message ?? '')}`;
+  const result = a.ok ? `OK (${a.ms ?? 0} ms)` : `Fehler: ${sanitize(a.message ?? '')}`;
   return `${time(a.at)} ${a.name} – ${result}`;
 }
 

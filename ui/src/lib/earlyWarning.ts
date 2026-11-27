@@ -132,7 +132,7 @@ export async function currentReport(description: string): Promise<{ report: stri
   const session = get(sessionInfo);
   const [snapshot, retention] = await Promise.all([
     api.diagnosticsSnapshot().catch(() => null),
-    session ? api.getRetention().catch(() => null) : Promise.resolve(null),
+    session ? api.getRetentionQuiet().catch(() => null) : Promise.resolve(null),
   ]);
   const report = buildReport({
     description,

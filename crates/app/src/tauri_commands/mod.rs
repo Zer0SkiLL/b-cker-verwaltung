@@ -33,7 +33,11 @@ impl AppState {
         })?;
         let result = f(&mut session);
         if let Err(err) = &result {
-            log::warn!("Fehler an die Oberfläche: {}", err.0);
+            // Ohne Pfad und Namen: das Protokoll geht in Bericht und Analysedaten.
+            log::warn!(
+                "Fehler an die Oberfläche: {}",
+                crate::commands::logfile::sanitize(&err.0)
+            );
         }
         result
     }
@@ -47,6 +51,9 @@ pub(crate) fn today() -> chrono::NaiveDate {
 /// Wird beim Fenster-Schliessen und beim Programmende aufgerufen; mehrfach unschädlich.
 pub fn close_session(state: &AppState) {
     if let Err(err) = state.with(|s| s.close(chrono::Local::now())) {
-        log::error!("Fehler beim Schliessen: {}", err.0);
+        log::error!(
+            "Fehler beim Schliessen: {}",
+            crate::commands::logfile::sanitize(&err.0)
+        );
     }
 }

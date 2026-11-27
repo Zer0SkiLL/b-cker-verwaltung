@@ -10,8 +10,7 @@ use verwaltung_core::storage::backup;
 
 use super::location::location_of;
 use super::logfile::{
-    excerpt_indices, log_excerpt, mask_user_dirs, problems_today, read_log_lines, start_history,
-    StartDto,
+    excerpt_indices, log_excerpt, problems_today, read_log_lines, sanitize, start_history, StartDto,
 };
 use super::resources::{measure, ResourcesDto};
 use crate::error::AppResult;
@@ -143,7 +142,7 @@ pub fn panic_message(info: &std::panic::PanicHookInfo<'_>) -> String {
         .location()
         .map(|l| format!(" ({}:{})", l.file(), l.line()))
         .unwrap_or_default();
-    mask_user_dirs(&format!("Absturz: {text}{place}"))
+    sanitize(&format!("Absturz: {text}{place}"))
 }
 
 /// Schreibt Abstürze (Panics) ins Protokoll, danach wie gewohnt. Mehrfacher Aufruf schadet nicht.
@@ -161,7 +160,7 @@ pub fn install_panic_hook() {
 /// Protokollzeile aus der Oberfläche: gekürzt und mit maskierten Benutzerordnern.
 pub fn log_from_ui(level: &str, message: &str) {
     let short: String = message.chars().take(MAX_UI_MESSAGE).collect();
-    let text = mask_user_dirs(&short);
+    let text = sanitize(&short);
     match level {
         "warn" => log::warn!("{text}"),
         "error" => log::error!("{text}"),

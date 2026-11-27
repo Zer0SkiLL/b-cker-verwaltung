@@ -89,9 +89,19 @@ pub fn heartbeat_due(s: &DiagnoseSettings, now: DateTime<Local>) -> bool {
         .is_none_or(|last| now.signed_duration_since(last) > Duration::days(HEARTBEAT_DAYS))
 }
 
+/// Langsam-Warnungen der Diagnose-Befehle selbst (zweite Sicherung neben `quiet` in der Oberfläche).
+const QUIET_SLOW: [&str; 3] = [
+    "Langsam: diagnos",
+    "Langsam: self_test",
+    "Langsam: get_retention",
+];
+
 /// Welche Protokollzeile eine Frühwarnung auslöst.
 pub fn event_kind(level: log::Level, target: &str, message: &str) -> Option<Kind> {
-    if level > log::Level::Warn || QUIET_TARGETS.iter().any(|t| target.starts_with(t)) {
+    if level > log::Level::Warn
+        || QUIET_TARGETS.iter().any(|t| target.starts_with(t))
+        || QUIET_SLOW.iter().any(|m| message.starts_with(m))
+    {
         return None;
     }
     Some(if message.starts_with("Absturz") {
@@ -132,9 +142,7 @@ pub fn write_folder_file(db_path: &Path, host: &str, report: &str) {
 /// Gibt die Anzahl gesendeter Nachrichten zurück.
 pub fn flush(outbox: &Path, url: &str, s: &mut DiagnoseSettings, now: DateTime<Local>) -> usize {
     static FLUSHING: Mutex<()> = Mutex::new(());
-    let Ok(_guard) = FLUSHING.lock() else {
-        return 0;
-    };
+    let _guard = FLUSHING.lock().unwrap_or_else(|e| e.into_inner());
     let today = now.date_naive().to_string();
     if s.sent_day.as_deref() != Some(today.as_str()) {
         s.sent_day = Some(today);
@@ -199,10 +207,14 @@ pub fn spawn_flush(
     config_dir: std::path::PathBuf,
     outbox_dir: std::path::PathBuf,
 ) -> std::thread::JoinHandle<()> {
+    // Laden, Senden und Zähler zurückschreiben am Stück, damit sich zwei Sendungen nicht die
+    // Tageszählung überschreiben.
+    static SENDING: Mutex<()> = Mutex::new(());
     std::thread::spawn(move || {
+        let _guard = SENDING.lock().unwrap_or_else(|e| e.into_inner());
         let mut s = settings::load(&config_dir);
         flush(&outbox_dir, &url, &mut s, Local::now());
-        if let Err(e) = settings::save(&config_dir, &s) {
+        if let Err(e) = settings::merge_counters(&config_dir, &s) {
             log::info!("Analysedaten: Einstellungen nicht gespeichert: {e}");
         }
     })

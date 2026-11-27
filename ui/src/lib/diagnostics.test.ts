@@ -9,7 +9,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import * as api from './api';
 import {
-  buildReport, clearActions, MAX_ENTRIES, recentActions, recordCommand, recordError, recordPage, reportOpen,
+  buildReport, clearActions, MAX_ENTRIES, recentActions, recordCommand, recordError, recordPage, reportOpen, sanitize,
 } from './diagnostics';
 import type { SnapshotDto } from './types';
 
@@ -137,4 +137,21 @@ test('reportOpen ist ein Store', () => {
   let value = false;
   reportOpen.subscribe((v) => (value = v))();
   expect(value).toBe(true);
+});
+
+test('Aktionen im Bericht ohne Pfade und ohne Namen des Sperr-Inhabers', () => {
+  recordCommand('open_file', false, 5, 'Datei nicht gefunden: S:\\Verein\\Geheimordner\\x.sqlite');
+  recordCommand('take_over', false, 5, 'Die Datei wird bereits von Hans Muster auf PC-1 verwendet.');
+  recordError(new Error('kaputt bei /Users/hans/Geheim/a.sqlite, sonst nichts'));
+  const text = report();
+  expect(text).toContain('open_file – Fehler: Datei nicht gefunden: ‹Pfad›');
+  expect(text).toContain('take_over – Fehler: Die Datei wird bereits von ‹Person› auf PC-1 verwendet.');
+  expect(text).toContain('Fehler: Error: kaputt bei ‹Pfad›, sonst nichts');
+  for (const secret of ['Geheimordner', 'Hans', 'Geheim/']) expect(text).not.toContain(secret);
+});
+
+test('sanitize wie in Rust', () => {
+  expect(sanitize('Öffnen von \\\\server\\freigabe\\a.sqlite: Zugriff verweigert')).toBe('Öffnen von ‹Pfad›: Zugriff verweigert');
+  expect(sanitize('Aufbewahrung 2/14/8/12, 9.1 / 16.0 GB')).toBe('Aufbewahrung 2/14/8/12, 9.1 / 16.0 GB');
+  expect(sanitize('C:\\Users\\Hans Muster\\a.sqlite')).toBe('‹Pfad›');
 });

@@ -1,6 +1,7 @@
 //! Einstellungen der Analysedaten pro PC (`diagnose.json` im Konfigurationsordner).
 
 use std::path::Path;
+use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 
@@ -27,10 +28,35 @@ pub fn load(config_dir: &Path) -> DiagnoseSettings {
         .unwrap_or_default()
 }
 
+/// Alle Änderungen laufen nacheinander (Laden → Ändern → Speichern).
+static LOCK: Mutex<()> = Mutex::new(());
+
+/// Schreibt über eine Hilfsdatei und Umbenennen, damit nie eine halbe Datei entsteht
+/// (eine kaputte Datei würde wieder als „ein“ gelesen).
 pub fn save(config_dir: &Path, s: &DiagnoseSettings) -> AppResult<()> {
     std::fs::create_dir_all(config_dir)?;
     let text = serde_json::to_string_pretty(s)
         .map_err(|e| AppError(format!("Einstellungen nicht speicherbar: {e}")))?;
-    std::fs::write(config_dir.join(FILE_NAME), text)?;
+    let tmp = config_dir.join(format!("{FILE_NAME}.tmp"));
+    std::fs::write(&tmp, text)?;
+    std::fs::rename(&tmp, config_dir.join(FILE_NAME))?;
     Ok(())
+}
+
+/// Ändert die Einstellungen unter der Sperre.
+pub fn update(config_dir: &Path, change: impl FnOnce(&mut DiagnoseSettings)) -> AppResult<()> {
+    let _guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut s = load(config_dir);
+    change(&mut s);
+    save(config_dir, &s)
+}
+
+/// Übernimmt nach dem Senden nur die Zähler; den Schalter fasst das Senden nie an.
+pub fn merge_counters(config_dir: &Path, sent: &DiagnoseSettings) -> AppResult<()> {
+    update(config_dir, |s| {
+        s.last_sent = sent.last_sent.clone();
+        s.last_heartbeat = sent.last_heartbeat.clone();
+        s.sent_day = sent.sent_day.clone();
+        s.sent_count = sent.sent_count;
+    })
 }
