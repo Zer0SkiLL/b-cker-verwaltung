@@ -64,6 +64,7 @@ fn main() {
             diagnose::set_diagnose_enabled,
             diagnose::diagnose_heartbeat_due,
             diagnose::diagnostics_publish,
+            diagnose::diagnostics_write_folder,
             data::search_addresses,
             data::count_active_members,
             data::export_addresses,

@@ -135,4 +135,10 @@ export const exportReport = (report: T.ReportEntry[], path: string) =>
 // Problem melden
 export const diagnosticsSnapshot = () => call<T.SnapshotDto>('diagnostics_snapshot');
 export const selfTest = () => call<T.SelfTestDto>('self_test');
+export const diagnosticsPublish = (kind: string, statusBlock: string, report: string) =>
+  call<void>('diagnostics_publish', { kind, statusBlock, report });
+export const diagnosticsWriteFolder = (report: string) => call<void>('diagnostics_write_folder', { report });
+export const diagnoseSettings = () => call<T.DiagnoseInfoDto>('diagnose_settings');
+export const setDiagnoseEnabled = (enabled: boolean) => call<void>('set_diagnose_enabled', { enabled });
+export const diagnoseHeartbeatDue = () => call<boolean>('diagnose_heartbeat_due');
 export const saveReport = (path: string, text: string) => call<void>('save_report', { path, text });

@@ -387,3 +387,12 @@ export interface SelfTestDto {
   backupStale: boolean;
   slowOpen: boolean;
 }
+
+export interface DiagnoseInfoDto {
+  /** Nur in Release-Builds mit eingebautem Webhook und bis zum Enddatum. */
+  available: boolean;
+  enabled: boolean;
+  /** JJJJ-MM-TT */
+  until: string;
+  lastSent: string | null;
+}

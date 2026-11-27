@@ -5,6 +5,7 @@
   import { renderMarkdown } from '../../lib/markdown';
   import { checkForUpdates, updateState } from '../../lib/updates';
   import { bakerMode, countVersionClick, setBakerMode } from '../../lib/osternest/state';
+  import DiagnoseSwitch from './DiagnoseSwitch.svelte';
 
   const REPO = 'https://github.com/Zer0SkiLL/b-cker-verwaltung';
   let version = $state('');
@@ -63,6 +64,7 @@
     {#if status}<span class="muted">{status}</span>{/if}
   </div>
 </div>
+<DiagnoseSwitch />
 
 <h2>Was ist neu?</h2>
 <div class="changelog">{@html renderMarkdown(changelog)}</div>

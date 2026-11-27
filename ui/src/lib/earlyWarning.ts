@@ -1,7 +1,10 @@
 // Frühwarnung: Hinweis nach einem Absturz und Befunde des Selbsttests. Alles hier scheitert still –
 // die Arbeit im Programm geht immer vor.
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 import * as api from './api';
+import { buildReport, recentActions } from './diagnostics';
+import { route } from './router';
+import { sessionInfo } from './session';
 import type { SelfTestDto, StartDto } from './types';
 
 export type EarlyNotice = { kind: 'crash' | 'integrity' | 'lowSpace'; text: string };
@@ -71,5 +74,131 @@ export async function runSelfTest(): Promise<SelfTestDto | null> {
     return result;
   } catch {
     return null;
+  }
+}
+
+// --- Automatische Berichte (Diagnose-Ordner und Analysedaten) ---
+
+export type EventKind = 'absturz' | 'warnung' | 'selbsttest' | 'lebenszeichen';
+
+const KIND_LABEL: Record<EventKind, string> = {
+  absturz: 'Absturz',
+  warnung: 'Warnung',
+  selbsttest: 'Selbsttest',
+  lebenszeichen: 'Lebenszeichen',
+};
+/** Rangfolge, wenn im Sammelfenster mehrere Arten zusammenkommen. */
+const RANK: Record<EventKind, number> = { lebenszeichen: 0, warnung: 1, selbsttest: 2, absturz: 3 };
+
+export const WINDOW_MS = 60_000;
+const SENT_KEY = 'diagnose-absturz-gesendet';
+
+/** Erstes Ereignis öffnet ein Fenster von 60 s; danach ein gemeinsamer Bericht. Absturz sofort. */
+export function createCollector(publish: (kind: EventKind) => void, setTimer = setTimeout, clearTimer = clearTimeout) {
+  let pending: EventKind | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return (kind: EventKind) => {
+    if (kind === 'absturz') {
+      if (timer) clearTimer(timer);
+      timer = null;
+      pending = null;
+      publish('absturz');
+      return;
+    }
+    pending = pending && RANK[pending] >= RANK[kind] ? pending : kind;
+    if (timer) return;
+    timer = setTimer(() => {
+      const k = pending ?? kind;
+      pending = null;
+      timer = null;
+      publish(k);
+    }, WINDOW_MS);
+  };
+}
+
+/** Abschnitte STATUS und COMPUTER (für die Discord-Nachricht). */
+export function statusBlock(report: string): string {
+  const lines = report.split('\n');
+  const from = lines.indexOf('  STATUS AUF EINEN BLICK');
+  const to = lines.indexOf('  LAUFZEITEN');
+  if (from < 0) return '';
+  const block = lines.slice(from, to > from ? to : undefined);
+  while (block.length && block[block.length - 1] === '') block.pop();
+  return block.join('\n');
+}
+
+/** Bericht wie in „Problem melden“, mit Beschreibung „(automatisch: …)“. */
+export async function currentReport(description: string): Promise<{ report: string; statusBlock: string }> {
+  const session = get(sessionInfo);
+  const [snapshot, retention] = await Promise.all([
+    api.diagnosticsSnapshot().catch(() => null),
+    session ? api.getRetention().catch(() => null) : Promise.resolve(null),
+  ]);
+  const report = buildReport({
+    description,
+    now: new Date(),
+    route: get(route),
+    session,
+    retention,
+    actions: recentActions(),
+    snapshot,
+  });
+  return { report, statusBlock: statusBlock(report) };
+}
+
+export async function autoReport(kind: EventKind): Promise<void> {
+  try {
+    const { report, statusBlock: block } = await currentReport(`(automatisch: ${KIND_LABEL[kind]})`);
+    await api.diagnosticsPublish(kind, block, report);
+  } catch {
+    // Frühwarnung darf nie stören.
+  }
+}
+
+/** Diagnose-Ordner nach dem Öffnen einer Datei aktualisieren (nichts wird gesendet). */
+export async function writeFolderNow(): Promise<void> {
+  try {
+    const { report } = await currentReport('(automatisch: Datei geöffnet)');
+    await api.diagnosticsWriteFolder(report);
+  } catch {
+    // still
+  }
+}
+
+function readSent(): string | null {
+  try {
+    return localStorage.getItem(SENT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeSent(at: string): void {
+  try {
+    localStorage.setItem(SENT_KEY, at);
+  } catch {
+    // dann höchstens ein zweites Mal
+  }
+}
+
+let listening = false;
+const collect = createCollector((kind) => void autoReport(kind));
+
+/** Beim Programmstart: Absturz-Hinweis, einmalige Meldung, Lebenszeichen, Ereignisse abonnieren. */
+export async function startEarlyWarning(): Promise<void> {
+  const crash = await checkCrash();
+  if (crash && crash.at !== readSent()) {
+    writeSent(crash.at);
+    await autoReport('absturz');
+  } else if (await api.diagnoseHeartbeatDue().catch(() => false)) {
+    await autoReport('lebenszeichen');
+  }
+  if (listening) return;
+  listening = true;
+  try {
+    const { listen } = await import('@tauri-apps/api/event');
+    await listen<{ kind: EventKind }>('diagnose-ereignis', (e) => collect(e.payload.kind));
+  } catch {
+    listening = false;
   }
 }

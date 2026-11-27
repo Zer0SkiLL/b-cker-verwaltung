@@ -96,6 +96,16 @@ pub fn diagnostics_publish(
     Ok(())
 }
 
+/// Nur den Diagnose-Ordner neben der Datei aktualisieren (nichts wird gesendet).
+#[tauri::command(async)]
+pub fn diagnostics_write_folder(state: State<AppState>, report: String) -> AppResult<()> {
+    let db = state.with(|s| Ok(s.workspace_mut().ok().map(|w| w.path().to_path_buf())))?;
+    if let Some(db) = db {
+        diagnose::write_folder_file(&db, &identity_from_env().host, &report);
+    }
+    Ok(())
+}
+
 /// Beim Start und danach alle 15 min: liegengebliebene Nachrichten nachsenden.
 pub fn start_retry(app: &AppHandle) {
     let (Some(url), Ok(outbox)) = (webhook(), outbox_dir(app)) else {
