@@ -43,6 +43,14 @@ Entweder hat niemand in der Liste eine Mailadresse, oder es sind zu viele Adress
 
 Erstellen Sie mit **Problem melden** einen Bericht und schicken Sie ihn dem Entwickler (siehe [Problem melden](21-problem-melden.md)).
 
+## Was ist der Ordner „Mitgliederverwaltung-Diagnose“?
+
+Das Programm legt ihn neben der Datendatei an. Darin steht für jeden PC eine Textdatei mit dem aktuellen Zustand des Programms (wie der Bericht bei **Problem melden**, ohne Mitgliederdaten). Der Entwickler kann so Probleme erkennen, ohne dass Sie etwas tun müssen. Sie können den Ordner einfach stehen lassen; löschen schadet nicht.
+
+## Gelbe Leiste „Das Programm wurde letztes Mal unerwartet beendet“
+
+Das Programm hat beim letzten Mal nicht normal geschlossen, zum Beispiel nach einem Absturz oder weil der PC ausgeschaltet wurde. Alles, was Sie vorher gespeichert haben, bleibt erhalten. Mit **Problem melden** schicken Sie dem Entwickler einen Bericht, mit **Ausblenden** verschwindet die Leiste.
+
 ## Die Hilfe finden
 
 Klicken Sie auf das **?** neben dem Seitentitel oder drücken Sie **F1**. Oben in der Hilfe können Sie das ganze Handbuch durchsuchen. Ist ein Bild zu klein, klicken Sie darauf: Es erscheint dann gross. Mit **Breiter** wird die ganze Hilfe breiter.

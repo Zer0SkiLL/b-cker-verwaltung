@@ -436,3 +436,38 @@ fn message_text_strips_the_log_prefix() {
     );
     assert_eq!(message_text("Absturz: roh"), "Absturz: roh");
 }
+
+/// Echte Testnachricht an den Webhook aus `MV_DIAGNOSE_WEBHOOK` (nur von Hand:
+/// `cargo test -p verwaltung_app --test diagnose -- --ignored live_discord`).
+#[test]
+#[ignore]
+fn live_discord() {
+    let url = std::env::var("MV_DIAGNOSE_WEBHOOK").expect("MV_DIAGNOSE_WEBHOOK fehlt");
+    let report = [
+        "╔════════════════════════════════════════════════╗",
+        "║  PROBLEMBERICHT · Mitgliederverwaltung (Test)  ║",
+        "╚════════════════════════════════════════════════╝",
+        "",
+        "» (Testnachricht, fiktive Werte)",
+        "",
+        "  STATUS AUF EINEN BLICK",
+        "  [ OK ] Datei              Netzlaufwerk (S:)",
+        "  [ OK ] Schreibzugriff     schreibend",
+        "  [ OK ] Letzter Start      vorher sauber beendet",
+        "",
+        "  COMPUTER",
+        "  Prozessor  ██▌░░░░░░░░░░░░░░░░░  12 % (Programm 1 %)",
+        "  Speicher   ███████████░░░░░░░░░  9.1 / 16.0 GB",
+    ]
+    .join("\n");
+    let block = report.lines().skip(6).collect::<Vec<_>>().join("\n");
+    let msg = Message {
+        kind: Kind::Lebenszeichen,
+        host: "TEST".into(),
+        version: env!("CARGO_PKG_VERSION").into(),
+        status_block: block,
+        report,
+        at: Local::now(),
+    };
+    discord::send(&url, &msg).expect("Senden fehlgeschlagen");
+}

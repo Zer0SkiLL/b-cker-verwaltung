@@ -14,6 +14,7 @@ Mitgliederverwaltung für eine Schweizer Bäckervereinigung. Ein Desktop-Program
   - **Das Repo ist öffentlich.** Es kommen keine echten Personendaten hinein. Beispieldaten sind erkennbar fiktiv.
 - **Geheimnisse:**
   - Der Updater-Signierschlüssel liegt nur in `~/.tauri/mitgliederverwaltung.key`, das Passwort in `~/.tauri/mitgliederverwaltung.password`; dazu als GitHub-Secrets `TAURI_SIGNING_PRIVATE_KEY` und `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+  - Analysedaten (befristet bis 31.05.2027): Discord-Webhook als GitHub-Secret `DIAGNOSE_WEBHOOK_URL`, lokal in `~/.tauri/mitgliederverwaltung.diagnose-webhook`. Der Release-Build baut ihn als `MV_DIAGNOSE_WEBHOOK` ein; ohne Variable ist das Senden still aus. Abschalten für alle: Webhook in Discord löschen; per Version: `DIAGNOSE_DEFAULT`/`DIAGNOSE_UNTIL` in `crates/app/src/commands/diagnose/mod.rs`.
   - Niemals ins Repo, in Logs oder in Ausgaben.
 - **Nur mit ausdrücklicher Zustimmung des Users:**
   - Releases veröffentlichen (Entwurf → Publish)
