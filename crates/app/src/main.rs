@@ -2,9 +2,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use tauri::{Manager, RunEvent, WindowEvent};
-use verwaltung_app::tauri_commands::{catalog, close_session, data, entities, session, AppState};
+use verwaltung_app::tauri_commands::{
+    catalog, close_session, data, diagnose, entities, session, AppState,
+};
 
 fn main() {
+    // Für das Protokoll-Ziel der Frühwarnung; wird in `setup` gesetzt.
+    let handle_cell = std::sync::Arc::new(std::sync::OnceLock::new());
+    let handle_for_setup = handle_cell.clone();
     let app = tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
@@ -13,6 +18,9 @@ fn main() {
                         file_name: None,
                     }),
                     tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Dispatch(
+                        diagnose::log_target(handle_cell),
+                    )),
                 ])
                 .level(log::LevelFilter::Info)
                 .max_file_size(1_000_000)
@@ -24,12 +32,14 @@ fn main() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .setup(|app| {
+        .setup(move |app| {
             verwaltung_app::commands::diagnostics::install_panic_hook();
             log::info!("Programmstart, Version {}", env!("CARGO_PKG_VERSION"));
             verwaltung_app::commands::resources::start_peak_sampler();
+            let _ = handle_for_setup.set(app.handle().clone());
             let config_dir = app.path().app_config_dir()?;
             app.manage(AppState::new(config_dir));
+            diagnose::start_retry(app.handle());
             #[cfg(debug_assertions)]
             open_db_for_tests(app);
             Ok(())
@@ -50,6 +60,10 @@ fn main() {
             session::diagnostics_log,
             session::save_report,
             session::self_test,
+            diagnose::diagnose_settings,
+            diagnose::set_diagnose_enabled,
+            diagnose::diagnose_heartbeat_due,
+            diagnose::diagnostics_publish,
             data::search_addresses,
             data::count_active_members,
             data::export_addresses,

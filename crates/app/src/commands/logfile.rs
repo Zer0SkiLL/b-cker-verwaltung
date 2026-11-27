@@ -51,6 +51,11 @@ fn parse(line: &str) -> Option<Parsed<'_>> {
     })
 }
 
+/// Nur der Text einer Protokollzeile (ohne Datum, Zeit, Modul, Stufe).
+pub fn message_text(line: &str) -> &str {
+    parse(line).map_or(line, |p| p.text)
+}
+
 /// Alle nicht leeren Zeilen aller `.log`-Dateien des Ordners (rotierte zuerst, nach Änderungszeit).
 pub fn read_log_lines(log_dir: &Path) -> AppResult<Vec<String>> {
     if !log_dir.is_dir() {

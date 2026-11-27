@@ -2,6 +2,7 @@
 
 pub mod catalog;
 pub mod data;
+pub mod diagnose;
 pub mod entities;
 pub mod session;
 

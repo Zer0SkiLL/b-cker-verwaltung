@@ -3,6 +3,7 @@
 pub mod addresses;
 pub mod backup;
 pub mod catalog;
+pub mod diagnose;
 pub mod diagnostics;
 pub mod entities;
 pub mod import;
