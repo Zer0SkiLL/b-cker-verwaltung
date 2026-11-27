@@ -110,9 +110,74 @@ PROTOKOLL (neueste unten)
 
 Der bestehende Test `logs_contain_no_business_data` wird um Exporte erweitert. Neuer Test: der fertige Bericht einer Sitzung mit Betrieb „Bäckerei Geheim AG“ in einem Ordner „Geheimordner“ enthält weder Namen noch Pfad.
 
+## Teil 2: Frühwarnung ohne Zutun des Nutzers
+
+Absicht: Der Entwickler erfährt in der Einführungsphase von Problemen, bevor jemand **Problem melden** drückt. Befristet; der Nutzer muss nichts einrichten und soll sich nicht überwacht fühlen.
+
+### Ereignisse
+
+Ein **Ereignis** löst die Frühwarnung aus:
+
+- `absturz`: Panic (sofort) oder beim Start erkannt, dass der vorige Lauf nicht sauber endete.
+- `warnung`: Protokollzeile WARN oder ERROR. Gesammelt: das erste Ereignis startet ein Fenster von 60 s, danach ein gemeinsamer Bericht.
+- `selbsttest`: fehlgeschlagener Selbsttest (unten).
+- `langsam`: Aktion dauert länger als 2 s (als WARN protokolliert, `Langsam: <befehl> 3400 ms`), läuft damit über `warnung`.
+- `lebenszeichen`: höchstens einmal pro 7 Tage beim Start, wenn sonst nichts war.
+
+Rust erkennt WARN/ERROR über ein zusätzliches Protokoll-Ziel (`TargetKind::Dispatch`) und schickt der Oberfläche das Tauri-Ereignis `diagnose-ereignis`. Die Oberfläche baut den Bericht (gleiches `buildReport`, Beschreibung `(automatisch: <Art>)`) und ruft `diagnostics_publish(kind, report)`. Protokollzeilen, die das Senden selbst betreffen, lösen kein Ereignis aus (keine Schleife).
+
+### 1. Diagnose-Ordner neben der Datei
+
+- `<Ordner der Datei>/Mitgliederverwaltung-Diagnose/<PC-Name>.txt`, bei jedem Ereignis, beim Öffnen und beim Beenden überschrieben mit dem aktuellen Bericht.
+- Unabhängig vom Schalter „Analysedaten senden“ (bleibt im Verein).
+- Schreibfehler werden protokolliert (INFO, kein Ereignis) und sonst ignoriert. Ohne geöffnete Datei entfällt er.
+
+### 2. Hinweis nach Absturz
+
+- Beim Start, wenn der vorige Lauf nicht sauber endete: ruhige Leiste oben im Inhalt: „Das Programm wurde letztes Mal unerwartet beendet.“ mit **Problem melden** und **Ausblenden**.
+- Einmal pro Vorfall (gemerkt per `localStorage`, Schlüssel ist die Startzeit des betroffenen Laufs). Kein Dialog, blockiert nichts.
+
+### 3. Selbsttest beim Öffnen der Datei
+
+Läuft nach dem Öffnen im Hintergrund, blockiert nichts. Ergebnisse als Protokollzeilen (`Selbsttest: …`), WARN bei Befund:
+
+| Prüfung | Befund (WARN) | Nutzer sieht |
+|---|---|---|
+| `PRAGMA quick_check` | Ergebnis ≠ `ok` | Meldung: „Die Datei hat einen Fehler. Bitte melden Sie das Problem.“ |
+| Freier Platz auf dem Laufwerk der Datei | < 500 MB | Meldung: „Auf dem Laufwerk der Datei ist nur noch wenig Platz frei.“ |
+| Neueste Sicherung neben der Datei | älter als 7 Tage oder keine (nur bei schreibendem Zugriff) | nichts |
+| Dauer des Öffnens | > 3 s | nichts |
+
+Meldungen an den Nutzer nur, wenn er handeln muss, als Hinweis-Leiste wie unter 2.
+
+### 4. Langsame Aktionen
+
+In `call` (`ui/src/lib/api.ts`): Dauer > 2000 ms → `diagnostics_log('warn', 'Langsam: <befehl> <ms> ms')`. Dateidialoge laufen nicht über `call` und zählen nicht.
+
+### 5. Analysedaten senden (Discord)
+
+- **Kanal:** Discord-Webhook. Die URL wird beim Release-Build aus dem GitHub-Secret `DIAGNOSE_WEBHOOK_URL` als `option_env!("MV_DIAGNOSE_WEBHOOK")` eingebaut. Ohne Variable (CI-Tests, lokale Builds) ist das Senden still aus.
+- **Die URL erscheint nie** in Code, Protokoll, Bericht, Fehlermeldungen oder Oberfläche. Fehler von `reqwest` werden mit `without_url()` behandelt; protokolliert wird nur „Analysedaten nicht gesendet: <Grund>“.
+- **Enddatum** als Konstante im Code: `DIAGNOSE_UNTIL = 2027-03-31`. Danach sendet das Programm nicht mehr, und der Schalter ist ausgeblendet.
+- **Schalter pro PC** in **Einstellungen › Über das Programm**: „Analysedaten senden“, Vorgabe **ein** (Konstante `DIAGNOSE_DEFAULT = true`, per neuer Version änderbar). Gespeichert in der Programm-Konfiguration (`config_dir`), nicht in der Datendatei. Text darunter: „Hilft dem Entwickler in der Einführungsphase, Probleme früh zu erkennen. Es werden keine Mitgliederdaten gesendet. Endet automatisch am 31.03.2027.“ Knopf **Was wird gesendet?** zeigt den Bericht, wie er jetzt gesendet würde. Darunter „Zuletzt gesendet: <Zeit>“ oder „Noch nichts gesendet.“
+- **Nachricht:** Embed mit Titel `<Zeichen> <Art> · <PC-Name> · <Version>` (Absturz 🔴, Warnung/Selbsttest 🟠, Lebenszeichen 🟢), Beschreibung = Status-Block im Codeblock (``` … ```, höchstens 4000 Zeichen), dazu der ganze Bericht als Anhang `Problembericht-<PC>-<Zeit>.txt`.
+- **Grenzen:** höchstens 10 Nachrichten pro Tag und PC; darüber verfallen sie (eine Protokollzeile).
+- **Offline:** jede Nachricht kommt zuerst in `<app_data_dir>/ausgang/` (höchstens 20 Dateien, älteste fallen weg). Senden beim Ereignis, beim Start und alle 15 min; nach Erfolg gelöscht. Timeout 10 s.
+- **Abschalten:** Nutzer per Schalter; Entwickler per neuer Version (Vorgabe aus) oder sofort für alle durch Löschen des Webhooks in Discord (Senden schlägt dann still fehl).
+
+### Datenschutz Teil 2
+
+Gesendet wird nur der Bericht aus Teil 1 (keine Vereinsdaten, kein Pfad, kein Benutzername; PC-Name ja). Der Test „Bericht ohne Geheimnisse“ gilt auch für die automatischen Berichte. Ein Test prüft, dass Protokoll und Fehlermeldungen beim fehlgeschlagenen Senden die Webhook-URL nicht enthalten.
+
+### Reserve-Kanal
+
+GitHub-Issues in einem privaten Repo (fine-grained Token, nur Issues) bleibt als Alternative vorgemerkt, wird jetzt nicht gebaut.
+
 ## Handbuch
 
-`21-problem-melden.md`: neuer Knopf **Als Datei speichern…**, Liste „Was im Bericht steht“ erweitert, Hinweis, dass der Bericht keinen Windows-Benutzernamen enthält. Bildschirmfoto `problem-melden.png` mit dem Workflow **Bildschirmfotos** erneuern.
+- `21-problem-melden.md`: neuer Knopf **Als Datei speichern…**, Liste „Was im Bericht steht“ erweitert, Hinweis, dass der Bericht keinen Windows-Benutzernamen enthält. Bildschirmfoto `problem-melden.png` mit dem Workflow **Bildschirmfotos** erneuern.
+- Kapitel zu **Über das Programm**: Abschnitt „Analysedaten senden“ (was, wozu, bis wann, wie ausschalten) und der Diagnose-Ordner.
+- Häufige Fragen: „Was ist der Ordner Mitgliederverwaltung-Diagnose?“
 
 ## Dem Umsetzer überlassen
 
