@@ -122,6 +122,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Analysedaten (befristet): wird beim Build eingebaut, erscheint nie im Code oder Protokoll.
+          MV_DIAGNOSE_WEBHOOK: ${{ secrets.DIAGNOSE_WEBHOOK_URL }}
         with:
           projectPath: .
           tauriScript: pnpm tauri
