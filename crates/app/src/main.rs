@@ -26,6 +26,7 @@ fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             log::info!("Programmstart, Version {}", env!("CARGO_PKG_VERSION"));
+            verwaltung_app::commands::resources::start_peak_sampler();
             let config_dir = app.path().app_config_dir()?;
             app.manage(AppState::new(config_dir));
             #[cfg(debug_assertions)]
@@ -46,6 +47,7 @@ fn main() {
             session::close_file,
             session::diagnostics_log_tail,
             session::diagnostics_system,
+            session::diagnostics_snapshot,
             data::search_addresses,
             data::count_active_members,
             data::export_addresses,

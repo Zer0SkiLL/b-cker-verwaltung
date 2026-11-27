@@ -338,3 +338,45 @@ export interface ImportSummary {
 }
 
 export type ExportFormat = 'csv' | 'xlsx';
+
+// „Problem melden“: Momentaufnahme aus Rust (Zeiten RFC 3339, Speicher in Bytes, CPU in Prozent).
+export interface ResourcesDto {
+  cpuTotal: number | null;
+  cpuProgram: number | null;
+  memUsed: number | null;
+  memTotal: number | null;
+  memProgram: number | null;
+  memProgramPeak: number | null;
+  programSince: string | null;
+  computerSince: string | null;
+}
+
+export interface FileFactsDto {
+  location: string;
+  reachable: boolean;
+  size: number | null;
+  schemaVersion: number | null;
+  organisations: number | null;
+  persons: number | null;
+  activeMembers: number | null;
+  lastLocalBackup: string | null;
+  lockHost: string | null;
+  lockSince: string | null;
+  lockLikelyCrash: boolean;
+}
+
+export interface StartDto {
+  at: string;
+  /** Ob der Lauf davor sauber endete; null beim ältesten Start im Protokoll. */
+  cleanBefore: boolean | null;
+}
+
+export interface SnapshotDto {
+  system: { os: string; arch: string; version: string };
+  host: string;
+  resources: ResourcesDto;
+  file: FileFactsDto | null;
+  starts: StartDto[];
+  problemsToday: number;
+  log: string[];
+}

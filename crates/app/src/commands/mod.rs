@@ -7,6 +7,8 @@ pub mod diagnostics;
 pub mod entities;
 pub mod import;
 pub mod import_preview;
+pub mod location;
 pub mod logfile;
+pub mod resources;
 pub mod session;
 pub mod teams;
