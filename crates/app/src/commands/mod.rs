@@ -7,5 +7,6 @@ pub mod diagnostics;
 pub mod entities;
 pub mod import;
 pub mod import_preview;
+pub mod logfile;
 pub mod session;
 pub mod teams;

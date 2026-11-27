@@ -144,7 +144,9 @@ fn count_active_members_reads_only_and_counts_members() {
     use verwaltung_core::repo::memberships::{self, MembershipInput};
     let dir = tempfile::tempdir().unwrap();
     let mut s = fresh_session(dir.path());
-    let org = s.write(|c| organisations::create(c, &org_input("Beck AG"))).unwrap();
+    let org = s
+        .write(|c| organisations::create(c, &org_input("Beck AG")))
+        .unwrap();
     s.write(|c| {
         memberships::create(
             c,
