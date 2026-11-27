@@ -114,3 +114,24 @@ fn snapshot_combines_everything() {
     assert!(json.get("problemsToday").is_some());
     assert!(json["resources"].get("memProgramPeak").is_some());
 }
+
+#[test]
+fn threads_are_not_counted_as_extra_processes() {
+    // Unter Linux führt sysinfo Threads als eigene Prozesse mit dem Speicher des ganzen Prozesses.
+    let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let threads: Vec<_> = (0..16)
+        .map(|_| {
+            let stop = stop.clone();
+            std::thread::spawn(move || {
+                while !stop.load(std::sync::atomic::Ordering::Relaxed) {
+                    std::thread::sleep(std::time::Duration::from_millis(20));
+                }
+            })
+        })
+        .collect();
+    let r = measure();
+    stop.store(true, std::sync::atomic::Ordering::Relaxed);
+    threads.into_iter().for_each(|t| t.join().unwrap());
+    let (program, used) = (r.mem_program.unwrap(), r.mem_used.unwrap());
+    assert!(program <= used, "Programm {program} > belegt {used}");
+}

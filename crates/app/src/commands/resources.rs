@@ -64,9 +64,12 @@ fn rfc3339(unix_seconds: u64) -> Option<String> {
         .map(|d| d.to_rfc3339())
 }
 
+/// Nur echte Prozesse: unter Linux führt sysinfo Threads sonst als eigene Prozesse mit dem
+/// Speicher des ganzen Prozesses, das zählte den Speicher vielfach.
 fn process_table(sys: &System) -> Vec<(u32, Option<u32>, u64, f32)> {
     sys.processes()
         .iter()
+        .filter(|(_, p)| p.thread_kind().is_none())
         .map(|(pid, p)| {
             (
                 pid.as_u32(),
@@ -82,7 +85,10 @@ fn refresh_processes(sys: &mut System) {
     sys.refresh_processes_specifics(
         ProcessesToUpdate::All,
         true,
-        ProcessRefreshKind::nothing().with_memory().with_cpu(),
+        ProcessRefreshKind::nothing()
+            .with_memory()
+            .with_cpu()
+            .without_tasks(),
     );
 }
 
