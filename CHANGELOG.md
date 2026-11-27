@@ -2,6 +2,18 @@
 
 Hier steht, was in jeder Version neu ist. Die neueste Version steht oben.
 
+## [0.6.0] – 27.11.2026
+
+### Neu
+
+- Problembericht übersichtlicher und als Datei speicherbar
+- Programm prüft sich beim Öffnen und meldet Auffälligkeiten
+- Analysedaten in der Einführungsphase, abschaltbar unter Über das Programm
+
+### Behoben
+
+- Arbeitsspeicher des Programms im Problembericht unter Linux nicht mehr vielfach gezählt
+
 ## [0.5.0] – 26.11.2026
 
 ### Neu
