@@ -11,8 +11,28 @@ import * as api from './api';
 import {
   buildReport, clearActions, MAX_ENTRIES, recentActions, recordCommand, recordError, recordPage, reportOpen,
 } from './diagnostics';
+import type { SnapshotDto } from './types';
 
-const system = { os: 'Windows 11', arch: 'x86_64', version: '0.3.0' };
+const snapshot: SnapshotDto = {
+  system: { os: 'Windows 11', arch: 'x86_64', version: '0.3.0' },
+  host: 'PC-TEST',
+  resources: {
+    cpuTotal: 12, cpuProgram: 1, memUsed: 9.1 * 1024 ** 3, memTotal: 16 * 1024 ** 3, memProgram: 310 * 1024 ** 2,
+    memProgramPeak: 420 * 1024 ** 2, programSince: new Date(2026, 10, 25, 8, 1).toISOString(),
+    computerSince: new Date(2026, 10, 23, 7, 45).toISOString(),
+  },
+  file: {
+    location: 'Netzlaufwerk (S:)', reachable: true, size: 2.4 * 1024 ** 2, schemaVersion: 7, organisations: 120, persons: 340,
+    activeMembers: 410, lastLocalBackup: new Date(2026, 10, 25, 14, 0).toISOString(), lockHost: null, lockSince: null, lockLikelyCrash: false,
+  },
+  starts: [
+    { at: new Date(2026, 10, 25, 8, 1).toISOString(), cleanBefore: false },
+    { at: new Date(2026, 10, 24, 21, 33).toISOString(), cleanBefore: true },
+    { at: new Date(2026, 10, 24, 7, 58).toISOString(), cleanBefore: null },
+  ],
+  problemsToday: 1,
+  log: ['25.11. 14:00:00  WARNUNG  Zweiter Sicherungsort nicht erreichbar: os error 2'],
+};
 const session = {
   path: '/x/v.sqlite', readOnly: false, heldBy: null,
   backup: { secondaryDir: 'E:\\', lastSecondary: '2026-11-25T12:10:00Z', reminderDue: false, secondaryError: null },
@@ -20,8 +40,8 @@ const session = {
 const retention = { keepAllDays: 2, dailyDays: 14, weeklyWeeks: 8, monthlyMonths: 12, intervalMinutes: 60 };
 const report = (over: Partial<Parameters<typeof buildReport>[0]> = {}) =>
   buildReport({
-    description: '', now: new Date(2026, 10, 25, 14, 3), system, route: { page: 'addresses' },
-    session, retention, actions: recentActions(), log: ['[x][WARN] Zweiter Sicherungsort nicht erreichbar: os error 2'], ...over,
+    description: '', now: new Date(2026, 10, 25, 14, 31), route: { page: 'addresses' },
+    session, retention, actions: recentActions(), snapshot, ...over,
   });
 
 beforeEach(() => clearActions());
@@ -69,27 +89,47 @@ test('unerwartete Fehler: Objekte werden nicht ausgegeben', () => {
   expect(text).toContain('Fehler: TypeError: x is undefined');
 });
 
-test('Bericht enthält alle Abschnitte', () => {
+test('Bericht im Dashboard-Layout, Abschnitte in fester Reihenfolge', () => {
   const text = report({ description: 'Speichern ging nicht' });
-  expect(text).toContain('Problembericht Mitgliederverwaltung');
-  expect(text).toContain('Zeit: 25.11.2026 14:03');
-  expect(text).toContain('Version: 0.3.0 · Windows 11 (x86_64)');
-  expect(text).toContain('Was ist passiert?\nSpeichern ging nicht');
-  expect(text).toContain('- Seite: Adressen');
-  expect(text).toContain('- Datei: geöffnet, schreibend');
-  expect(text).toContain('- Zweiter Sicherungsort: eingerichtet, letzte Sicherung');
-  expect(text).toContain('- Aufbewahrung: 2/14/8/12, Intervall 60 min');
-  expect(text).toContain('Letzte Aktionen (neueste zuletzt)');
-  expect(text).toContain('Programm-Protokoll (letzte Einträge)\n[x][WARN] Zweiter Sicherungsort nicht erreichbar');
+  const lines = text.split('\n');
+  expect(lines[0]).toMatch(/^╔═+╗$/);
+  expect(lines[1]).toMatch(/^║  PROBLEMBERICHT · Mitgliederverwaltung 0\.3\.0 +║$/);
+  expect(lines[2]).toMatch(/^║  25\.11\.2026 14:31 · Windows 11 \(x86_64\) +║$/);
+  expect(text).toContain('» Speichern ging nicht');
+  const order = ['STATUS AUF EINEN BLICK', 'COMPUTER', 'LAUFZEITEN', 'DATEI', 'SEITE', 'LETZTE AKTIONEN (neueste unten)', 'PROTOKOLL (neueste unten)'];
+  const positions = order.map((h) => lines.indexOf(h.startsWith('LETZTE') || h.startsWith('PROTOKOLL') ? h : `  ${h}`));
+  expect(positions.every((p) => p > 0)).toBe(true);
+  expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+  expect(text).toContain('  [ OK ] Datei              Netzlaufwerk (S:)');
+  expect(text).toContain('  [ !! ] Letzter Start      vorher nicht sauber beendet');
+  expect(text).toContain('  [ !! ] Protokoll          1 Warnungen/Fehler heute');
+  expect(text).toContain('  Prozessor  ██▌░░░░░░░░░░░░░░░░░  12 % (Programm 1 %)');
+  expect(text).toContain('  Speicher   ');
+  expect(text).toContain('9.1 / 16.0 GB');
+  expect(text).toContain('310 MB (höchster Wert 420 MB)');
+  expect(text).toContain('  Programm   seit 25.11. 08:01   6 h 30 min');
+  expect(text).toContain('  Computer   seit 23.11. 07:45   2 Tage 6 h');
+  expect(text).toContain('  Starts     25.11. 08:01 · 24.11. 21:33 (!) · 24.11. 07:58');
+  expect(text).toContain('  2.4 MB · Datenbank-Version 7 · Aufbewahrung 2/14/8/12, alle 60 min');
+  expect(text).toContain('  120 Betriebe · 340 Personen · 410 aktive Mitglieder');
+  expect(text).toContain('  Adressen');
+  expect(text).toContain('  25.11. 14:00:00  WARNUNG  Zweiter Sicherungsort nicht erreichbar');
+  expect(text).not.toContain('/x/v.sqlite');
 });
 
-test('Bericht ohne Angaben, ohne Datei, mit Fehler am zweiten Ort', () => {
-  expect(report({ session: null })).toContain('(keine Angabe)');
-  expect(report({ session: null })).toContain('- Datei: keine Datei');
-  const err = report({ session: { ...session, backup: { ...session.backup, secondaryError: 'nicht erreichbar' } } });
-  expect(err).toContain('- Zweiter Sicherungsort: Fehler: nicht erreichbar');
-  const ro = report({ session: { ...session, readOnly: true } });
-  expect(ro).toContain('- Datei: nur lesend');
+test('Bericht ohne Angaben, ohne Datei und ohne Momentaufnahme', () => {
+  const text = report({ session: null, snapshot: null, retention: null });
+  expect(text).toContain('» (keine Angabe)');
+  expect(text).toContain('[ -- ] Datei              keine Datei geöffnet');
+  expect(text).not.toContain('  DATEI');
+  expect(text).not.toContain('Schreibzugriff');
+  expect(text).toContain('PROBLEMBERICHT · Mitgliederverwaltung unbekannt');
+  expect(text).toContain('  Prozessor  ░░░░░░░░░░░░░░░░░░░░  unbekannt');
+  expect(text).toContain('PROTOKOLL (neueste unten)\n  (keine)');
+});
+
+test('mehrzeilige Beschreibung bleibt eingerückt', () => {
+  expect(report({ description: 'Zeile eins\nZeile zwei' })).toContain('» Zeile eins\n  Zeile zwei');
 });
 
 test('reportOpen ist ein Store', () => {

@@ -42,21 +42,6 @@ pub fn close_file(state: State<AppState>) -> AppResult<Option<SecondaryResultDto
     state.with(|s| s.close(Local::now()))
 }
 
-#[tauri::command(async)]
-pub fn diagnostics_log_tail(app: tauri::AppHandle) -> AppResult<Vec<String>> {
-    use tauri::Manager;
-    let dir = app
-        .path()
-        .app_log_dir()
-        .map_err(|e| AppError(format!("Protokoll-Ordner unbekannt: {e}")))?;
-    crate::commands::diagnostics::log_tail(&dir)
-}
-
-#[tauri::command(async)]
-pub fn diagnostics_system() -> crate::commands::diagnostics::SystemInfoDto {
-    crate::commands::diagnostics::system_info()
-}
-
 /// Momentaufnahme für den Problembericht. Die Sitzung ist nur für die Datei-Angaben gesperrt.
 #[tauri::command(async)]
 pub fn diagnostics_snapshot(

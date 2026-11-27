@@ -46,8 +46,6 @@ fn main() {
             session::take_over,
             session::session_info,
             session::close_file,
-            session::diagnostics_log_tail,
-            session::diagnostics_system,
             session::diagnostics_snapshot,
             session::diagnostics_log,
             session::save_report,

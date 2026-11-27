@@ -4,7 +4,8 @@ import { writable } from 'svelte/store';
 import { formatDateTime } from './dates';
 import { logToFile } from './logFile';
 import type { Route } from './router';
-import type { RetentionPolicy, SessionInfo } from './types';
+import { bar, bytesGb, bytesMb, duration, formatStatus, frame, shortDateTime, statusLines } from './reportLayout';
+import type { RetentionPolicy, SessionInfo, SnapshotDto } from './types';
 
 export type ActionEntry = {
   at: string;
@@ -14,7 +15,6 @@ export type ActionEntry = {
   ms?: number;
   message?: string;
 };
-export type SystemInfo = { os: string; arch: string; version: string };
 
 export const MAX_ENTRIES = 50;
 const STORAGE_KEY = 'mv.aktionen';
@@ -112,51 +112,114 @@ function actionLine(a: ActionEntry): string {
   return `${time(a.at)} ${a.name} – ${result}`;
 }
 
-function fileState(session: SessionInfo | null): string {
-  if (!session) return 'keine Datei';
-  return session.readOnly ? 'nur lesend' : 'geöffnet, schreibend';
+const INDENT = '  ';
+const UNKNOWN = 'unbekannt';
+
+function percent(value: number | null): string {
+  return value === null ? UNKNOWN : `${Math.round(value)} %`;
 }
 
-function secondaryState(session: SessionInfo | null): string {
-  const b = session?.backup;
-  if (!b) return '–';
-  if (b.secondaryError) return `Fehler: ${b.secondaryError}`;
-  if (!b.secondaryDir) return 'nicht eingerichtet';
-  return `eingerichtet, letzte Sicherung ${b.lastSecondary ? formatDateTime(b.lastSecondary) : 'noch nie'}`;
+function since(now: Date, rfc3339: string | null): string {
+  if (!rfc3339) return UNKNOWN;
+  const seconds = (now.getTime() - new Date(rfc3339).getTime()) / 1000;
+  return `seit ${shortDateTime(rfc3339)}   ${duration(seconds)}`;
+}
+
+function computerLines(snapshot: SnapshotDto | null): string[] {
+  const r = snapshot?.resources;
+  const total = r?.memTotal ?? null;
+  const ratio = (part: number | null | undefined) => (part != null && total ? part / total : null);
+  const cpu = r?.cpuTotal != null ? `${percent(r.cpuTotal)} (Programm ${percent(r.cpuProgram)})` : UNKNOWN;
+  const mem = r?.memUsed != null && total ? `${bytesGb(r.memUsed)} / ${bytesGb(total)} GB` : UNKNOWN;
+  const peak = r?.memProgramPeak != null ? ` (höchster Wert ${bytesMb(r.memProgramPeak)})` : '';
+  const program = r?.memProgram != null ? `${bytesMb(r.memProgram)}${peak}` : UNKNOWN;
+  return [
+    `${INDENT}COMPUTER`,
+    `${INDENT}Prozessor  ${bar(r?.cpuTotal != null ? r.cpuTotal / 100 : null)}  ${cpu}`,
+    `${INDENT}Speicher   ${bar(ratio(r?.memUsed))}  ${mem}`,
+    `${INDENT}Programm   ${bar(ratio(r?.memProgram))}  ${program}`,
+  ];
+}
+
+/** Neueste zuerst; „(!)“ markiert einen Lauf, der nicht sauber endete. */
+function startsText(snapshot: SnapshotDto | null): string {
+  const starts = snapshot?.starts ?? [];
+  if (!starts.length) return UNKNOWN;
+  return starts
+    .map((s, i) => `${shortDateTime(s.at)}${starts[i - 1]?.cleanBefore === false ? ' (!)' : ''}`)
+    .join(' · ');
+}
+
+function runtimeLines(now: Date, snapshot: SnapshotDto | null): string[] {
+  return [
+    `${INDENT}LAUFZEITEN`,
+    `${INDENT}Programm   ${since(now, snapshot?.resources.programSince ?? null)}`,
+    `${INDENT}Computer   ${since(now, snapshot?.resources.computerSince ?? null)}`,
+    `${INDENT}Starts     ${startsText(snapshot)}`,
+  ];
+}
+
+function retentionText(r: RetentionPolicy | null): string {
+  return r ? `${r.keepAllDays}/${r.dailyDays}/${r.weeklyWeeks}/${r.monthlyMonths}, alle ${r.intervalMinutes} min` : UNKNOWN;
+}
+
+function fileLines(session: SessionInfo | null, snapshot: SnapshotDto | null, retention: RetentionPolicy | null): string[] {
+  if (!session) return [];
+  const f = snapshot?.file;
+  const n = (v: number | null | undefined) => (v == null ? '?' : String(v));
+  const size = f?.size != null ? bytesMb(f.size, 1) : UNKNOWN;
+  return [
+    `${INDENT}DATEI`,
+    `${INDENT}${size} · Datenbank-Version ${n(f?.schemaVersion)} · Aufbewahrung ${retentionText(retention)}`,
+    `${INDENT}${n(f?.organisations)} Betriebe · ${n(f?.persons)} Personen · ${n(f?.activeMembers)} aktive Mitglieder`,
+    '',
+  ];
+}
+
+function description(text: string): string {
+  const lines = (text.trim() || '(keine Angabe)').split('\n');
+  return [`» ${lines[0]}`, ...lines.slice(1).map((l) => `${INDENT}${l}`)].join('\n');
+}
+
+function listOrNone(lines: string[]): string[] {
+  return (lines.length ? lines : ['(keine)']).map((l) => `${INDENT}${l}`);
 }
 
 export function buildReport(input: {
   description: string;
   now: Date;
-  system: SystemInfo;
   route: Route;
   session: SessionInfo | null;
   retention: RetentionPolicy | null;
   actions: ActionEntry[];
-  log: string[];
+  snapshot: SnapshotDto | null;
 }): string {
-  const r = input.retention;
-  const retention = r
-    ? `${r.keepAllDays}/${r.dailyDays}/${r.weeklyWeeks}/${r.monthlyMonths}, Intervall ${r.intervalMinutes} min`
-    : '–';
+  const { now, session, snapshot } = input;
+  const system = snapshot?.system ?? { os: UNKNOWN, arch: UNKNOWN, version: UNKNOWN };
+  const header = frame([
+    `PROBLEMBERICHT · Mitgliederverwaltung ${system.version}`,
+    `${formatDateTime(now.toISOString())} · ${system.os} (${system.arch})`,
+  ]);
   return [
-    'Problembericht Mitgliederverwaltung',
-    `Zeit: ${formatDateTime(input.now.toISOString())}`,
-    `Version: ${input.system.version} · ${input.system.os} (${input.system.arch})`,
+    ...header,
     '',
-    'Was ist passiert?',
-    input.description.trim() || '(keine Angabe)',
+    description(input.description),
     '',
-    'Zustand',
-    `- Seite: ${pageName(input.route)}`,
-    `- Datei: ${fileState(input.session)}`,
-    `- Zweiter Sicherungsort: ${secondaryState(input.session)}`,
-    `- Aufbewahrung: ${retention}`,
+    `${INDENT}STATUS AUF EINEN BLICK`,
+    ...statusLines({ session, snapshot }).map(formatStatus),
     '',
-    'Letzte Aktionen (neueste zuletzt)',
-    ...(input.actions.length ? input.actions.map(actionLine) : ['(keine)']),
+    ...computerLines(snapshot),
     '',
-    'Programm-Protokoll (letzte Einträge)',
-    ...(input.log.length ? input.log : ['(keine)']),
+    ...runtimeLines(now, snapshot),
+    '',
+    ...fileLines(session, snapshot, input.retention),
+    `${INDENT}SEITE`,
+    `${INDENT}${pageName(input.route)}`,
+    '',
+    'LETZTE AKTIONEN (neueste unten)',
+    ...listOrNone(input.actions.map(actionLine)),
+    '',
+    'PROTOKOLL (neueste unten)',
+    ...listOrNone(snapshot?.log ?? []),
   ].join('\n');
 }
