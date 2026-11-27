@@ -65,7 +65,7 @@ pnpm testdaten                                 # vier fiktive Excel-Listen in te
 node scripts/handbuch-pdf.mjs --out /tmp/Handbuch.pdf
 ```
 
-Debug-Builds öffnen beim Start die Datei aus der Umgebungsvariable `MITGLIEDERVERWALTUNG_DB` (für E2E). Release-Builds ignorieren sie.
+Debug-Builds öffnen beim Start die Datei aus der Umgebungsvariable `MITGLIEDERVERWALTUNG_DB` (für E2E). Release-Builds ignorieren sie. Ebenso nur in Debug-Builds: `MITGLIEDERVERWALTUNG_MEHRFACH` erlaubt ein zweites Programm (sonst holt ein zweiter Start nur das offene Fenster nach vorn).
 
 ## Arbeitsweise
 

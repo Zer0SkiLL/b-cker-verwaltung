@@ -31,3 +31,14 @@ fn startup_db_is_created_then_reopened() {
         "bestehende Datei wird geöffnet (nur lesend, weil gesperrt)"
     );
 }
+
+#[test]
+fn single_instance_can_only_be_lifted_in_debug_builds() {
+    use verwaltung_app::startup::single_instance;
+    assert!(single_instance(false, None));
+    assert!(single_instance(true, None));
+    assert!(single_instance(true, Some("".into())));
+    // nur Debug-Builds (E2E: zweites Programm simuliert einen zweiten PC)
+    assert!(!single_instance(true, Some("1".into())));
+    assert!(single_instance(false, Some("1".into())));
+}

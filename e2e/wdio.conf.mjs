@@ -8,6 +8,8 @@ const exe = process.platform === 'win32' ? '.exe' : '';
 const application = resolve(import.meta.dirname, '..', 'target', 'debug', `mitgliederverwaltung${exe}`);
 const tauriDriver = process.env.TAURI_DRIVER ?? join(homedir(), '.cargo', 'bin', `tauri-driver${exe}`);
 
+// Zweites Programm erlauben (Test „zweite Instanz“ simuliert einen zweiten PC; nur Debug-Builds).
+process.env.MITGLIEDERVERWALTUNG_MEHRFACH = '1';
 // Eine frische Datei pro Lauf; das Programm öffnet sie über MITGLIEDERVERWALTUNG_DB (nur Debug-Builds).
 process.env.MITGLIEDERVERWALTUNG_DB = join(mkdtempSync(join(tmpdir(), 'mv-e2e-')), 'verband.sqlite');
 

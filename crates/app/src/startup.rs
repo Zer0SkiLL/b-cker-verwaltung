@@ -11,6 +11,14 @@ use crate::tauri_commands::AppState;
 
 pub const ENV_VAR: &str = "MITGLIEDERVERWALTUNG_DB";
 
+/// Debug-Builds: erlaubt ein zweites Programm (E2E simuliert damit einen zweiten PC).
+pub const ENV_MULTI: &str = "MITGLIEDERVERWALTUNG_MEHRFACH";
+
+/// Ob nur ein Programm laufen darf. Abschaltbar nur in Debug-Builds über [`ENV_MULTI`].
+pub fn single_instance(debug_build: bool, multi: Option<String>) -> bool {
+    !(debug_build && multi.is_some_and(|v| !v.trim().is_empty()))
+}
+
 pub fn db_from_env(value: Option<String>) -> Option<PathBuf> {
     value
         .map(|v| v.trim().to_string())
