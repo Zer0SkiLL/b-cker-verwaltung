@@ -177,3 +177,27 @@ fn runs_of_versions_without_end_marker_are_unknown() {
     // 0.5.0 schrieb noch kein Programmende
     assert_eq!(starts[2].clean_before, None);
 }
+
+#[test]
+fn both_plugin_formats_are_understood() {
+    // Ortszeit-Format des Log-Plugins: Stufe vor dem Modul
+    let local = "[2026-11-27][12:30:16][WARN][verwaltung_app::x] Langsam: y 2500 ms";
+    assert_eq!(
+        pretty_line(local),
+        "27.11. 12:30:16  WARNUNG  Langsam: y 2500 ms"
+    );
+    let lines = vec![
+        "[2026-11-27][12:30:16][INFO][mitgliederverwaltung] Programmstart, Version 0.6.0"
+            .to_string(),
+        local.to_string(),
+    ];
+    assert_eq!(
+        problems_today(&lines, NaiveDate::from_ymd_opt(2026, 11, 27).unwrap()),
+        1
+    );
+    assert_eq!(start_history(&lines, 5).len(), 1);
+    assert_eq!(
+        verwaltung_app::commands::logfile::message_text(local),
+        "Langsam: y 2500 ms"
+    );
+}

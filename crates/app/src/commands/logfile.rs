@@ -16,6 +16,7 @@ const MAX_PROBLEMS: usize = 40;
 /// Dazu immer die letzten Zeilen.
 const LAST_LINES: usize = 10;
 const GAP: &str = "…";
+const LEVELS: [&str; 5] = ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -43,10 +44,14 @@ fn parse(line: &str) -> Option<Parsed<'_>> {
         rest = &inner[end + 1..];
     }
     let date = NaiveDate::parse_from_str(groups[0], "%Y-%m-%d").ok()?;
+    // Das Log-Plugin schreibt je nach Zeitzonen-Einstellung [Modul][STUFE] oder [STUFE][Modul].
+    let level = [groups[3], groups[2]]
+        .into_iter()
+        .find(|g| LEVELS.contains(g))?;
     Some(Parsed {
         date,
         time: groups[1],
-        level: groups[3],
+        level,
         text: rest.strip_prefix(' ').unwrap_or(rest),
     })
 }
