@@ -202,3 +202,13 @@ export async function startEarlyWarning(): Promise<void> {
     listening = false;
   }
 }
+
+let checkedPath: string | null = null;
+
+/** Nach dem Öffnen: Selbsttest und Diagnose-Ordner, einmal pro Datei (auch bei mehrfacher Meldung). */
+export async function checkOpenedFile(path: string): Promise<void> {
+  if (path === checkedPath) return;
+  checkedPath = path;
+  await runSelfTest();
+  await writeFolderNow();
+}

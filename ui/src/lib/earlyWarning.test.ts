@@ -19,7 +19,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 
 import * as api from './api';
 import {
-  autoReport, checkCrash, crashNotice, createCollector, dismissNotice, earlyNotices, runSelfTest, startEarlyWarning,
+  autoReport, checkCrash, checkOpenedFile, crashNotice, createCollector, dismissNotice, earlyNotices, runSelfTest, startEarlyWarning,
   statusBlock, WINDOW_MS,
 } from './earlyWarning';
 import type { SnapshotDto, StartDto } from './types';
@@ -143,4 +143,15 @@ test('Start: Absturz einmal melden, sonst Lebenszeichen, Ereignisse sammeln', as
   await startEarlyWarning();
   expect(vi.mocked(api.diagnosticsPublish).mock.calls.map((c) => c[0])).toEqual(['absturz', 'lebenszeichen']);
   expect(eventHandler).not.toBeNull();
+});
+
+test('Selbsttest nur einmal pro Datei', async () => {
+  vi.mocked(api.selfTest).mockClear().mockResolvedValue({ integrityProblem: false, lowSpace: false, backupStale: false, slowOpen: false });
+  vi.mocked(api.diagnosticsSnapshot).mockResolvedValue(fullSnapshot);
+  await checkOpenedFile('/a.sqlite');
+  await checkOpenedFile('/a.sqlite');
+  expect(api.selfTest).toHaveBeenCalledTimes(1);
+  expect(api.diagnosticsWriteFolder).toHaveBeenCalled();
+  await checkOpenedFile('/b.sqlite');
+  expect(api.selfTest).toHaveBeenCalledTimes(2);
 });

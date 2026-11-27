@@ -174,16 +174,28 @@ fn local_rfc3339(date: NaiveDate, time: &str) -> Option<String> {
         .map(|d| d.to_rfc3339())
 }
 
-/// Die letzten `limit` Programmstarts, neueste zuerst.
+/// Erst ab Version 0.6.0 steht „Programmende“ im Protokoll.
+fn writes_end_marker(start_text: &str) -> bool {
+    let version = start_text.rsplit(' ').next().unwrap_or("");
+    let mut parts = version.split('.').map(|p| p.parse::<u32>().unwrap_or(0));
+    let (major, minor) = (parts.next().unwrap_or(0), parts.next().unwrap_or(0));
+    (major, minor) >= (0, 6)
+}
+
+/// Die letzten `limit` Programmstarts, neueste zuerst. Ob der Lauf davor sauber endete, ist
+/// nur bekannt, wenn dessen Version „Programmende“ schon protokollierte.
 pub fn start_history(lines: &[String], limit: usize) -> Vec<StartDto> {
     let mut starts: Vec<StartDto> = Vec::new();
     let mut ended_since_start = false;
+    let mut previous_knows_end: Option<bool> = None;
     for p in lines.iter().filter_map(|l| parse(l)) {
         if p.text.starts_with(START_MARKER) {
-            let clean_before = (!starts.is_empty()).then_some(ended_since_start);
+            let clean_before =
+                previous_knows_end.and_then(|knows| knows.then_some(ended_since_start));
             if let Some(at) = local_rfc3339(p.date, p.time) {
                 starts.push(StartDto { at, clean_before });
             }
+            previous_knows_end = Some(writes_end_marker(p.text));
             ended_since_start = false;
         } else if p.text.starts_with(END_MARKER) {
             ended_since_start = true;

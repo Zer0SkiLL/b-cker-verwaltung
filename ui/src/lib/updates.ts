@@ -84,6 +84,8 @@ export async function installUpdate(deps = defaultDeps): Promise<void> {
     let total: number | null = null;
     let received = 0;
     updateState.set({ kind: 'installing', percent: null, note });
+    // Der Installer beendet das Programm ohne normales Ende; so gilt das nicht als Absturz.
+    (deps.log ?? logToFile)('info', 'Programmende (Update)');
     await update.downloadAndInstall((e) => {
       if (e.event === 'Started') total = e.data.contentLength ?? null;
       if (e.event === 'Progress') received += e.data.chunkLength;

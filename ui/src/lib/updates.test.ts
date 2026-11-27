@@ -136,3 +136,13 @@ test('Update-Prüfung landet im Protokoll', async () => {
   await checkForUpdates({ silent: true }, deps({ log, check: vi.fn(async () => { throw new Error('offline'); }) }));
   expect(log).toHaveBeenCalledWith('warn', 'Update-Prüfung fehlgeschlagen');
 });
+
+test('vor dem Installieren steht das Programmende im Protokoll', async () => {
+  const log = vi.fn();
+  const d = deps({ log });
+  await checkForUpdates({ silent: true }, d);
+  await installUpdate(d);
+  expect(log).toHaveBeenCalledWith('info', 'Programmende (Update)');
+  const calls = (d as UpdateDeps & { calls: string[] }).calls;
+  expect(calls.indexOf('download')).toBeGreaterThan(-1);
+});

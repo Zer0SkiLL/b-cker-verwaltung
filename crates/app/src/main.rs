@@ -23,6 +23,8 @@ fn main() {
                     )),
                 ])
                 .level(log::LevelFilter::Info)
+                // Ortszeit, damit Protokoll und Bericht dieselben Uhrzeiten zeigen.
+                .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
                 .max_file_size(1_000_000)
                 .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepOne)
                 .build(),

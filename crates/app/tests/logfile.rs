@@ -87,14 +87,14 @@ fn start_history_detects_unclean_ends() {
             "2026-11-25",
             "08:00:00",
             "INFO",
-            "Programmstart, Version 0.5.0",
+            "Programmstart, Version 0.6.0",
         ),
         line("2026-11-25", "17:00:00", "INFO", "Programmende"),
         line(
             "2026-11-26",
             "08:00:00",
             "INFO",
-            "Programmstart, Version 0.5.0",
+            "Programmstart, Version 0.6.0",
         ),
         line(
             "2026-11-26",
@@ -139,4 +139,41 @@ fn read_log_lines_reads_all_files_and_skips_empty() {
     assert!(read_log_lines(&dir.path().join("fehlt"))
         .unwrap()
         .is_empty());
+}
+
+#[test]
+fn runs_of_versions_without_end_marker_are_unknown() {
+    let lines = vec![
+        line(
+            "2026-11-26",
+            "08:00:00",
+            "INFO",
+            "Programmstart, Version 0.5.0",
+        ),
+        line(
+            "2026-11-27",
+            "08:00:00",
+            "INFO",
+            "Programmstart, Version 0.6.0",
+        ),
+        line("2026-11-27", "09:00:00", "INFO", "Programmende (Update)"),
+        line(
+            "2026-11-27",
+            "09:01:00",
+            "INFO",
+            "Programmstart, Version 0.6.1",
+        ),
+        line(
+            "2026-11-27",
+            "10:00:00",
+            "INFO",
+            "Programmstart, Version 0.6.1",
+        ),
+    ];
+    let starts = start_history(&lines, 5);
+    assert_eq!(starts[0].clean_before, Some(false));
+    // „Programmende (Update)“ zählt als sauber
+    assert_eq!(starts[1].clean_before, Some(true));
+    // 0.5.0 schrieb noch kein Programmende
+    assert_eq!(starts[2].clean_before, None);
 }
